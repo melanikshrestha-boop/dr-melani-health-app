@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block body_class %}gym-session-page{% endblock %}
+{% block header %}Health / {{ plan.title }}{% endblock %}
+{% block content %}
+<div class="gym-page gym-session" data-day="{{ day_key }}">
+  <div id="set_celebrate" class="set-celebrate" hidden aria-live="polite">
+    <div class="set-celebrate-bubbles" aria-hidden="true"></div>
+    <div id="confetti_layer" class="confetti-layer" aria-hidden="true"></div>
+    <div class="set-celebrate-card">
+      <p class="set-celebrate-msg" id="celebrate_msg"></p>
+      <div class="set-celebrate-timer" id="celebrate_timer" hidden>
+        <p class="celebrate-timer-label">Rest</p>
+        <p class="celebrate-timer-count" id="celebrate_timer_count">2:00</p>
+        <p class="celebrate-timer-hint" id="celebrate_timer_hint"></p>
+        <div class="celebrate-timer-actions">
+          <button type="button" class="secondary small" id="celebrate_add_30">+30s</button>
+          <button type="button" class="secondary small" id="celebrate_skip">Skip rest</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card notion-hero">
+    {% if day_key.startswith('cardio_') %}
+    <a href="/gym/cardio" class="breadcrumb">← Cardio</a>
+    {% elif day_key.startswith('upper_abs_') %}
+    <a href="/gym/upper" class="breadcrumb">← Upper body + Abs</a>
+    {% else %}
+    <a href="/gym/lower" class="breadcrumb">← Lower body</a>
+    {% endif %}
+    <h2 class="hero-title">{{ plan.emoji }} {{ plan.title }}</h2>
+    <p class="muted">Check off each set when you finish it.</p>
+    <button type="button" class="secondary small" id="reset_workout">Reset sets</button>
+  </div>
+
+  {% if plan.placeholder and (not plan.sections or not plan.sections[0].items) %}
+  <div class="card gym-session-placeholder">
+    <p>{{ plan.placeholder }}</p>
+  </div>
+  {% endif %}
+
+  {% for section in plan.sections %}
+  <section class="gym-session-block{% if section.title %} gym-session-block-{{ section.id }}{% else %} gym-session-block-plain{% endif %}">
+    {% if section.title %}
+    <header class="gym-session-block-head">
+      <div class="gym-session-block-head-inner">
+        {% if section.id == 'upper' %}
+        <p class="gym-session-block-kicker">Strength</p>
+        {% elif section.id == 'abs' %}
+        <p class="gym-session-block-kicker">Core</p>
+        {% endif %}
+        <h2 class="gym-session-block-title">{{ section.title }}</h2>
+      </div>
+    </header>
+    {% endif %}
+    <div class="gym-session-block-body">
+  {% for item in section['items'] %}
+  <div class="card workout-section exercise-card{% if item.checked %} exercise-done{% endif %}" data-item-id="{{ item.id }}">
+    {% if item.superset_group %}
+    <span class="superset-badge">Superset {{ item.superset_group }}</span>
+    {% endif %}
+    <h3 class="section-title">{{ item.display_name or item.name or item.text }}</h3>
+    {% if item.subtitle %}<p class="exercise-subtitle">{{ item.subtitle }}</p>{% endif %}
+    <p class="exercise-meta">
+      {{ item.sets|length }} sets
+      {% if item.reps_label %} · {{ item.reps_label }}{% endif %}
+      {% if item.rest_label %} · rest {{ item.rest_label }}{% endif %}
+    </p>
+
+    {% if item.notes or item.instructions %}
+    <details class="exercise-notes">
+      <summary>{{ item.notes_label or 'Notes' }}</summary>
+      {% if item.notes %}
+      {% if item.instructions %}
+      <p class="exercise-notes-section-label">Notes</p>
+      {% endif %}
+      <ul class="exercise-notes-list">
+        {% for note in item.notes %}
+        <li>{{ note }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if item.instructions %}
+      <p class="exercise-notes-section-label{% if item.notes %} is-instructions{% endif %}">Instructions</p>
+      <ul class="exercise-notes-list exercise-instructions-list">
+        {% for step in item.instructions %}
+        <li>{{ step }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </details>
+    {% endif %}
+
+    <ul class="set-checklist">
+      {% for s in item.sets %}
+      <li class="set-check-item{% if s.done %} set-done{% endif %}{% if s.failure %} set-failure{% endif %}"
+        data-set-index="{{ loop.index0 }}"
+        data-failure="{{ 'true' if s.failure else 'false' }}">
+        <label class="set-check-row">
+          <span class="set-check-ui">
+            <input type="checkbox" class="set-check"{% if s.done %} checked{% endif %}>
+            <span class="set-check-box" aria-hidden="true"></span>
+          </span>
+          <span class="set-check-label">Set {{ loop.index }} · {{ s.display }}</span>
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<script src="/static/gym_session.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "content/base.html" %}
+{% block title %}Workflows{% endblock %}
+{% block content %}
+{% for w in workflows %}
+<div class="card content-card setup-card">
+  <div class="setup-head">
+    <div>
+      <h3>{{ w.name }}</h3>
+      <p class="setup-tagline">
+        {% if w.kind == 'short_bundle' %}
+        {{ w.destinations_list|join(' · ') }}
+        {% elif w.kind == 'linkedin' %}
+        Daily
+        {% else %}
+        Weekly
+        {% endif %}
+      </p>
+    </div>
+    <form method="post" action="/workflows/toggle/{{ w.id }}">
+      <input type="hidden" name="enabled" value="{% if w.enabled %}0{% else %}1{% endif %}">
+      <button type="submit" class="content-btn small {% if w.enabled %}secondary{% endif %}">
+        {% if w.enabled %}Pause{% else %}On{% endif %}
+      </button>
+    </form>
+  </div>
+
+  <p class="muted">{{ w.queue_count }} queued · {{ w.max_per_day }}/day max</p>
+
+  <ul class="setup-checklist">
+    {% for slot in w.schedule_slots_list %}
+    <li>{{ slot.days|join(', ') if slot.days else 'daily' }} · {{ slot.time }}</li>
+    {% endfor %}
+  </ul>
+
+  {% if w.kind == 'short_bundle' %}
+  <a href="/create?kind=bundle" class="content-btn small">Upload</a>
+  {% elif w.kind == 'linkedin' %}
+  <a href="/create?kind=linkedin" class="content-btn small">New post</a>
+  {% else %}
+  <a href="/create?kind=youtube" class="content-btn small">Upload</a>
+  {% endif %}
+</div>
+{% endfor %}
+
+<section class="content-section">
+  <h2 class="section-title">Queue</h2>
+  {% if queue %}
+  {% for q in queue %}
+  <div class="card content-card item-row">
+    <strong>{{ q.base_caption or 'Video' }}</strong>
+    <p class="muted">{{ q.workflow_name }}</p>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="muted">Empty</p>
+  {% endif %}
+</section>
+{% endblock %}

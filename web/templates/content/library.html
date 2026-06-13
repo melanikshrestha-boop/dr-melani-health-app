@@ -1,0 +1,44 @@
+{% extends "content/base.html" %}
+{% block title %}Library{% endblock %}
+{% block content %}
+<section class="content-section">
+  <h2 class="section-title">Drafts &amp; recent</h2>
+  <p class="muted">Drop videos in <code>~/.melani_assistant/content_inbox/</code> — they appear here as drafts.</p>
+  {% if not items %}
+  <div class="card content-card">
+    <p class="muted">Library is empty.</p>
+    <a href="/create" class="content-btn block">Create your first post</a>
+  </div>
+  {% else %}
+  {% for item in items %}
+  <div class="card content-card item-row">
+    <span class="badge {{ item.kind }}">{{ item.kind }}</span>
+    {% if item.kind == 'bundle' %}
+      <strong>{{ item.base_caption or 'Short bundle' }}</strong>
+      <p class="muted">{{ item.status }}{% if item.scheduled_at %} · {{ item.scheduled_at }}{% endif %}</p>
+      <form method="post" action="/library/publish/bundle/{{ item.id }}" style="margin-top:8px">
+        <button type="submit" class="content-btn small">Publish now</button>
+      </form>
+      {% if item.status == 'partial' %}
+      <form method="post" action="/library/retry/{{ item.id }}" style="margin-top:8px">
+        <button type="submit" class="content-btn small secondary">Retry failed</button>
+      </form>
+      {% endif %}
+    {% elif item.kind == 'linkedin' %}
+      <strong>{{ item.body[:80] }}{% if item.body|length > 80 %}…{% endif %}</strong>
+      <p class="muted">{{ item.status }}</p>
+      <form method="post" action="/library/publish/linkedin/{{ item.id }}" style="margin-top:8px">
+        <button type="submit" class="content-btn small">Publish now</button>
+      </form>
+    {% else %}
+      <strong>{{ item.title }}</strong>
+      <p class="muted">{{ item.status }}{% if item.is_short %} · Short{% endif %}</p>
+      <form method="post" action="/library/publish/youtube/{{ item.id }}" style="margin-top:8px">
+        <button type="submit" class="content-btn small">Publish now</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endblock %}

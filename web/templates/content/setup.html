@@ -1,0 +1,112 @@
+{% extends "content/base.html" %}
+{% block title %}Setup{% endblock %}
+{% block content %}
+<section class="content-section">
+  <h2 class="section-title">Accounts</h2>
+  <div class="link-grid">
+    {% for p in platforms %}
+    {% if p.profile_url %}
+    <a class="link-tile profile" href="{{ p.profile_url }}" target="_blank" rel="noopener">
+      <strong>{{ p.platform|title }}</strong>
+      <span>Open my profile ↗</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Connect</h2>
+
+  {% if request.query_params.get('connected') %}
+  <div class="content-success">Connected {{ request.query_params.get('connected')|title }} ✓</div>
+  {% endif %}
+  {% if request.query_params.get('error') %}
+  <div class="content-error">{{ request.query_params.get('error') }}</div>
+  {% endif %}
+  {% if request.query_params.get('saved') %}
+  <div class="content-success">Settings saved ✓</div>
+  {% endif %}
+
+  {% for p in platforms %}
+  <div class="card content-card setup-card">
+    <div class="setup-head">
+      <div>
+        <h3>{{ p.platform|title }}</h3>
+        <p class="setup-tagline">{{ p.tagline }}</p>
+      </div>
+      <span class="status-dot {% if p.ready %}ready{% elif p.connected %}partial{% else %}off{% endif %}" title="{% if p.ready %}Ready{% elif p.connected %}Connected{% else %}Not connected{% endif %}"></span>
+    </div>
+
+    {% if p.account_name %}
+    <p class="content-success small">Connected as {{ p.account_name }}{% if p.connected_at %} · {{ p.connected_at[:10] }}{% endif %}</p>
+    {% endif %}
+
+    <p class="setup-label">Developer links — tap to open</p>
+    <div class="link-grid compact">
+      {% for link in p.links %}
+      <a class="link-tile dev" href="{{ link.url }}" target="_blank" rel="noopener">
+        <strong>{{ link.label }}</strong>
+        <span>{{ link.hint }}</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    {% if p.redirect_uri %}
+    <div class="redirect-box">
+      <span class="setup-label">Paste this redirect URI in the developer app</span>
+      <code class="redirect-uri">{{ p.redirect_uri }}</code>
+    </div>
+    {% endif %}
+
+    <div class="setup-actions">
+      {% if p.credentials_configured %}
+        {% if p.connected %}
+        <form method="post" action="/setup/disconnect/{{ p.platform }}">
+          <button type="submit" class="content-btn small secondary">Disconnect</button>
+        </form>
+        {% else %}
+        <a href="/oauth/{{ p.platform }}/start" class="content-btn">Connect {{ p.platform|title }}</a>
+        {% endif %}
+      {% else %}
+      <p class="muted small">Add {{ p.missing_credentials|join(' + ') }} below, tap Save, then Connect.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">API credentials</h2>
+  <p class="muted">Copy from each developer portal above. Saved only on your Mac.</p>
+  <form class="card content-card content-form" method="post" action="/setup/config">
+    <h3>YouTube (Google Cloud)</h3>
+    <label>Client ID<input type="text" name="youtube_client_id" value="{{ config.platforms.youtube.client_id }}" autocomplete="off"></label>
+    <label>Client Secret<input type="password" name="youtube_client_secret" value="{{ config.platforms.youtube.client_secret }}" autocomplete="off"></label>
+
+    <h3>LinkedIn</h3>
+    <label>Client ID<input type="text" name="linkedin_client_id" value="{{ config.platforms.linkedin.client_id }}" autocomplete="off"></label>
+    <label>Client Secret<input type="password" name="linkedin_client_secret" value="{{ config.platforms.linkedin.client_secret }}" autocomplete="off"></label>
+
+    <h3>Instagram (Meta)</h3>
+    <label>App ID<input type="text" name="instagram_app_id" value="{{ config.platforms.instagram.app_id }}" autocomplete="off"></label>
+    <label>App Secret<input type="password" name="instagram_app_secret" value="{{ config.platforms.instagram.app_secret }}" autocomplete="off"></label>
+
+    <h3>TikTok</h3>
+    <label>Client Key<input type="text" name="tiktok_client_key" value="{{ config.platforms.tiktok.client_key }}" autocomplete="off"></label>
+    <label>Client Secret<input type="password" name="tiktok_client_secret" value="{{ config.platforms.tiktok.client_secret }}" autocomplete="off"></label>
+
+    <h3>Your profile URLs (optional edit)</h3>
+    <label>YouTube<input type="url" name="profile_youtube" value="{{ config.profiles.youtube }}"></label>
+    <label>LinkedIn<input type="url" name="profile_linkedin" value="{{ config.profiles.linkedin }}"></label>
+    <label>Instagram<input type="url" name="profile_instagram" value="{{ config.profiles.instagram }}"></label>
+    <label>TikTok<input type="url" name="profile_tiktok" value="{{ config.profiles.tiktok }}"></label>
+
+    <h3>Posting defaults</h3>
+    <label>LinkedIn daily time<input type="time" name="linkedin_daily_time" value="{{ config.linkedin_daily_time }}"></label>
+    <label>YouTube weekly time<input type="time" name="youtube_weekly_time" value="{{ config.youtube_weekly_time }}"></label>
+
+    <button type="submit" class="content-btn">Save credentials</button>
+  </form>
+</section>
+{% endblock %}

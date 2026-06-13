@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block header %}Health / Hygiene{% endblock %}
+{% block content %}
+<div class="card notion-hero">
+  <div class="hero-icon">🧴</div>
+  <h2 class="hero-title">Hygiene & skincare</h2>
+  {% for c in all_week_strip if c.is_today %}
+  <p class="gym-today-label">Today · {% if c.routine_label %}{{ c.routine_emoji }} {{ c.routine_label }}{% else %}Pick a routine below{% endif %}</p>
+  {% endfor %}
+  {% for c in all_week_strip if c.is_today and c.routine_types %}
+    {% for rt in c.routine_types %}
+  <a href="{{ hygiene_hrefs.get(rt, '/hygiene') }}" class="today-workout-link">{{ (shower_routine_types.get(rt) or skincare_routine_types.get(rt)).emoji }} {{ (shower_routine_types.get(rt) or skincare_routine_types.get(rt)).label }} →</a>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<section class="hygiene-routine-block hygiene-routine-block-shower">
+  <h3 class="hygiene-routine-block-title">Shower routine</h3>
+
+<div class="card gym-week-card">
+  <p class="gym-week-title">This week</p>
+  {% if hygiene_alert %}
+  <div class="gym-plan-alert gym-plan-alert-{{ hygiene_alert.level }}" role="alert">{{ hygiene_alert.message }}</div>
+  {% endif %}
+  <div class="gym-week-strip" id="hygiene_week_strip">
+    {% for c in week_strip %}
+    <a href="{{ c.href }}" class="gym-week-day{% if c.is_today %} is-today{% endif %}{% for css in c.routine_css_classes %} is-workout-{{ css }}{% endfor %}" data-day="{{ c.day_key }}" data-full="{{ c.full }}" title="{{ c.full }}{% if c.routine_label %} · {{ c.routine_label }}{% endif %}">
+      <span class="gym-week-dow">{{ c.initial }}</span>
+      <span class="gym-week-num">{{ c.date_num }}</span>
+      <span class="gym-week-tag">{% if c.routine_emoji %}{{ c.routine_emoji }}{% elif c.is_today %}•{% endif %}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <details class="gym-week-plan-details" id="hygiene_week_plan_details">
+    <summary>Choose routines for this week</summary>
+    <div id="hygiene_plan_alert" class="gym-plan-alert gym-plan-alert-block" hidden role="alert"></div>
+    <form method="post" action="/hygiene/week-plan?category=shower" class="gym-week-plan-form" id="hygiene_week_plan_form">
+      <div class="gym-plan-hidden-fields" id="hygiene_plan_hidden_fields"></div>
+      {% for type_id, meta in routine_types.items() %}
+      <div class="gym-plan-type-row gym-plan-type-{{ meta.css }}"
+        data-type="{{ type_id }}"
+        data-max="{{ meta.get('max_days', '') }}">
+        <p class="gym-plan-type-label">
+          <span class="gym-plan-type-emoji">{{ meta.emoji }}</span>
+          {{ meta.label }}
+          {% if meta.get('hint') %}<span class="gym-plan-type-hint">{{ meta.hint }}</span>{% endif %}
+        </p>
+        <div class="gym-plan-day-picks">
+          {% for c in week_strip %}
+          <button type="button"
+            class="gym-day-pick{% if c.day_key in (week_plan.get(type_id) or []) %} is-on{% endif %}"
+            data-workout-type="{{ type_id }}"
+            data-day="{{ c.day_key }}"
+            data-day-label="{{ c.label }}"
+            aria-pressed="{% if c.day_key in (week_plan.get(type_id) or []) %}true{% else %}false{% endif %}">
+            <span class="gym-day-pick-inner">
+              <span class="gym-day-pick-badge" aria-hidden="true"></span>
+              <span class="gym-day-pick-label">{{ c.label }}</span>
+            </span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      <button type="submit" class="gym-plan-save-btn">Save week</button>
+    </form>
+  </details>
+</div>
+
+<div class="card hygiene-daily-entry">
+  <a href="/hygiene/daily-shower" class="hygiene-daily-entry-link">
+    <span class="page-emoji">🚿</span>
+    <span>
+      <strong>Daily shower</strong>
+      <small>Quick wash days</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+
+<div class="card hygiene-everything-entry">
+  <a href="/hygiene/everything-shower" class="hygiene-everything-entry-link">
+    <span class="page-emoji">🛁</span>
+    <span>
+      <strong>Everything shower</strong>
+      <small>Full routine · scrub, hair, skincare</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+
+<div class="card hygiene-hair-entry">
+  <a href="/hygiene/hair-care" class="hygiene-hair-entry-link">
+    <span class="page-emoji">💇</span>
+    <span>
+      <strong>Hair care</strong>
+      <small>Wash day · 2× this week</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+</section>
+
+<section class="hygiene-routine-block hygiene-routine-block-skincare">
+  <h3 class="hygiene-routine-block-title">Skincare routine</h3>
+
+  <div class="card hygiene-am-entry">
+    <a href="/hygiene/am-skincare" class="hygiene-am-entry-link">
+      <span class="page-emoji">☀️</span>
+      <span>
+        <strong>AM skincare</strong>
+        <small>Daily morning routine</small>
+      </span>
+      <span class="page-chevron">→</span>
+    </a>
+  </div>
+
+  <div class="card hygiene-pm-entry-link-card">
+    <a href="/hygiene/pm-skincare" class="hygiene-pm-hub-entry-link">
+      <span class="page-emoji">🌙</span>
+      <span>
+        <strong>PM skincare</strong>
+        <small>Four night types · see calendar for days</small>
+      </span>
+      <span class="page-chevron">→</span>
+    </a>
+  </div>
+</section>
+
+<details class="card hygiene-products-card" id="hygiene_products_card">
+  <summary class="hygiene-collapse-summary">
+    <span class="hygiene-section-title">Products & restock</span>
+    <span class="hygiene-calendar-meta" id="hygiene_products_meta">{{ hygiene_products_summary }}</span>
+  </summary>
+  <div class="hygiene-products-body">
+    <div class="hygiene-lane-tabs" role="tablist">
+      <button type="button" class="hygiene-lane-tab active" data-lane="using">Using</button>
+      <button type="button" class="hygiene-lane-tab" data-lane="researching">Researching</button>
+      <button type="button" class="hygiene-lane-tab" data-lane="buy_next">Buy next</button>
+    </div>
+
+    <div class="hygiene-lane-panel active" data-lane-panel="using">
+      <ul class="hygiene-products-list" id="hygiene_products_using">
+        {% for p in hygiene_products_by_lane.using %}
+        <li class="hygiene-product-row product-level-{{ p.level }}" data-product-id="{{ p.id }}" data-lane="using">
+          <span class="hygiene-product-name">{{ p.name }}<small class="hygiene-product-cat">{{ p.category }}</small></span>
+          <div class="hygiene-product-levels">
+            <button type="button" class="hygiene-level-btn{% if p.level == 'ok' %} active{% endif %}" data-level="ok">OK</button>
+            <button type="button" class="hygiene-level-btn{% if p.level == 'low' %} active{% endif %}" data-level="low">Low</button>
+            <button type="button" class="hygiene-level-btn{% if p.level == 'out' %} active{% endif %}" data-level="out">Out</button>
+          </div>
+          <button type="button" class="secondary small hygiene-product-move" data-lane="researching" title="Move to Researching">→</button>
+          <button type="button" class="hygiene-product-delete secondary small" aria-label="Remove product">×</button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if not hygiene_products_by_lane.using %}
+      <p class="zone-hint hygiene-products-empty" data-lane-empty="using">Products you use now — mark Low or Out when restocking.</p>
+      {% endif %}
+    </div>
+
+    <div class="hygiene-lane-panel" data-lane-panel="researching">
+      <ul class="hygiene-products-list" id="hygiene_products_researching">
+        {% for p in hygiene_products_by_lane.researching %}
+        <li class="hygiene-product-row" data-product-id="{{ p.id }}" data-lane="researching">
+          <div class="hygiene-product-info">
+            <span class="hygiene-product-name">{{ p.name }}<small class="hygiene-product-cat">{{ p.category }}</small></span>
+            {% if p.note %}<span class="hygiene-product-note">{{ p.note }}</span>{% endif %}
+          </div>
+          <button type="button" class="secondary small hygiene-product-move" data-lane="buy_next">Buy next</button>
+          <button type="button" class="secondary small hygiene-product-move" data-lane="using">Using</button>
+          <button type="button" class="hygiene-product-delete secondary small" aria-label="Remove product">×</button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if not hygiene_products_by_lane.researching %}
+      <p class="zone-hint hygiene-products-empty" data-lane-empty="researching">Things you're looking into — add a short note why.</p>
+      {% endif %}
+    </div>
+
+    <div class="hygiene-lane-panel" data-lane-panel="buy_next">
+      <ul class="hygiene-products-list" id="hygiene_products_buy_next">
+        {% for p in hygiene_products_by_lane.buy_next %}
+        <li class="hygiene-product-row{% if p.shop_added %} hygiene-product-shopped{% endif %}" data-product-id="{{ p.id }}" data-lane="buy_next">
+          <div class="hygiene-product-info">
+            <span class="hygiene-product-name">{{ p.name }}<small class="hygiene-product-cat">{{ p.category }}</small></span>
+            {% if p.note %}<span class="hygiene-product-note">{{ p.note }}</span>{% endif %}
+          </div>
+          {% if p.shop_added %}
+          <span class="hygiene-shop-added muted">In Shop</span>
+          {% else %}
+          <button type="button" class="btn small hygiene-shop-add">Add to Shop</button>
+          {% endif %}
+          <button type="button" class="secondary small hygiene-product-move" data-lane="using">Using</button>
+          <button type="button" class="hygiene-product-delete secondary small" aria-label="Remove product">×</button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if not hygiene_products_by_lane.buy_next %}
+      <p class="zone-hint hygiene-products-empty" data-lane-empty="buy_next">Decided purchases — push to Shop when ready.</p>
+      {% endif %}
+    </div>
+
+    <div class="hygiene-add-product row">
+      <input type="text" class="add-item-input" id="hygiene_product_input" placeholder="Product name" enterkeyhint="done">
+      <select id="hygiene_product_category" aria-label="Category">
+        {% for cat in product_categories %}
+        <option value="{{ cat }}">{{ cat|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <select id="hygiene_product_lane" aria-label="Lane">
+        <option value="using">Using</option>
+        <option value="researching">Researching</option>
+        <option value="buy_next">Buy next</option>
+      </select>
+      <input type="text" class="add-item-input hygiene-product-note-input" id="hygiene_product_note" placeholder="Note (optional)">
+      <button type="button" class="btn small" id="hygiene_product_add">Add</button>
+    </div>
+  </div>
+</details>
+
+<script>
+  window.hygieneWeekOrder = {{ shower_week_strip | map(attribute='day_key') | list | tojson }};
+  window.hygieneRoutineTypes = {{ shower_routine_types | tojson }};
+  window.hygieneSkincareRoutineTypes = {};
+  window.hygieneWeekPlan = {{ week_plan | tojson }};
+</script>
+<script src="/static/hygiene_week_plan.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/hygiene.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

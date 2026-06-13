@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block header %}Health / {{ plan.title }}{% endblock %}
+{% block content %}
+<div class="gym-page" data-day="{{ day_key }}">
+  <div class="card notion-hero">
+    <a href="/gym" class="breadcrumb">← Gym</a>
+    <h2 class="hero-title">{{ plan.emoji }} {{ plan.title }}</h2>
+    {% if plan.subtitle %}<p class="muted">{{ plan.subtitle }}</p>{% endif %}
+    <button type="button" class="secondary small" id="reset_workout">Reset checklist</button>
+    <button type="button" class="secondary small" id="edit_mode_toggle">Edit plan</button>
+  </div>
+
+  <div id="workout_sections">
+    {% for section in plan.sections %}
+    <div class="card workout-section" data-section-id="{{ section.id }}">
+      {% if section.title %}<h3 class="section-title">{{ section.title }}</h3>{% endif %}
+      <ul class="workout-checklist">
+        {% for item in section['items'] %}
+        <li class="workout-item {% if item.checked %}done{% endif %}" data-item-id="{{ item.id }}">
+          <label class="check-row">
+            <input type="checkbox" class="item-check" {% if item.checked %}checked{% endif %}>
+            <span class="item-text" contenteditable="false">{{ item.text }}</span>
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="add-item-panel" hidden data-section="{{ section.id }}">
+        <select class="add-item-select">
+          <option value="">Pick exercise or type custom below…</option>
+          {% for ex in exercise_catalog %}
+          <option value="{{ ex }}">{{ ex.split('—')[0].strip() }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" class="add-item-input" placeholder="Or type custom — Hip Thrusts — 4 x 12" enterkeyhint="done">
+        <div class="row add-item-actions">
+          <button type="button" class="btn small add-item-save">Add</button>
+          <button type="button" class="secondary small add-item-cancel">Cancel</button>
+        </div>
+      </div>
+      <button type="button" class="add-item-btn secondary small" data-section="{{ section.id }}">+ Add exercise</button>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="add_section_panel" class="card add-section-panel" hidden>
+    <input type="text" id="add_section_input" placeholder="Section name — e.g. Cool down" enterkeyhint="done">
+    <div class="row add-item-actions">
+      <button type="button" class="btn small" id="add_section_save">Add section</button>
+      <button type="button" class="secondary small" id="add_section_cancel">Cancel</button>
+    </div>
+  </div>
+  <button type="button" class="secondary small" id="add_section_btn" style="margin-bottom:24px">+ Add section</button>
+</div>
+
+<script src="/static/gym.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

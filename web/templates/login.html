@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Unlock{% endblock %}
+{% block header %}Melani Health{% endblock %}
+{% block jarvis %}{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center;padding-top:24px">
+  <p style="font-size:2rem;margin:0 0 8px">🔒</p>
+  <h2 style="margin:0 0 8px">Your private health app</h2>
+  <p class="muted">Only you can open this. Enter your PIN.</p>
+  {% if error %}<p style="color:#f87171">{{ error }}</p>{% endif %}
+  <form method="post" action="/login">
+    <input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN" required autofocus style="text-align:center;font-size:1.4rem;letter-spacing:0.2em">
+    <button type="submit" style="margin-top:16px;width:100%">Unlock</button>
+  </form>
+  <p class="zone-hint" style="margin-top:16px">Your PIN is <strong>8299</strong> (Aug 24). Change it anytime in setup.</p>
+</div>
+{% endblock %}

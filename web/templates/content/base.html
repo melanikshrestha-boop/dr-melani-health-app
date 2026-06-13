@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" data-build="{{ app_build if app_build is defined else '1' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Melani Content">
+  <title>{% block title %}Content{% endblock %} — Melani</title>
+  <link rel="stylesheet" href="/static/style.css?v={{ app_build if app_build is defined else '1' }}">
+  <link rel="stylesheet" href="/static/content.css?v={{ app_build if app_build is defined else '1' }}">
+</head>
+<body class="content-app {% block body_class %}{% endblock %}">
+  <header class="app-header content-header">
+    <div class="app-header-top">
+      <h1>{% block header %}Melani Content{% endblock %}</h1>
+      {% if show_date|default(true) %}<p class="header-date">{{ display_date }}</p>{% endif %}
+    </div>
+    <nav class="app-nav" aria-label="Main">
+      <a href="/" class="{% if nav == 'today' %}active{% endif %}">Today</a>
+      <a href="/workflows" class="{% if nav == 'workflows' %}active{% endif %}">Workflows</a>
+      <a href="/calendar" class="{% if nav == 'calendar' %}active{% endif %}">Calendar</a>
+      <a href="/create" class="{% if nav == 'create' %}active{% endif %}">Create</a>
+      <a href="/library" class="{% if nav == 'library' %}active{% endif %}">Library</a>
+      <a href="/setup" class="{% if nav == 'setup' %}active{% endif %}">Setup</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <script src="/static/content.js?v={{ app_build if app_build is defined else '1' }}"></script>
+</body>
+</html>

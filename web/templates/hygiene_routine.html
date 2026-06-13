@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block header %}Health / {{ routine_title }}{% endblock %}
+{% block content %}
+<div class="card notion-hero">
+  <a href="/hygiene" class="breadcrumb">← Hygiene</a>
+  <h2 class="hero-title">{{ routine_emoji }} {{ routine_title }}</h2>
+  {% if assigned_label %}
+  <p class="muted">This week · {{ assigned_label }}{% if is_today %} · today{% endif %}</p>
+  {% else %}
+  <p class="muted">Pick days on the Hygiene page for this week.</p>
+  {% endif %}
+</div>
+
+<div class="card notion-list hygiene-routines-list" id="hygiene_routine_page">
+  <div class="hygiene-routine-body is-open">
+    <div class="hygiene-toolbar row">
+      <button type="button" class="secondary small hygiene-edit-toggle">Edit routine</button>
+      <button type="button" class="secondary small hygiene-log-all">Mark all done</button>
+    </div>
+    <p class="zone-hint hygiene-edit-hint">Tap <strong>Edit routine</strong> to change step names, add steps, or remove them.</p>
+
+    <ul class="workout-checklist hygiene-checklist hygiene-list">
+      {% for item in group["items"] %}
+      <li class="workout-item{% if item.done %} done{% endif %}" data-item-id="{{ item.id }}">
+        <div class="check-row">
+          <input type="checkbox" class="hygiene-check" id="hygiene-{{ routine_group }}-{{ item.id }}" {% if item.done %}checked{% endif %} aria-label="Mark done">
+          <span class="item-text" contenteditable="false">{{ item.name }}</span>
+        </div>
+        <button type="button" class="hygiene-delete secondary small" hidden aria-label="Delete step">×</button>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="add-item-panel hygiene-add-panel" hidden>
+      <input type="text" class="add-item-input hygiene-add-input" placeholder="New step…" enterkeyhint="done">
+      <div class="row add-item-actions">
+        <button type="button" class="btn small hygiene-add-save">Add step</button>
+        <button type="button" class="secondary small hygiene-add-cancel">Cancel</button>
+      </div>
+    </div>
+    <button type="button" class="add-item-btn secondary small hygiene-add-btn">+ Add step</button>
+
+    <p class="supplement-summary hygiene-summary">{{ group.summary }}</p>
+  </div>
+</div>
+
+<script>
+  window.hygieneRoutineGroup = {{ routine_group | tojson }};
+</script>
+<script src="/static/hygiene_routine.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

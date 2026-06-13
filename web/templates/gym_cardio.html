@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block header %}Health / Cardio{% endblock %}
+{% block content %}
+<div class="card notion-hero gym-cardio-hero">
+  <a href="/gym" class="breadcrumb">← Gym</a>
+  <h2 class="hero-title">🏃 Cardio</h2>
+  <p class="muted">Running tracks or swimming.</p>
+</div>
+
+<div class="gym-lower-grid">
+  {% for card in cards %}
+  <a href="/gym/cardio/{{ card.slot }}" class="card gym-lower-card gym-cardio-card{% if card.is_today %} is-today{% endif %}{% if not card.has_content %} is-empty{% endif %}">
+    <div class="gym-lower-card-head">
+      <span class="gym-lower-num">{{ card.emoji }}</span>
+      <span class="gym-lower-progress">{{ card.progress }}</span>
+    </div>
+    <h3 class="gym-lower-title">{{ card.title }}</h3>
+    {% if card.subtitle %}
+    <p class="gym-cardio-subtitle">{{ card.subtitle }}</p>
+    {% endif %}
+    {% if card.assigned_day %}
+    <p class="gym-lower-assigned">This week · {{ card.assigned_day|capitalize }}{% if card.is_today %} · today{% endif %}</p>
+    {% endif %}
+    {% if card.has_content %}
+    <p class="gym-lower-meta">{% if card.slot == 'running' %}{% if card.exercise_count %}{{ card.exercise_count }} run{% if card.exercise_count != 1 %}s{% endif %} this week{% else %}Log your miles{% endif %}{% else %}{{ card.exercise_count }} step{% if card.exercise_count != 1 %}s{% endif %}{% endif %}</p>
+    {% else %}
+    <p class="gym-lower-meta muted">{{ card.placeholder or "Coming soon" }}</p>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+.env
+.env.*
+*.log
+*.pid
+
+# Local backup copies — not part of the app
+* copy*
+* copy.*

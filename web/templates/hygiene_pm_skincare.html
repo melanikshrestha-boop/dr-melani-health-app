@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block header %}Health / PM skincare{% endblock %}
+{% block content %}
+<div class="card notion-hero">
+  <a href="/hygiene" class="breadcrumb">← Hygiene</a>
+  <h2 class="hero-title">🌙 PM skincare</h2>
+  <p class="muted">Your week is auto-scheduled — open tonight's routine or adjust below.</p>
+</div>
+
+<div class="card gym-week-card hygiene-pm-page">
+  <div class="hygiene-pm-page-body">
+    <p class="gym-week-title">This week</p>
+    {% if hygiene_alert %}
+    <div class="gym-plan-alert gym-plan-alert-{{ hygiene_alert.level }}" role="alert">{{ hygiene_alert.message }}</div>
+    {% endif %}
+    <div class="gym-week-strip" id="hygiene_skincare_week_strip">
+      {% for c in skincare_week_strip %}
+      <a href="{{ c.href }}" class="gym-week-day{% if c.is_today %} is-today{% endif %}{% for css in c.routine_css_classes %} is-workout-{{ css }}{% endfor %}" data-day="{{ c.day_key }}" data-full="{{ c.full }}" title="{{ c.full }}{% if c.routine_label %} · {{ c.routine_label }}{% endif %}">
+        <span class="gym-week-dow">{{ c.initial }}</span>
+        <span class="gym-week-num">{{ c.date_num }}</span>
+        <span class="gym-week-tag">{% if c.routine_emoji %}{{ c.routine_emoji }}{% elif c.is_today %}•{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    <details class="gym-week-plan-details" id="hygiene_skincare_week_plan_details">
+      <summary>Choose PM skincare for this week</summary>
+      <div id="hygiene_skincare_plan_alert" class="gym-plan-alert gym-plan-alert-block" hidden role="alert"></div>
+      <form method="post" action="/hygiene/week-plan?category=skincare" class="gym-week-plan-form" id="hygiene_skincare_week_plan_form">
+        <div class="gym-plan-hidden-fields" id="hygiene_skincare_plan_hidden_fields"></div>
+        {% for type_id, meta in skincare_routine_types.items() %}
+        <div class="gym-plan-type-row gym-plan-type-{{ meta.css }}"
+          data-type="{{ type_id }}">
+          <p class="gym-plan-type-label">
+            <span class="gym-plan-type-emoji">{{ meta.emoji }}</span>
+            {{ meta.label }}
+          </p>
+          <div class="gym-plan-day-picks">
+            {% for c in skincare_week_strip %}
+            <button type="button"
+              class="gym-day-pick{% if c.day_key in (week_plan.get(type_id) or []) %} is-on{% endif %}"
+              data-workout-type="{{ type_id }}"
+              data-day="{{ c.day_key }}"
+              data-day-label="{{ c.label }}"
+              aria-pressed="{% if c.day_key in (week_plan.get(type_id) or []) %}true{% else %}false{% endif %}">
+              <span class="gym-day-pick-inner">
+                <span class="gym-day-pick-badge" aria-hidden="true"></span>
+                <span class="gym-day-pick-label">{{ c.label }}</span>
+              </span>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="gym-plan-save-btn">Save week</button>
+      </form>
+    </details>
+  </div>
+
+  <div class="hygiene-pm-page-routines">
+    {% for type_id, meta in skincare_routine_types.items() %}
+    <a href="{{ hygiene_hrefs[type_id] }}" class="hygiene-pm-entry-link hygiene-pm-entry-link-{{ meta.css }}">
+      <span class="page-emoji">{{ meta.emoji }}</span>
+      <span>
+        <strong>{{ meta.short_label }}</strong>
+        {% if meta.get('list_subtitle') %}
+        <small>{{ meta.list_subtitle }}</small>
+        {% endif %}
+      </span>
+      <span class="page-chevron">→</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  window.hygieneWeekOrder = {{ skincare_week_strip | map(attribute='day_key') | list | tojson }};
+  window.hygieneRoutineTypes = {};
+  window.hygieneSkincareRoutineTypes = {{ skincare_routine_types | tojson }};
+  window.hygieneWeekPlan = {{ week_plan | tojson }};
+</script>
+<script src="/static/hygiene_week_plan.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "content/base.html" %}
+{% block title %}Today{% endblock %}
+{% block content %}
+<section class="content-section">
+  <h2 class="section-title">Queue</h2>
+  {% if queue %}
+  {% for q in queue %}
+  <div class="card content-card item-row">
+    <span class="badge bundle">Queued</span>
+    <strong>{{ q.base_caption or 'Short video' }}</strong>
+    <p class="muted">{{ q.workflow_name }}</p>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="muted">Empty</p>
+  {% endif %}
+  <a href="/create?kind=bundle" class="content-btn block" style="margin-top:12px">Upload video</a>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Workflows</h2>
+  {% for w in workflows %}
+  <div class="card content-card item-row">
+    <strong>{{ w.name }}</strong>
+    <p class="muted">
+      {% if w.enabled %}On{% else %}Off{% endif %}
+      · {{ w.queue_count }} queued
+    </p>
+  </div>
+  {% endfor %}
+  <a href="/workflows" class="content-link">Workflows →</a>
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Today</h2>
+  {% set total = items.bundles|length + items.linkedin|length + items.youtube|length %}
+  {% if total == 0 %}
+  <p class="muted">Nothing scheduled today.</p>
+  {% else %}
+    {% for b in items.bundles %}
+    <div class="card content-card item-row">
+      <span class="badge bundle">Short</span>
+      <strong>{{ b.base_caption or 'Reel' }}</strong>
+      <p class="muted">{{ b.scheduled_at or b.status }}</p>
+    </div>
+    {% endfor %}
+    {% for p in items.linkedin %}
+    <div class="card content-card item-row">
+      <span class="badge linkedin">LinkedIn</span>
+      <strong>{{ p.body[:80] }}{% if p.body|length > 80 %}…{% endif %}</strong>
+      <p class="muted">{{ p.scheduled_at or p.status }}</p>
+    </div>
+    {% endfor %}
+    {% for v in items.youtube %}
+    <div class="card content-card item-row">
+      <span class="badge youtube">YouTube</span>
+      <strong>{{ v.title }}</strong>
+      <p class="muted">{{ v.scheduled_at or v.status }}</p>
+    </div>
+    {% endfor %}
+  {% endif %}
+</section>
+
+<section class="content-section">
+  <h2 class="section-title">Platforms</h2>
+  <div class="platform-grid">
+    {% for p in platforms %}
+    <div class="platform-pill {% if p.ready %}ready{% elif p.connected %}partial{% else %}off{% endif %}">
+      <span>{{ p.platform|title }}</span>
+      <small>{% if p.ready %}Ready{% elif p.connected %}OK{% else %}Setup{% endif %}</small>
+    </div>
+    {% endfor %}
+  </div>
+  <a href="/setup" class="content-link">Setup →</a>
+</section>
+{% endblock %}

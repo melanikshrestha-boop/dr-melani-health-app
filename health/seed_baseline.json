@@ -1,0 +1,101 @@
+{
+  "draws": [
+    {
+      "id": "2026-03-25_usc_cbc_cmp",
+      "collected": "2026-03-25T10:40:00-08:00",
+      "lab": "USC ESHC Clinical Lab",
+      "provider": "Ververis, Megan",
+      "panels": ["CBC w/o Diff", "CMP"],
+      "values": [
+        {"test": "WBC", "result": 9.3, "unit": "10^3/uL", "ref_low": 4.1, "ref_high": 10.9},
+        {"test": "RBC", "result": 4.94, "unit": "10^6/uL", "ref_low": 3.8, "ref_high": 5.2},
+        {"test": "HGB", "result": 13.6, "unit": "g/dL", "ref_low": 11.7, "ref_high": 15.7},
+        {"test": "HCT", "result": 40.2, "unit": "%", "ref_low": 34.9, "ref_high": 46.9},
+        {"test": "MCV", "result": 81.4, "unit": "fL", "ref_low": 80.0, "ref_high": 100.0},
+        {"test": "MCH", "result": 27.5, "unit": "pg", "ref_low": 26.0, "ref_high": 34.0},
+        {"test": "MCHC", "result": 33.8, "unit": "g/dL", "ref_low": 31.0, "ref_high": 37.0},
+        {"test": "PLT", "result": 223, "unit": "10^3/uL", "ref_low": 150, "ref_high": 400},
+        {"test": "RDW", "result": 13.3, "unit": "%", "ref_low": 11.5, "ref_high": 14.3},
+        {"test": "MPV", "result": 11.6, "unit": "fL", "ref_low": 9.2, "ref_high": 12.7},
+        {"test": "Albumin", "result": 4.8, "unit": "g/dL", "ref_low": 3.5, "ref_high": 5.2},
+        {"test": "ALT", "result": 14.0, "unit": "U/L", "ref_low": 0.0, "ref_high": 35.0},
+        {"test": "ALP", "result": 66.0, "unit": "U/L", "ref_low": 35.0, "ref_high": 105.0},
+        {"test": "AST", "result": 22.0, "unit": "U/L", "ref_low": 0.0, "ref_high": 32.0},
+        {"test": "BUN", "result": 11.0, "unit": "mg/dL", "ref_low": 6.0, "ref_high": 20.0},
+        {"test": "Chloride", "result": 105, "unit": "mmol/L", "ref_low": 98, "ref_high": 107},
+        {"test": "CO2", "result": 24, "unit": "mmol/L", "ref_low": 22, "ref_high": 29},
+        {"test": "Creatinine", "result": 0.83, "unit": "mg/dL", "ref_low": 0.51, "ref_high": 0.95},
+        {"test": "Glucose", "result": 91, "unit": "mg/dL", "ref_low": 70, "ref_high": 99},
+        {"test": "Potassium", "result": 4.1, "unit": "mmol/L", "ref_low": 3.4, "ref_high": 5.2},
+        {"test": "Sodium", "result": 140, "unit": "mmol/L", "ref_low": 136, "ref_high": 145},
+        {"test": "Calcium", "result": 9.8, "unit": "mg/dL", "ref_low": 8.8, "ref_high": 10.2},
+        {"test": "Total Protein", "result": 7.9, "unit": "g/dL", "ref_low": 6.4, "ref_high": 8.3},
+        {"test": "GFR", "result": 104.35, "unit": "mL/min/1.73m2", "ref_low": 90, "ref_high": null},
+        {"test": "Total Bilirubin", "result": 0.7, "unit": "mg/dL", "ref_low": 0.0, "ref_high": 1.0}
+      ]
+    },
+    {
+      "id": "2026-03-26_quest_lipids_a1c",
+      "collected": "2026-03-26T05:02:00-08:00",
+      "lab": "Quest Diagnostics-West Hills",
+      "provider": "Ververis, Megan",
+      "panels": ["Lipid Panel", "A1C"],
+      "values": [
+        {"test": "Total Cholesterol", "result": 207, "unit": "mg/dL", "ref_high": 170, "ref_text": "<170", "flag": "H"},
+        {"test": "HDL Cholesterol", "result": 64, "unit": "mg/dL", "ref_low": 45, "ref_text": ">45"},
+        {"test": "Triglycerides", "result": 119, "unit": "mg/dL", "ref_high": 90, "ref_text": "<90", "flag": "H"},
+        {"test": "LDL Cholesterol", "result": 120, "unit": "mg/dL", "ref_high": 110, "ref_text": "<110 calc", "flag": "H"},
+        {"test": "Chol/HDL Ratio", "result": 3.2, "unit": "ratio", "ref_high": 5.0, "ref_text": "<5.0 calc"},
+        {"test": "Non-HDL Cholesterol", "result": 143, "unit": "mg/dL", "ref_high": 120, "ref_text": "<120 calc", "flag": "H"},
+        {"test": "Hemoglobin A1c", "result": 5.3, "unit": "%", "ref_high": 5.7, "ref_text": "<5.7"}
+      ]
+    },
+    {
+      "id": "2026-04-06_usc_cbc_bmp",
+      "collected": "2026-04-06T15:48:00-08:00",
+      "lab": "USC ESHC Clinical Lab",
+      "provider": "Ververis, Megan",
+      "panels": ["CBC w/ Diff", "BMP"],
+      "values": [
+        {"test": "WBC", "result": 7.5, "unit": "10^3/uL", "ref_low": 4.1, "ref_high": 10.9},
+        {"test": "RBC", "result": 4.63, "unit": "10^6/uL", "ref_low": 3.8, "ref_high": 5.2},
+        {"test": "HGB", "result": 12.6, "unit": "g/dL", "ref_low": 11.7, "ref_high": 15.7},
+        {"test": "HCT", "result": 38.0, "unit": "%", "ref_low": 34.9, "ref_high": 46.9},
+        {"test": "MCV", "result": 82.1, "unit": "fL", "ref_low": 80.0, "ref_high": 100.0},
+        {"test": "MCH", "result": 27.2, "unit": "pg", "ref_low": 26.0, "ref_high": 34.0},
+        {"test": "MCHC", "result": 33.2, "unit": "g/dL", "ref_low": 31.0, "ref_high": 37.0},
+        {"test": "PLT", "result": 223, "unit": "10^3/uL", "ref_low": 150, "ref_high": 400},
+        {"test": "RDW", "result": 13.2, "unit": "%", "ref_low": 11.5, "ref_high": 14.3},
+        {"test": "MPV", "result": 10.7, "unit": "fL", "ref_low": 9.2, "ref_high": 12.7},
+        {"test": "Segmented Neutrophils", "result": 71, "unit": "%"},
+        {"test": "Absolute Neutrophils", "result": 5.3, "unit": "10^3/uL", "ref_low": 1.9, "ref_high": 8.6},
+        {"test": "Lymphocytes", "result": 24, "unit": "%"},
+        {"test": "Absolute Lymphocytes", "result": 1.8, "unit": "10^3/uL", "ref_low": 0.5, "ref_high": 4.4},
+        {"test": "Monocytes", "result": 5, "unit": "%"},
+        {"test": "Absolute Monocytes", "result": 0.4, "unit": "10^3/uL", "ref_low": 0.1, "ref_high": 1.0},
+        {"test": "Eosinophils", "result": 0, "unit": "%"},
+        {"test": "Absolute Eosinophils", "result": 0.0, "unit": "10^3/uL", "ref_low": 0.0, "ref_high": 0.9},
+        {"test": "Basophils", "result": 0.1, "unit": "%"},
+        {"test": "Absolute Basophils", "result": 0.0, "unit": "10^3/uL", "ref_low": 0.0, "ref_high": 0.2},
+        {"test": "Sodium", "result": 140, "unit": "mmol/L", "ref_low": 136, "ref_high": 145},
+        {"test": "Glucose", "result": 89, "unit": "mg/dL", "ref_low": 70, "ref_high": 99},
+        {"test": "BUN", "result": 15.0, "unit": "mg/dL", "ref_low": 6.0, "ref_high": 20.0},
+        {"test": "Creatinine", "result": 0.70, "unit": "mg/dL", "ref_low": 0.51, "ref_high": 0.95},
+        {"test": "CO2", "result": 24, "unit": "mmol/L", "ref_low": 22, "ref_high": 29},
+        {"test": "Calcium", "result": 9.6, "unit": "mg/dL", "ref_low": 8.8, "ref_high": 10.2},
+        {"test": "Chloride", "result": 104, "unit": "mmol/L", "ref_low": 98, "ref_high": 107},
+        {"test": "Potassium", "result": 4.4, "unit": "mmol/L", "ref_low": 3.4, "ref_high": 5.2}
+      ]
+    },
+    {
+      "id": "2026-04-07_quest_tsh",
+      "collected": "2026-04-07T05:02:00-08:00",
+      "lab": "Quest Diagnostics-West Hills",
+      "provider": "Ververis, Megan",
+      "panels": ["TSH w/reflex to FT4"],
+      "values": [
+        {"test": "TSH", "result": 1.06, "unit": "mIU/L", "ref_low": 0.5, "ref_high": 4.3, "ref_text": "0.50-4.30 age 1-19"}
+      ]
+    }
+  ]
+}

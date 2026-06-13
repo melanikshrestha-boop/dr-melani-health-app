@@ -1,0 +1,76 @@
+{% extends "content/base.html" %}
+{% block title %}Create{% endblock %}
+{% block content %}
+<div class="content-tabs">
+  <a href="/create?kind=bundle" class="{% if kind == 'bundle' %}active{% endif %}">Short video</a>
+  <a href="/create?kind=linkedin" class="{% if kind == 'linkedin' %}active{% endif %}">LinkedIn</a>
+  <a href="/create?kind=youtube" class="{% if kind == 'youtube' %}active{% endif %}">YouTube</a>
+</div>
+
+{% if kind == 'bundle' %}
+<form class="card content-card content-form" method="post" action="/create/bundle" enctype="multipart/form-data" id="bundle_form">
+  <label>Video
+    <input type="file" name="video" accept="video/*" required>
+  </label>
+  <label>Caption
+    <textarea name="caption" id="caption" rows="4" required placeholder="Your caption…"></textarea>
+  </label>
+  <label>Hashtags
+    <textarea name="hashtags" id="hashtags" rows="4" placeholder="Paste hashtags here — any format"></textarea>
+  </label>
+  <div id="hashtag_preview" class="hashtag-preview" hidden>
+    <span class="setup-label">Detected</span>
+    <div id="hashtag_chips" class="hashtag-chips"></div>
+    <p id="hashtag_count" class="muted small"></p>
+  </div>
+  <label class="checkbox-row">
+    <input type="checkbox" name="add_to_queue" value="1" checked> Queue for auto-publish
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="publish_now" value="1"> Publish now
+  </label>
+  <button type="submit" class="content-btn">Save</button>
+</form>
+{% elif kind == 'linkedin' %}
+<form class="card content-card content-form" method="post" action="/create/linkedin" enctype="multipart/form-data">
+  <label>Post
+    <textarea name="body" rows="6" required></textarea>
+  </label>
+  <label>Image
+    <input type="file" name="image" accept="image/*">
+  </label>
+  <label>Schedule
+    <input type="datetime-local" name="scheduled_at">
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="recurring" value="1"> Daily repeat
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="publish_now" value="1"> Publish now
+  </label>
+  <button type="submit" class="content-btn">Save</button>
+</form>
+{% else %}
+<form class="card content-card content-form" method="post" action="/create/youtube" enctype="multipart/form-data">
+  <label>Video
+    <input type="file" name="video" accept="video/*" required>
+  </label>
+  <label>Title
+    <input type="text" name="title" required>
+  </label>
+  <label>Description
+    <textarea name="description" rows="4"></textarea>
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="is_short" value="1"> YouTube Short
+  </label>
+  <label>Schedule
+    <input type="datetime-local" name="scheduled_at">
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="publish_now" value="1"> Publish now
+  </label>
+  <button type="submit" class="content-btn">Save</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block content %}
+{% if gita_quote is defined %}
+<div class="card gita-daily-quote">
+  <p class="gita-daily-label">Bhagavad Gita · {{ gita_quote.ref }}</p>
+  <details class="gita-daily-details">
+    <summary class="gita-daily-summary">
+      <span class="gita-daily-text">{{ gita_quote.text }}</span>
+      <span class="gita-daily-hint">Tap for what it means</span>
+    </summary>
+    <p class="gita-daily-explain">{{ gita_quote.explain }}</p>
+  </details>
+</div>
+{% endif %}
+{% if today_autopilot is defined %}
+<div class="card autopilot-banner{% if today_autopilot.complete %} autopilot-done{% endif %}">
+  {% if today_autopilot.complete %}
+  <p class="autopilot-title">✓ {{ today_autopilot.summary }}</p>
+  {% else %}
+  <p class="autopilot-title">{{ today_autopilot.summary }}</p>
+  <ul class="autopilot-list">
+    {% for item in today_autopilot.gaps %}
+    <li>
+      <a href="{{ item.action }}">{{ item.label }}</a>
+      {% if item.detail %}<span class="autopilot-detail">{{ item.detail }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}
+<div class="card">
+  <h2>Sleep</h2>
+  <form method="post" action="/today/sleep" id="sleep_form">
+    <label for="sleep_log_date">Day</label>
+    <input id="sleep_log_date" name="log_date" type="date" value="{{ sleep.date }}" required>
+
+    <label for="bedtime">Bedtime</label>
+    <input id="bedtime" name="bedtime" type="time" value="{{ bedtime_input }}" required>
+
+    <label for="wake_time">Wake</label>
+    <input id="wake_time" name="wake_time" type="time" value="{{ wake_input }}" required>
+
+    <label>Sleep hours</label>
+    {% set h = sleep.sleep_hours %}
+    <div id="sleep_hours_display" class="readonly-value{% if h is not none and (h < 6 or h > 8) %} sleep-bad{% elif h is not none %} sleep-good{% endif %}">
+      {% if h is not none %}{{ h }} h{% else %}—{% endif %}
+    </div>
+    <p class="zone-hint">Green zone: 6–8 h · Red: under 6 or over 8</p>
+  </form>
+
+  <details class="today-mood-notes" id="today_mood_notes"{% if mood_notes_open %} open{% endif %}>
+    <summary>Notes <small>(optional)</small></summary>
+    <div class="today-mood-notes-inner">
+      <form method="post" action="/today/mood-note" class="today-mood-form">
+        <input type="hidden" name="log_date" id="mood_log_date" value="{{ sleep.date }}">
+        <label for="mood_note_text" class="jarvis-sr-only">Notes</label>
+        <textarea id="mood_note_text" name="text" rows="3" placeholder="Optional — how you're feeling, energy, stress…"></textarea>
+        <button type="submit">Save</button>
+      </form>
+      {% for group in mood_log_days %}
+      <details class="mood-day-toggle" id="mood-{{ group.day }}"{% if mood_saved_day == group.day %} open{% endif %}>
+        <summary><small>{{ group.heading }}</small></summary>
+        <div class="mood-day-body">
+          {% for e in group.entries %}
+          <p class="mood-entry-text">{{ e.text }}</p>
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+
+  <div class="brain-fog-block">
+    {% if last_week_verdict %}
+    <p class="brain-fog-last-week brain-fog-last-week-{{ last_week_verdict.verdict | replace('_', '-') }}">{{ last_week_verdict.display }}</p>
+    {% endif %}
+    <label>Brain fog this morning?</label>
+    <p class="zone-hint bf-editing-hint" id="brain_fog_editing_hint">Logging for <strong id="brain_fog_editing_label">today</strong> · tap a dot below to fix another day</p>
+    <div class="row status-btns brain-fog-btns">
+      <form method="post" action="/today/brain-fog" class="brain-fog-form">
+        <input type="hidden" name="yes" value="1">
+        <input type="hidden" name="log_date" class="brain-fog-log-date" value="{{ sleep.date }}">
+        <button type="submit" class="small status-bad bf-yes-btn">Yes</button>
+      </form>
+      <form method="post" action="/today/brain-fog" class="brain-fog-form">
+        <input type="hidden" name="yes" value="0">
+        <input type="hidden" name="log_date" class="brain-fog-log-date" value="{{ sleep.date }}">
+        <button type="submit" class="small status-good bf-no-btn">No</button>
+      </form>
+    </div>
+    {% if brain_fog_streak|default(0) >= 3 and brain_fog and brain_fog.yes %}
+    <p class="zone-hint warn">Brain fog {{ brain_fog_streak }} days in a row this week — Dr. Melani will check in with you.</p>
+    {% endif %}
+    {% if brain_fog_week %}
+    <p class="brain-fog-week-label">This week</p>
+    <div class="brain-fog-week-row" id="brain_fog_week_row" data-today="{{ sleep.date }}">
+      {% for d in brain_fog_week.days %}
+      <button type="button" class="bf-day bf-day-pick" data-day="{{ d.day }}" data-label="{{ d.label }}" data-yes="{{ '' if d.yes is none else ('1' if d.yes else '0') }}">
+        <span class="bf-day-label">{{ d.label[:1] }}</span>
+        <span class="bf-dot bf-dot-{% if d.yes is none %}miss{% elif d.yes %}bad{% else %}good{% endif %}"></span>
+      </button>
+      {% endfor %}
+    </div>
+    <p class="brain-fog-week-summary">Brain fog {{ brain_fog_week.yes_count }} of 7 days</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Weekly sleep</h2>
+  <label for="sleep_week">Week</label>
+  <select id="sleep_week" name="week">
+    {% for w in sleep_weeks %}
+    <option value="{{ w.key }}" {% if w.key == chart_week %}selected{% endif %}>{{ w.label }}</option>
+    {% endfor %}
+  </select>
+  <div class="sleep-chart-wrap">
+    <canvas id="sleepChart" height="200"></canvas>
+  </div>
+  <p class="chart-caption">{{ chart.week_label }}</p>
+  <p class="zone-hint">Green line = 8 h goal · Dots turn red outside 6–8 h</p>
+</div>
+
+<div class="card">
+  <h2>Weight</h2>
+  {% if weight %}
+  <div class="stat-row">
+    <span class="stat-value">{{ weight.value }} {{ weight.unit }}</span>
+    {% if weight_delta is not none %}
+    <span class="stat-delta">
+      {% if weight_delta > 0 %}+{% endif %}{{ weight_delta }} {{ weight.unit }} vs yesterday
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+  <form method="post" action="/today/weight" class="row weight-form">
+    <input name="weight_lb" type="number" step="0.1" min="50" max="500" placeholder="Weight (lbs)" value="{{ weight.value if weight else '' }}" required>
+    <button type="submit">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Weekly weight</h2>
+  {% if weight_chart is defined and weight_weeks is defined %}
+  <label for="weight_week">Week</label>
+  <select id="weight_week" name="weight_week">
+    {% for w in weight_weeks %}
+    <option value="{{ w.key }}" {% if w.key == weight_chart_week|default('') %}selected{% endif %}>{{ w.label }}</option>
+    {% endfor %}
+  </select>
+  <div class="sleep-chart-wrap">
+    <canvas id="weightChart" height="200"></canvas>
+  </div>
+  <p class="chart-caption">{{ weight_chart.week_label }}</p>
+  <p class="zone-hint">Green line = {{ weight_chart.goal_lb|int }} lb goal · No judgment — just tracking</p>
+  {% else %}
+  <p class="zone-hint">Reload the app (Restart Health App on Desktop) to see your weight chart.</p>
+  {% endif %}
+</div>
+
+<div class="card" id="supplements_section">
+  <h2>Vitamins & supplements</h2>
+  <p class="zone-hint">Not prescriptions — tap each one when you took it today.</p>
+  <ul class="supplement-list">
+    {% for s in supplements %}
+    {% if s.daily_track %}
+    <li class="supplement-row{% if s.taken %} done{% endif %}" data-id="{{ s.id }}">
+      <button type="button" class="supplement-check" aria-pressed="{{ 'true' if s.taken else 'false' }}" aria-label="Mark {{ s.name }} taken">{% if s.taken %}✓{% endif %}</button>
+      <div class="supplement-info">
+        <strong>{{ s.name }}</strong>{% if s.timing %}<span class="supplement-timing"> · {{ s.timing }}</span>{% endif %}
+        {% if s.dose %}<span class="supplement-brand">{{ s.dose }}</span>{% endif %}
+      </div>
+    </li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% for s in supplements if not s.daily_track %}
+  <p class="zone-hint">{{ s.name }}{% if s.dose %} ({{ s.dose }}){% endif %} — ask Dr. Melani 💬 before starting.</p>
+  {% endfor %}
+  <p class="supplement-summary" id="supplement_summary">{{ supplement_summary }}</p>
+  <button type="button" class="secondary small" id="supplement_log_all">Log all today</button>
+</div>
+
+{% if phone_url %}
+<div class="card phone-link-card">
+  <h2>📱 Phone link</h2>
+  <p class="zone-hint">Bookmark this on your iPhone — same link stays live while Melani Health is running on your Mac. Gym, home, or cellular — updates here sync automatically.</p>
+  <a href="{{ phone_url }}" class="phone-link-url">{{ phone_url }}</a>
+  <p class="zone-hint phone-link-pin">PIN <strong>8299</strong> · Add to Home Screen from Safari for quick access.</p>
+</div>
+{% endif %}
+
+<div class="card" id="water_section">
+  <h2>Water — <span id="water_liters">{{ (summary.water_ml / 1000)|round(1) }}</span> / {{ (summary.water_goal_ml / 1000)|int }} L</h2>
+  <div class="progress"><div id="water_progress" style="width:{{ [100, (summary.water_ml / summary.water_goal_ml * 100)|int]|min }}%"></div></div>
+  <div class="row water-add-row">
+    <button type="button" class="secondary small water-add-btn" data-ml="250">+250 ml</button>
+    <button type="button" class="secondary small water-add-btn" data-ml="500">+500 ml</button>
+    <button type="button" class="secondary small water-add-btn" data-ml="1000">+1 L</button>
+  </div>
+  <div class="row water-actions">
+    <form method="post" action="/today/water/undo" data-water-action="/api/today/water/undo">
+      <button type="submit" class="secondary small ghost-btn">Undo last</button>
+    </form>
+    <form method="post" action="/today/water/reset" data-water-action="/api/today/water/reset">
+      <button type="submit" class="secondary small ghost-btn danger-text">Reset today</button>
+    </form>
+  </div>
+
+  <div class="bowel-block">
+    <label class="bowel-q">💩?</label>
+    <p class="zone-hint bowel-hint">Did you go today? Yes or no — Dr. Melani tracks this with your water, fiber, and cycle.</p>
+    <div class="row status-btns bowel-btns">
+      <form method="post" action="/today/bowel-movement">
+        <input type="hidden" name="yes" value="1">
+        <button type="submit" class="small status-good{% if bowel and bowel.yes %} status-good-active{% endif %}">Yes</button>
+      </form>
+      <form method="post" action="/today/bowel-movement">
+        <input type="hidden" name="yes" value="0">
+        <button type="submit" class="small status-bad{% if bowel and not bowel.yes %} status-bad-active{% endif %}">No</button>
+      </form>
+    </div>
+    {% if bowel_week %}
+    <p class="brain-fog-week-label">This week</p>
+    <div class="brain-fog-week-row">
+      {% for d in bowel_week.days %}
+      <div class="bf-day">
+        <span class="bf-day-label">{{ d.label[:1] }}</span>
+        <span class="bf-dot bf-dot-{% if d.yes is none %}miss{% elif d.yes %}good{% else %}bad{% endif %}"></span>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="brain-fog-week-summary">Went {{ bowel_week.yes_count }} of 7 days</p>
+    {% endif %}
+    <details class="bowel-note-details">
+      <summary>Private note for Dr. Melani</summary>
+      <p class="zone-hint bowel-note-hint">Optional. Saved to her memory only — you won't see it again after you save. Cleared each Saturday.</p>
+      <form id="bowel_note_form" class="bowel-note-form">
+        <textarea id="bowel_note_input" name="description" rows="3" maxlength="500" placeholder="How you felt, timing, anything she should know…"></textarea>
+        <button type="submit" class="secondary small">Save note</button>
+      </form>
+      <p id="bowel_note_status" class="bowel-note-status" hidden>Note saved — only Dr. Melani sees this.</p>
+    </details>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  window.sleepChartData = {{ chart | tojson }};
+  window.weightChart = true;
+  (function () {
+    {% if weight_chart is defined %}
+    var labels = {{ weight_chart['labels'] | tojson }};
+    var values = {{ weight_chart['values'] | tojson }};
+    var goal = {{ weight_chart['goal_lb'] }};
+    var yMin = {{ weight_chart['y_min'] }};
+    var yMax = {{ weight_chart['y_max'] }};
+    var ctx = document.getElementById("weightChart");
+    if (!ctx || typeof Chart === "undefined") return;
+    try {
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Goal",
+              data: labels.map(function () { return goal; }),
+              borderColor: "#22c55e",
+              borderDash: [5, 5],
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: false,
+              tension: 0,
+            },
+            {
+              label: "Weight (lb)",
+              data: values,
+              borderColor: "rgba(255,255,255,0.2)",
+              backgroundColor: "rgba(35,131,226,0.1)",
+              tension: 0.35,
+              spanGaps: true,
+              fill: true,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              pointBackgroundColor: "#2383e2",
+              pointBorderColor: "#2383e2",
+              pointBorderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: { color: "rgba(255,255,255,0.06)" },
+              ticks: { color: "rgba(255,255,255,0.45)" },
+            },
+            y: {
+              min: yMin,
+              max: yMax,
+              grid: { color: "rgba(255,255,255,0.06)" },
+              ticks: { color: "rgba(255,255,255,0.45)" },
+              title: { display: true, text: "lb", color: "rgba(255,255,255,0.45)" },
+            },
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (c) {
+                  if (c.datasetIndex === 0) return "Goal: " + goal + " lb";
+                  var v = c.parsed.y;
+                  return v === null ? "No data" : v + " lb";
+                },
+              },
+            },
+          },
+        },
+      });
+    } catch (e) { console.warn("Weight chart error", e); }
+    {% endif %}
+  })();
+</script>
+<script src="/static/sleep.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/weight.js"></script>
+<script src="/static/supplements.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/bowel.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/today-ui.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/water.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

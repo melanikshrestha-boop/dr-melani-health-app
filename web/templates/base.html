@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-build="{{ app_build if app_build is defined else '1' }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>{% block title %}Health{% endblock %}</title>
+  {% block extra_head %}{% endblock %}
+  <link rel="stylesheet" href="/static/style.css?v={{ app_build if app_build is defined else '1' }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="app-header">
+    <div class="app-header-top">
+      <h1>{% block header %}Melani Health{% endblock %}</h1>
+      {% if profile_tagline is defined and profile_tagline %}<p class="profile-tagline">{{ profile_tagline }}</p>{% endif %}
+      {% if show_date|default(true) %}<p class="header-date">{{ display_date }}</p>{% endif %}
+    </div>
+    <nav class="app-nav" aria-label="Main">
+      <a href="/" class="{% if nav == 'today' %}active{% endif %}">Today</a>
+      <a href="/meals" class="{% if nav == 'meals' %}active{% endif %}">Meals</a>
+      <a href="/gym" class="{% if nav == 'gym' %}active{% endif %}">Gym</a>
+      <a href="/hygiene" class="{% if nav == 'hygiene' %}active{% endif %}">Hygiene</a>
+      <a href="/labs" class="{% if nav == 'data' %}active{% endif %}">My Data</a>
+      <a href="/grocery" class="{% if nav == 'grocery' %}active{% endif %}">Shop</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+
+  {% block jarvis %}
+  <button type="button" id="jarvis_toggle" class="jarvis-fab" aria-label="Open Dr. Melani">💬</button>
+  <aside id="jarvis_panel" class="jarvis-panel" hidden>
+    <div class="jarvis-header">
+      <div class="jarvis-title">
+        <strong>Dr. Melani</strong>
+        <span class="jarvis-tagline">One of the greats</span>
+      </div>
+      <div class="jarvis-header-actions">
+        <button type="button" id="jarvis_reset_chat" class="jarvis-reset-chat">Reset chat</button>
+        <button type="button" id="jarvis_close" class="jarvis-close" aria-label="Close chat">×</button>
+      </div>
+    </div>
+    <div id="jarvis_nudges" class="jarvis-nudges"></div>
+    <div id="jarvis_messages" class="jarvis-messages"></div>
+    <div id="jarvis_image_preview" class="jarvis-image-preview" hidden>
+      <img id="jarvis_preview_img" alt="Attached image preview">
+      <button type="button" id="jarvis_clear_image" class="jarvis-clear-image" aria-label="Remove image">×</button>
+    </div>
+    <div class="jarvis-supplement-bar">
+      <label class="jarvis-sr-only" for="jarvis_supplement_pick">Supplement</label>
+      <select id="jarvis_supplement_pick" class="jarvis-supplement-select" aria-label="Pick a supplement to review">
+        <option value="">Review a supplement…</option>
+      </select>
+      <label class="jarvis-sr-only" for="jarvis_photo_mode">Photo mode</label>
+      <select id="jarvis_photo_mode" class="jarvis-photo-mode" aria-label="Photo mode">
+        <option value="auto">Auto</option>
+        <option value="supplement">Supplement</option>
+        <option value="meal">Meal</option>
+      </select>
+    </div>
+    <div class="jarvis-input-row">
+      <input type="file" id="jarvis_image_input" accept="image/*" hidden>
+      <button type="button" id="jarvis_attach" class="jarvis-attach" aria-label="Attach image">📎</button>
+      <input id="jarvis_input" type="text" placeholder="Supplements · photo a label · meals · gym…" autocomplete="off">
+      <button type="button" id="jarvis_send">Send</button>
+    </div>
+  </aside>
+  <script src="/static/app.js?v={{ app_build if app_build is defined else '1' }}"></script>
+  <script src="/static/jarvis.js?v={{ app_build if app_build is defined else '1' }}"></script>
+  {% endblock %}
+</body>
+</html>

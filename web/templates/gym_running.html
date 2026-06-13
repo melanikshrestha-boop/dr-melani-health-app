@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block header %}Health / Running{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="gym-page run-tracker" data-week="{{ week_key }}">
+  <div class="card notion-hero gym-cardio-hero">
+    <a href="/gym/cardio" class="breadcrumb">← Cardio</a>
+    <h2 class="hero-title">🏃 Running</h2>
+    <details class="run-warmup">
+      <summary>Warm-up</summary>
+      <ul class="run-warmup-list">
+        <li>Walking knee hugs (10 total, 5 per leg)</li>
+        <li>Frankenstein walks (10 total)</li>
+        <li>Standing leg swings (15 per leg)</li>
+        <li>High knees (45 sec)</li>
+        <li>Jump squats (10)</li>
+      </ul>
+    </details>
+    <p class="muted">Minimum {{ week_target_mi }} mi this week · next week {{ next_week_target_mi }} mi</p>
+    <p class="run-week-label">{{ week_label }}</p>
+  </div>
+
+  <div class="run-stat-grid">
+    <div class="card run-stat-card">
+      <span class="run-stat-label">This week target</span>
+      <strong class="run-stat-value">{{ week_target_mi }} mi</strong>
+      <span class="run-stat-hint">+{{ (next_week_target_mi - week_target_mi)|round(1) }} mi next week</span>
+    </div>
+    {% if today_run %}
+    <div class="card run-stat-card is-highlight">
+      <span class="run-stat-label">Today</span>
+      <strong class="run-stat-value">{{ today_run.miles }} mi</strong>
+      <span class="run-stat-hint">{{ today_run.duration_short }}</span>
+    </div>
+    <div class="card run-stat-card">
+      <span class="run-stat-label">Pace</span>
+      <strong class="run-stat-value">{{ today_run.pace_display }}</strong>
+      <span class="run-stat-hint">min per mile</span>
+    </div>
+    <div class="card run-stat-card{% if today_run.hit_target %} is-hit{% endif %}">
+      <span class="run-stat-label">Target</span>
+      <strong class="run-stat-value">{% if today_run.hit_target %}Hit ✓{% else %}Short{% endif %}</strong>
+      <span class="run-stat-hint">{{ today_run.target_mi }} mi goal</span>
+    </div>
+    {% else %}
+    <div class="card run-stat-card run-stat-empty">
+      <span class="run-stat-label">Today</span>
+      <strong class="run-stat-value">—</strong>
+      <span class="run-stat-hint">Log your run below</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card run-log-card">
+    <h3 class="run-section-title">Log a run</h3>
+    <form id="run_log_form" class="run-log-form">
+      <div class="run-form-row">
+        <label>
+          Date
+          <input type="date" name="day" id="run_day" value="{{ today_run.day if today_run else today_date }}" required>
+        </label>
+        <label>
+          Miles
+          <input type="number" name="miles" id="run_miles" step="0.01" min="0.01" placeholder="5.00" value="{{ today_run.miles if today_run else '' }}" required>
+        </label>
+      </div>
+      <div class="run-form-row">
+        <label>
+          Hours
+          <input type="number" name="hours" id="run_hours" min="0" max="9" placeholder="1" value="">
+        </label>
+        <label>
+          Minutes
+          <input type="number" name="minutes" id="run_minutes" min="0" max="59" placeholder="15" value="">
+        </label>
+        <label class="run-pace-preview">
+          Pace
+          <output id="run_pace_preview" class="run-pace-out">—</output>
+        </label>
+      </div>
+      <label class="run-notes-label">
+        Notes <span class="muted">(optional)</span>
+        <input type="text" name="notes" id="run_notes" placeholder="How it felt, route, weather…" value="{{ today_run.notes if today_run and today_run.notes else '' }}">
+      </label>
+      <button type="submit" class="run-save-btn">Save run</button>
+      <p id="run_form_msg" class="run-form-msg" hidden></p>
+    </form>
+  </div>
+
+  <section class="run-charts-section">
+    <h3 class="run-section-title">Progress</h3>
+    <div class="card run-chart-card">
+      <h4 class="run-chart-title">Distance</h4>
+      <p class="run-chart-caption">Miles per run · dashed line = that week's target</p>
+      <div class="sleep-chart-wrap">
+        <canvas id="run_dist_chart" height="200" aria-label="Run distance over time"></canvas>
+      </div>
+    </div>
+    <div class="card run-chart-card">
+      <h4 class="run-chart-title">Pace</h4>
+      <p class="run-chart-caption">Minutes per mile · lower is faster</p>
+      <div class="sleep-chart-wrap">
+        <canvas id="run_pace_chart" height="200" aria-label="Run pace over time"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="run-history-section">
+    <h3 class="run-section-title">Run log</h3>
+    <div class="card run-history-card">
+      {% if history %}
+      <div class="run-history-table-wrap">
+        <table class="run-history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Miles</th>
+              <th>Time</th>
+              <th>Pace</th>
+              <th>Target</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="run_history_body">
+            {% for run in history %}
+            <tr data-day="{{ run.day }}" class="{% if run.hit_target %}is-hit{% endif %}">
+              <td>{{ run.day }}</td>
+              <td>{{ run.miles }}</td>
+              <td>{{ run.duration_short }}</td>
+              <td>{{ run.pace_display }}</td>
+              <td>{{ run.target_mi }} mi</td>
+              <td>{% if run.hit_target %}✓{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="muted run-history-empty">No runs logged yet.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<script>
+  window.runChartData = {{ chart | tojson }};
+  window.runToday = {{ today_run | tojson if today_run else 'null' }};
+</script>
+<script src="/static/gym_running.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

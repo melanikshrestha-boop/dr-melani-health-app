@@ -1,0 +1,15 @@
+{% extends "content/base.html" %}
+{% block title %}Unlock{% endblock %}
+{% block content %}
+<div class="card content-card" style="text-align:center;padding-top:24px">
+  <p style="font-size:2rem;margin:0 0 8px">📣</p>
+  <h2 style="margin:0 0 8px">Melani Content</h2>
+  <p class="muted">Your private posting calendar. Enter your PIN.</p>
+  {% if error %}<p class="content-error">{{ error }}</p>{% endif %}
+  <form method="post" action="/login">
+    <input name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="PIN" required autofocus style="text-align:center;font-size:1.4rem;letter-spacing:0.2em">
+    <button type="submit" class="content-btn" style="margin-top:16px;width:100%">Unlock</button>
+  </form>
+  <p class="zone-hint" style="margin-top:16px">Same PIN as Melani Health — <strong>8299</strong></p>
+</div>
+{% endblock %}

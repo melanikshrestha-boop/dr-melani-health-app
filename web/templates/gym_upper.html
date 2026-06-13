@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block header %}Health / Upper body + Abs{% endblock %}
+{% block content %}
+<div class="card notion-hero gym-upper-hero">
+  <a href="/gym" class="breadcrumb">← Gym</a>
+  <h2 class="hero-title">💪 Upper body + Abs</h2>
+  <p class="muted">Pick workout 1 or 2.</p>
+</div>
+
+<div class="gym-lower-grid">
+  {% for card in cards %}
+  <a href="/gym/upper/{{ card.slot }}" class="card gym-lower-card gym-upper-card{% if card.is_today %} is-today{% endif %}{% if not card.has_content %} is-empty{% endif %}">
+    <div class="gym-lower-card-head">
+      <span class="gym-lower-num">{{ loop.index }}</span>
+      <span class="gym-lower-progress">{{ card.progress }}</span>
+    </div>
+    <h3 class="gym-lower-title">{{ card.title }}</h3>
+    {% if card.subtitle %}
+    <p class="gym-upper-subtitle">{{ card.subtitle }}</p>
+    {% endif %}
+    {% if card.assigned_day %}
+    <p class="gym-lower-assigned">This week · {{ card.assigned_day|capitalize }}{% if card.is_today %} · today{% endif %}</p>
+    {% endif %}
+    {% if card.has_content %}
+    <p class="gym-lower-meta">{{ card.exercise_count }} exercise{% if card.exercise_count != 1 %}s{% endif %}</p>
+    {% else %}
+    <p class="gym-lower-meta muted">{{ card.placeholder or "Coming soon" }}</p>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

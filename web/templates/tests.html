@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Upcoming tests</h2>
+  {% for t in tests %}
+  <p class="status-{{ t.status }}">
+    <strong>{{ t.test_name }}</strong><br>
+    Due {{ t.next_due }} ({{ t.days_until }}d) · Last {{ t.last_done }}<br>
+    <small>{{ t.reason }}</small>
+  </p>
+  {% endfor %}
+</div>
+{% endblock %}

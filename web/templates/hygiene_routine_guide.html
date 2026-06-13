@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block body_class %}hygiene-guide-page{% if guide_theme %} hygiene-guide-{{ guide_theme }}{% endif %}{% endblock %}
+{% block header %}Health / {{ routine_title }}{% endblock %}
+{% block content %}
+<div class="hygiene-guide">
+  <div class="card notion-hero">
+    <a href="{{ breadcrumb_href or '/hygiene' }}" class="breadcrumb">← {{ breadcrumb_label or 'Hygiene' }}</a>
+    <h2 class="hero-title">{{ routine_emoji }} {{ routine_title }}</h2>
+    {% if assigned_label %}
+    <p class="muted">This week · {{ assigned_label }}{% if is_today %} · today{% endif %}</p>
+    {% else %}
+    <p class="muted">Pick days on the Hygiene page for this week.</p>
+    {% endif %}
+    {% if guide_intro %}
+    <p class="muted hygiene-guide-intro">{{ guide_intro }}</p>
+    {% endif %}
+    <p class="muted hygiene-guide-hint">Tap a step to see details.</p>
+  </div>
+
+  {% for section in guide %}
+  <section class="hygiene-guide-section" id="guide-{{ section.id }}">
+    <h3 class="hygiene-guide-section-title">{{ section.title }}</h3>
+    <ol class="hygiene-guide-steps">
+      {% for step in section.steps %}
+      <li class="hygiene-guide-step">
+        <details class="hygiene-guide-details">
+          <summary class="hygiene-guide-summary" data-num="{{ step.num }}">
+            <span class="hygiene-guide-step-title">
+              <span class="hygiene-guide-product-name">{{ step.title }}</span>
+              {% if step.subtitle %}
+              <span class="hygiene-guide-step-sep" aria-hidden="true"> · </span>
+              <span class="hygiene-guide-step-label">{{ step.subtitle }}</span>
+              {% endif %}
+              {% if step.note %}
+              <span class="hygiene-guide-step-sep" aria-hidden="true"> · </span>
+              <span class="hygiene-guide-step-note">{{ step.note }}</span>
+              {% endif %}
+            </span>
+          </summary>
+          {% if step.bullet_sections %}
+          {% for block in step.bullet_sections %}
+          {% if block.heading %}
+          <p class="hygiene-guide-bullet-heading">{{ block.heading }}</p>
+          {% endif %}
+          <ul class="hygiene-guide-bullets">
+            {% for bullet in block.bullets %}
+            <li>{{ bullet | highlight_number_sentences }}</li>
+            {% endfor %}
+          </ul>
+          {% endfor %}
+          {% else %}
+          {% if step.bullet_heading %}
+          <p class="hygiene-guide-bullet-heading">{{ step.bullet_heading }}</p>
+          {% endif %}
+          <ul class="hygiene-guide-bullets">
+            {% for bullet in step.bullets %}
+            <li>{{ bullet | highlight_number_sentences }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </details>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

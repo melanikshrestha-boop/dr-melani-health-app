@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shop-chat-hint">
+  <p>Scan products like Yuka — or ask <strong>Dr. Melani</strong> (💬) for evidence-based picks.</p>
+</div>
+
+<div class="card">
+  <h2>Scan product</h2>
+  <div class="scan-actions row">
+    <button type="button" id="scan_barcode_btn" class="secondary">📷 Barcode</button>
+    <label class="btn secondary scan-label-btn">
+      🏷 Label
+      <input type="file" id="scan_label_input" accept="image/*" capture="environment" hidden>
+    </label>
+  </div>
+  <div id="barcode_reader" class="barcode-reader" hidden></div>
+  <p class="zone-hint">Scores use Open Food Facts + AHA/USDA/Harvard-style guidelines, personalized to your labs.</p>
+</div>
+
+<div id="scan_result" class="card scan-result" hidden>
+  <div class="scan-result-head">
+    <span id="scan_score_badge" class="score-badge">—</span>
+    <div>
+      <strong id="scan_name">Product</strong>
+      <p id="scan_verdict" class="muted"></p>
+    </div>
+  </div>
+  <ul id="scan_notes" class="scan-notes"></ul>
+  <button type="button" id="scan_add_btn" class="btn" style="width:100%;margin-top:10px">Add to list</button>
+</div>
+
+<div class="card">
+  <form method="post" action="/grocery/add" class="row">
+    <input name="name" placeholder="Add item manually" required>
+    <button type="submit">Add</button>
+  </form>
+</div>
+
+<div class="card grocery-list-card">
+  <h2>List</h2>
+  {% for item in items %}
+  <div class="grocery-row {% if item.checked %}done{% endif %}">
+    <form method="post" action="/grocery/toggle/{{ item.id }}" class="grocery-check">
+      <input type="hidden" name="checked" value="{% if item.checked %}0{% else %}1{% endif %}">
+      <input type="checkbox" class="grocery-cb" {% if item.checked %}checked{% endif %} onchange="this.form.submit()" aria-label="Check {{ item.name }}">
+    </form>
+    <div class="grocery-label">
+      <span class="grocery-name">{{ item.name }}</span>
+      {% if item.health_score is not none %}
+      <span class="mini-score score-{{ (item.health_verdict or '')|lower }}">{{ item.health_score }} · {{ item.health_verdict }}</span>
+      {% elif item.reason %}
+      <span class="grocery-reason">{{ item.reason[:50] }}</span>
+      {% endif %}
+    </div>
+    <form method="post" action="/grocery/delete/{{ item.id }}" class="grocery-delete" onsubmit="return confirm('Remove this item?');">
+      <button type="submit" class="delete-btn" aria-label="Delete">×</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">Empty list — scan something or add manually.</p>
+  {% endfor %}
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="/static/grocery.js"></script>
+{% endblock %}

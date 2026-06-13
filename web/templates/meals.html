@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block content %}
+{% set g = macro.goals %}
+{% set c = macro.current %}
+{% set p = macro.pct %}
+{% set r = macro.remaining %}
+
+<div class="card macro-hero">
+  <p class="macro-goal-label">Today's macros · goal {{ g.protein_goal_g|int }}g protein</p>
+  <div class="macro-ring-wrap">
+    <svg class="macro-rings" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="ring-track" cx="100" cy="100" r="88" />
+      <circle class="ring-cal" cx="100" cy="100" r="88"
+        stroke-dasharray="552.92" stroke-dashoffset="{{ (552.92 * (1 - p.calories / 100))|round(2) }}" />
+      <circle class="ring-track inner" cx="100" cy="100" r="77" />
+      <circle class="ring-protein" cx="100" cy="100" r="77"
+        stroke-dasharray="483.80" stroke-dashoffset="{{ (483.80 * (1 - p.protein_g / 100))|round(2) }}" />
+      <circle class="ring-track inner2" cx="100" cy="100" r="66" />
+      <circle class="ring-carbs" cx="100" cy="100" r="66"
+        stroke-dasharray="414.69" stroke-dashoffset="{{ (414.69 * (1 - p.carbs_g / 100))|round(2) }}" />
+      <circle class="ring-track inner3" cx="100" cy="100" r="55" />
+      <circle class="ring-fat" cx="100" cy="100" r="55"
+        stroke-dasharray="345.58" stroke-dashoffset="{{ (345.58 * (1 - p.fat_g / 100))|round(2) }}" />
+      <circle class="ring-track inner4" cx="100" cy="100" r="44" />
+      <circle class="ring-fiber" cx="100" cy="100" r="44"
+        stroke-dasharray="276.46" stroke-dashoffset="{{ (276.46 * (1 - p.fiber_g / 100))|round(2) }}" />
+      <circle class="ring-hole" cx="100" cy="100" r="32" />
+    </svg>
+    <div class="macro-ring-center">
+      <span class="macro-ring-num">{{ c.protein_g|int }}<small>g</small></span>
+      <span class="macro-ring-sub">protein</span>
+      <span class="macro-ring-goal">of {{ g.protein_goal_g|int }}g</span>
+    </div>
+  </div>
+
+  <ul class="macro-stats">
+    <li><span class="dot dot-cal"></span>Calories <strong>{{ c.calories|int }}</strong> / {{ g.calorie_goal|int }} <em>{% if r.calories > 0 %}{{ r.calories|int }} left{% else %}goal hit{% endif %}</em></li>
+    <li><span class="dot dot-protein"></span>Protein <strong>{{ c.protein_g|int }}g</strong> / {{ g.protein_goal_g|int }}g</li>
+    <li><span class="dot dot-carbs"></span>Carbs <strong>{{ c.carbs_g|int }}g</strong> / {{ g.carbs_goal_g|int }}g</li>
+    <li><span class="dot dot-fat"></span>Fat <strong>{{ c.fat_g|int }}g</strong> / {{ g.fat_goal_g|int }}g</li>
+    <li><span class="dot dot-fiber"></span>Fiber <strong>{{ c.fiber_g|int }}g</strong> / {{ g.fiber_goal_g|int }}g</li>
+  </ul>
+  {% if tomorrow_plan_line %}
+  <p class="tomorrow-plan-line">{{ tomorrow_plan_line }}</p>
+  {% endif %}
+</div>
+
+<div class="card preset-breakfast-card">
+  <h2>{{ breakfast_preset.title }}</h2>
+  <p class="preset-macro-line">{{ breakfast_preset.calories|int }} cal · {{ breakfast_preset.protein_g|int }}g protein · {{ breakfast_preset.carbs_g|int }}g C · {{ breakfast_preset.fat_g|int }}g F</p>
+  <form method="post" action="/meals/preset/breakfast/log">
+    <button type="submit" class="preset-log-btn">Log my breakfast today</button>
+  </form>
+  <details class="preset-details">
+    <summary>What's in it</summary>
+    <ul class="preset-ingredients" id="preset_ingredients_view">
+      {% for item in breakfast_preset.ingredients %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+    <button type="button" class="preset-edit-toggle small secondary" id="preset_edit_btn">Edit this</button>
+    <form method="post" action="/meals/preset/breakfast/update" class="preset-edit-form" id="preset_edit_form" hidden>
+      <div id="preset_edit_rows">
+        {% for item in breakfast_preset.ingredients %}
+        <div class="preset-edit-row">
+          <input type="text" name="ingredients" value="{{ item }}" placeholder="Ingredient">
+          <button type="button" class="preset-row-del" aria-label="Remove">×</button>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="secondary small preset-add-row" id="preset_add_row">+ Add item</button>
+      <input type="hidden" name="notes" value="{{ breakfast_preset.notes }}">
+      <input type="hidden" name="calories" value="{{ breakfast_preset.calories|int }}">
+      <input type="hidden" name="protein_g" value="{{ breakfast_preset.protein_g|int }}">
+      <input type="hidden" name="carbs_g" value="{{ breakfast_preset.carbs_g|int }}">
+      <input type="hidden" name="fat_g" value="{{ breakfast_preset.fat_g|int }}">
+      <div class="preset-edit-actions">
+        <button type="submit">Save</button>
+        <button type="button" class="secondary" id="preset_edit_cancel">Cancel</button>
+      </div>
+    </form>
+  </details>
+
+  <details class="common-foods">
+    <summary class="common-foods-title">Common foods</summary>
+    <div class="common-foods-body">
+      <div class="common-food-item">
+        <p class="common-food-name">{{ chipotle_preset.title }}</p>
+        <p class="preset-macro-line common-food-macros">{{ chipotle_preset.calories|int }} cal · {{ chipotle_preset.protein_g|int }}g protein · {{ chipotle_preset.carbs_g|int }}g C · {{ chipotle_preset.fat_g|int }}g F</p>
+        <form method="post" action="/meals/preset/chipotle/log">
+          <button type="submit" class="secondary common-food-log-btn">Log Chipotle bowl</button>
+        </form>
+        <details class="preset-details common-food-details">
+          <summary>What's in it</summary>
+          <ul class="preset-ingredients">
+            {% for item in chipotle_preset.ingredients %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+      </div>
+    </div>
+  </details>
+</div>
+
+<div class="card">
+  <h2>Log what you ate</h2>
+  <form method="post" action="/meals/log">
+    <label>Meal type</label>
+    <select name="slot">
+      <option value="">Auto-detect</option>
+      <option value="breakfast">Breakfast</option>
+      <option value="snack_am">Snack</option>
+      <option value="lunch" selected>Lunch</option>
+      <option value="snack_pm">Snack</option>
+      <option value="dinner">Dinner</option>
+    </select>
+    <label>What did you eat?</label>
+    <input name="name" type="text" placeholder="2 boiled eggs, apple, protein bar..." required>
+    <p class="zone-hint">If you log more than one in the same meal type, it auto-labels as #1, #2, etc.</p>
+    <button type="submit" style="margin-top:12px;width:100%">Log meal</button>
+  </form>
+</div>
+
+<details class="card meals-scan-details">
+  <summary>Scan meal photo here (or send photo to Dr. Melani 💬)</summary>
+  <form method="post" action="/meals/scan" enctype="multipart/form-data">
+    <label>Meal type</label>
+    <select name="slot">
+      <option value="">Auto-detect</option>
+      <option value="breakfast">Breakfast</option>
+      <option value="snack_am">Snack</option>
+      <option value="lunch">Lunch</option>
+      <option value="snack_pm">Snack</option>
+      <option value="dinner">Dinner</option>
+    </select>
+    <label>Photo</label>
+    <input type="file" name="photo" accept="image/*" capture="environment" required>
+    <button type="submit" style="margin-top:12px;width:100%">Scan meal (AI)</button>
+  </form>
+</details>
+
+<div class="card">
+  <div class="meal-list-head">
+    <h2>Today's meals</h2>
+    {% if meals %}
+    <form method="post" action="/meals/undo" class="meal-undo-last-form" data-meal-action="/api/meals/undo">
+      <button type="submit" class="secondary small ghost-btn">Undo last</button>
+    </form>
+    {% endif %}
+  </div>
+  {% for m in meals %}
+  <div class="meal-row">
+    <div class="meal-row-top">
+      <div class="meal-row-main">
+        <div class="meal-row-head">
+          <strong>{{ m.slot_label if m.slot_label is defined else m.slot|capitalize }}</strong>
+          {% if m.source == 'preset' or m.source == 'melani_usual' %}<span class="meal-tag">usual</span>{% elif m.source == 'ai_scan' %}<span class="meal-tag">photo</span>{% elif m.source in ('brand_database', 'open_food_facts', 'open_food_facts_barcode', 'web_nutrition_search') %}<span class="meal-tag">label</span>{% elif m.source == 'ai_text' %}<span class="meal-tag">AI</span>{% endif %}
+        </div>
+        <p class="meal-name">{{ m.name or '—' }}</p>
+        <p class="meal-macros">{{ m.calories|int }} cal · {{ m.protein_g|round(1) }}g P · {{ m.carbs_g|round(1) }}g C · {{ m.fat_g|round(1) }}g F</p>
+      </div>
+      <form method="post" action="/meals/clear" class="meal-undo-slot-form" data-meal-action="/api/meals/clear" data-meal-slot="{{ m.slot }}">
+        <input type="hidden" name="slot" value="{{ m.slot }}">
+        <button type="submit" class="secondary small meal-undo-btn">Undo</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">No meals logged yet.</p>
+  {% endfor %}
+</div>
+
+<div class="card meal-before-7pm-card">
+  <p class="meal-before-7pm-q">Was your last meal before 7 p.m.?</p>
+  <div class="row meal-before-7pm-btns status-btns">
+    <form method="post" action="/meals/before-7pm">
+      <input type="hidden" name="yes" value="1">
+      <button type="submit" class="small status-good{% if meal_before_7pm and meal_before_7pm.yes %} status-good-active{% endif %}">Yes</button>
+    </form>
+    <form method="post" action="/meals/before-7pm">
+      <input type="hidden" name="yes" value="0">
+      <button type="submit" class="small status-bad{% if meal_before_7pm and not meal_before_7pm.yes %} status-bad-active{% endif %}">No</button>
+    </form>
+  </div>
+
+  {% if meal_before_7pm_week %}
+  <div class="meal-7pm-week-compact">
+    <p class="meal-7pm-range">{{ meal_before_7pm_week.date_range }}</p>
+    <div class="meal-7pm-dot-row">
+      {% for d in meal_before_7pm_week.days %}
+      <div class="bf-day">
+        <span class="bf-day-label">{{ d.label[:1] }}</span>
+        <span class="meal-7pm-dot meal-7pm-dot-{% if d.yes is none %}miss{% elif d.yes %}good{% else %}bad{% endif %}"></span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<details class="card macro-history-card" id="macro_history">
+  <summary class="macro-history-summary">
+    <span class="macro-history-title">📊 Food &amp; macro history</span>
+    <span class="macro-history-hint">tap to view trends</span>
+  </summary>
+  <div class="macro-history-body">
+    <div class="row macro-history-range" id="mh_range">
+      <button type="button" class="small mh-range-btn active" data-days="7">7d</button>
+      <button type="button" class="small mh-range-btn" data-days="30">30d</button>
+      <button type="button" class="small mh-range-btn" data-days="90">90d</button>
+    </div>
+
+    <div class="macro-history-averages" id="mh_averages"></div>
+
+    <div class="macro-history-chart-wrap">
+      <canvas id="mh_chart" width="660" height="200" aria-label="Calorie and protein trend"></canvas>
+      <div class="macro-history-legend">
+        <span class="mh-leg mh-leg-cal">● Calories</span>
+        <span class="mh-leg mh-leg-prot">● Protein (g)</span>
+      </div>
+    </div>
+
+    <div class="macro-history-table-wrap">
+      <table class="macro-history-table" id="mh_table">
+        <thead>
+          <tr><th>Day</th><th>Cal</th><th>P</th><th>C</th><th>F</th><th>🍽</th></tr>
+        </thead>
+        <tbody id="mh_tbody"></tbody>
+      </table>
+      <p class="macro-history-empty" id="mh_empty" hidden>No meals logged in this range yet.</p>
+    </div>
+    <p class="zone-hint">Tap any day to see the foods you logged.</p>
+  </div>
+</details>
+<script src="/static/meals.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}

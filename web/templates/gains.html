@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Upload progress photo</h2>
+  <form method="post" action="/gains/upload" enctype="multipart/form-data">
+    <label>Angle</label>
+    <select name="tag"><option value="front">Front</option><option value="side">Side</option><option value="back">Back</option></select>
+    <label>Photo</label><input type="file" name="photo" accept="image/*" capture="environment" required>
+    <button type="submit" style="margin-top:12px;width:100%">Save</button>
+  </form>
+</div>
+<div class="card">
+  <h2>Gallery</h2>
+  <div class="photo-grid">
+  {% for p in photos %}
+    <div><img src="{{ p.url }}" alt="{{ p.tag }}"><small>{{ p.day }} {{ p.tag }}</small></div>
+  {% else %}<p>No photos yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

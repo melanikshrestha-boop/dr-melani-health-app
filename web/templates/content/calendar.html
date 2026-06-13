@@ -1,0 +1,21 @@
+{% extends "content/base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+<section class="content-section">
+  <h2 class="section-title">Next 7 days</h2>
+  {% if not week %}
+  <div class="card content-card">
+    <p class="muted">No scheduled posts this week.</p>
+    <a href="/create" class="content-btn block">Schedule something</a>
+  </div>
+  {% else %}
+  {% for item in week %}
+  <div class="card content-card item-row">
+    <span class="badge {{ item.kind }}">{{ item.kind }}</span>
+    <strong>{{ item.label or 'Post' }}</strong>
+    <p class="muted">{{ item.scheduled_at }} · {{ item.status }}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+</section>
+{% endblock %}

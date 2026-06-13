@@ -1,0 +1,232 @@
+{% macro lab_status_badge(info) %}
+  {% if info.status_badge == 'HIGH' %}
+    <span class="status-pill status-pill-high">HIGH</span>
+  {% elif info.status_badge == 'LOW' %}
+    <span class="status-pill status-pill-high">LOW</span>
+  {% else %}
+    <span class="status-pill status-pill-ok">OK</span>
+  {% endif %}
+{% endmacro %}
+
+{% extends "base.html" %}
+{% block extra_head %}
+<script src="/static/cycle.js?v={{ app_build if app_build is defined else '1' }}" defer></script>
+{% endblock %}
+{% block header %}My Data{% endblock %}
+{% block content %}
+
+<div class="data-profile-card">
+  <div class="data-profile-row">
+    <span class="data-stat"><em>Age</em> {{ data_stats.age_display if data_stats is defined else '18' }} · {{ data_stats.sex_label if data_stats is defined else 'female' }}</span>
+    <span class="data-stat"><em>Height</em> {{ data_stats.height if data_stats is defined else '5 ft 0 in' }}</span>
+    <span class="data-stat"><em>Weight</em> {{ data_stats.weight_display if data_stats is defined else '—' }}</span>
+  </div>
+</div>
+
+<div class="card cycle-card">
+  <h2 class="cycle-heading">Period tracker</h2>
+  <p class="cycle-status">{{ cycle.status_line }}</p>
+  <p class="cycle-phase">{{ cycle.phase }}{% if cycle.estimated %} · estimated{% endif %}</p>
+  {% if cycle.estimated and cycle.note %}
+  <p class="zone-hint">{{ cycle.note }}</p>
+  {% endif %}
+
+  <p class="cycle-subhead">Last period</p>
+  <p class="cycle-meta">{{ cycle.last_period_display }} · short (~{{ cycle.period_length_days }} days)</p>
+  <p class="cycle-meta">Next expected: {{ cycle.predicted_next_display }}</p>
+
+  <p class="cycle-subhead">Today's flow</p>
+  <div class="cycle-flow-btns">
+    {% for level in cycle.flow_levels %}
+    <form method="post" action="/data/cycle/flow">
+      <input type="hidden" name="flow" value="{{ level }}">
+      <button type="submit" class="cycle-flow-btn cycle-flow-{{ level }}{% if cycle.today_flow == level %} active{% endif %}">{{ level }}</button>
+    </form>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/data/cycle/start" class="cycle-start-form">
+    <button type="submit" class="cycle-start-btn secondary">Period started today</button>
+  </form>
+
+  <div class="cycle-learn">
+    <p class="cycle-learn-label">Tap a phase to learn</p>
+    <div class="cycle-phase-chips">
+      {% for p in cycle.phases %}
+      <button type="button" class="cycle-phase-chip cycle-phase-{{ p.id }}{% if p.current %} is-current{% endif %}" data-phase="{{ p.id }}">{{ p.label }}</button>
+      {% endfor %}
+    </div>
+    <div id="cycle_phase_info" class="cycle-phase-info" hidden>
+      <p class="cycle-phase-info-title" id="cycle_phase_title"></p>
+      <p class="cycle-phase-info-when" id="cycle_phase_when"></p>
+      <p class="cycle-phase-info-body" id="cycle_phase_body"></p>
+      <ul class="cycle-phase-info-symptoms" id="cycle_phase_symptoms"></ul>
+      <p class="cycle-phase-info-tip" id="cycle_phase_tip"></p>
+    </div>
+  </div>
+  <script type="application/json" id="cycle_phase_data">{{ cycle.phase_guide_json | safe }}</script>
+
+  <p class="cycle-subhead">This cycle</p>
+  <p class="cycle-meta">Ovulation (estimated): {{ cycle.predicted_ovulation_display }}</p>
+  <div class="cycle-calendar">
+    {% for d in cycle.calendar %}
+    <div class="cycle-day{% if d.is_today %} cycle-day-today{% endif %}{% if d.is_period_start %} cycle-day-start{% endif %}{% if d.is_predicted %} cycle-day-predicted{% endif %}{% if d.is_ovulation %} cycle-day-ovulation{% endif %}">
+      <span class="cycle-day-label">{{ d.weekday }}</span>
+      <span class="cycle-dot cycle-dot-{% if d.flow %}{{ d.flow }}{% else %}empty{% endif %}"></span>
+      <span class="cycle-day-num">{{ d.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="zone-hint">Pink = flow · gold ring = ovulation window · blue ring = today</p>
+</div>
+
+<div class="card tests-section">
+  <details class="tests-panel" {% if tests_due %}open{% endif %}>
+    <summary class="lab-section-summary tests-panel-head">
+      <span>Upcoming tests</span>
+      <span class="tests-count">{{ tests|length }}</span>
+    </summary>
+    <div class="tests-list">
+      {% for t in tests %}
+      <details class="test-item status-{{ t.status }}">
+        <summary class="test-item-summary">
+          <span class="test-name">{{ t.test_name }}</span>
+          <span class="test-meta-right">
+            {% if t.status == 'overdue' %}<span class="test-badge overdue">Overdue</span>
+            {% elif t.status == 'due_soon' %}<span class="test-badge due-soon">Due soon</span>
+            {% else %}<span class="test-badge ok">Scheduled</span>{% endif %}
+            <span class="test-due-date">{{ t.next_due }}</span>
+          </span>
+        </summary>
+        <div class="test-detail">
+          <p><strong>Due:</strong> {{ t.next_due }} ({{ t.days_until }} days)</p>
+          <p><strong>Last done:</strong> {{ t.last_done }}</p>
+          <p><strong>Why:</strong> {{ t.reason }}</p>
+          {% if t.fasting %}<p class="test-fasting">⏱ Fast 8–12 hours before this test.</p>{% endif %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+
+{% if current_status %}
+<div class="card current-status-card">
+  <p class="current-status-title">Current status</p>
+  <div class="neon-status-row">
+    {% for s in current_status %}
+    <div class="neon-chip neon-{{ s.chip_class }}">
+      <span class="neon-chip-label">{{ s.short }}</span>
+      <span class="neon-chip-value">{{ s.value_display }}</span>
+      <span class="neon-chip-badge">{{ s.status_badge }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if upload_msg %}
+<p class="upload-flash upload-flash-{{ upload_msg.type }}">{{ upload_msg.text }}</p>
+{% endif %}
+
+<div class="card lab-upload-card">
+  <details class="lab-upload-panel">
+    <summary class="lab-section-summary">
+      <span>📎 Attach PDF</span>
+      <span class="summary-hint">Blood test PDF — auto-updates your data</span>
+    </summary>
+    <div class="lab-upload-body">
+      <p class="zone-hint">Upload a lab report PDF — results update automatically in the sections below.</p>
+      <form class="lab-upload-form" method="post" action="/labs/upload" enctype="multipart/form-data">
+        <input type="file" name="pdf" accept="application/pdf,.pdf" required>
+        <button type="submit" class="btn-primary">Import PDF</button>
+      </form>
+    </div>
+  </details>
+</div>
+
+{% if data_overview %}
+<div class="card data-loaded-banner">
+  <p class="data-loaded-title">Your lab data is loaded</p>
+  <p class="data-loaded-meta">{{ data_overview.visits }} visits · {{ data_overview.tests }} results · latest {{ data_overview.latest_date }}</p>
+</div>
+{% endif %}
+
+<h2 class="section-label">Your results by section</h2>
+
+{% for sec in lab_sections %}
+<div class="card data-section-card">
+  <details class="data-section-panel" open>
+    <summary class="data-section-head">
+      <div class="data-section-head-text">
+        <p class="data-section-about">{{ sec.explainer }}</p>
+        <p class="data-section-date">{{ sec.last_date_display }}</p>
+      </div>
+      <span class="status-pill status-pill-{{ 'high' if sec.status_badge == 'HIGH' else 'low' if sec.status_badge == 'LOW' else 'ok' }}">{{ 'HIGH' if sec.status_badge == 'HIGH' else 'LOW' if sec.status_badge == 'LOW' else 'OK' }}</span>
+    </summary>
+    <div class="data-section-tests">
+      <div class="lab-grid-head">
+        <span>Test</span>
+        <span>Result</span>
+        <span>Status</span>
+      </div>
+      {% for v in sec.tests %}
+      {% set info = v.info %}
+      <details class="lab-explainer data-test-row">
+        <summary>
+          <span class="lab-col-name">{{ v.test }}</span>
+          <span class="lab-col-result">{{ v.result or v.result_text }} {{ v.unit or '' }}</span>
+          <span class="lab-col-status">{{ lab_status_badge(info) }}</span>
+        </summary>
+        <div class="lab-detail">
+          <p>{{ info.simple }}</p>
+          {% if info.trend %}<p class="lab-trend">{{ info.trend }}</p>{% endif %}
+          <dl class="lab-dl">
+            <dt>Normal range</dt>
+            <dd>{{ info.report_range }}</dd>
+            <dt>Your result</dt>
+            <dd><strong>{{ info.your_result }}</strong></dd>
+            <dt>If high</dt>
+            <dd>{{ info.high_means }}</dd>
+            <dt>If low</dt>
+            <dd>{{ info.low_means }}</dd>
+          </dl>
+          <p class="lab-verdict {{ info.verdict_class }}">{{ info.verdict_text }}</p>
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+</div>
+{% endfor %}
+
+<p class="zone-hint">Not medical advice — discuss any concerns with your doctor.</p>
+
+<div class="card progress-photos-card" id="progress-photos">
+  <details class="progress-photos-panel">
+    <summary class="lab-section-summary">
+      <span>📸 Progress photos</span>
+      <span class="summary-hint">Optional · when you want to compare</span>
+    </summary>
+    <div class="progress-photos-body">
+      <form class="progress-photos-form" method="post" action="/gains/upload" enctype="multipart/form-data">
+        <label>Angle</label>
+        <select name="tag"><option value="front">Front</option><option value="side">Side</option><option value="back">Back</option></select>
+        <label>Photo</label>
+        <input type="file" name="photo" accept="image/*" capture="environment" required>
+        <button type="submit" class="btn-primary">Save photo</button>
+      </form>
+      {% if photos %}
+      <p class="upload-recent-label">Gallery</p>
+      <div class="photo-grid">
+        {% for p in photos %}
+        <div><img src="{{ p.url }}" alt="{{ p.tag }}"><small>{{ p.day }} · {{ p.tag }}</small></div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="zone-hint">No photos yet — add one when you feel like it.</p>
+      {% endif %}
+    </div>
+  </details>
+</div>
+{% endblock %}

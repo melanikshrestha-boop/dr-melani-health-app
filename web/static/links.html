@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Melani Health Links</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #191919; color: #fff; padding: 24px; max-width: 420px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; }
+    p { color: #888; font-size: 0.9rem; }
+    a { display: block; background: #2383e2; color: #fff; text-decoration: none; padding: 16px; border-radius: 12px; margin-bottom: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Melani Health</h1>
+  <p id="hint">Tap any link — works on phone &amp; Mac.</p>
+  <div id="links"></div>
+  <script>
+    (function () {
+      var base = window.location.origin.replace(/\/static.*$/, "");
+      var pages = [
+        ["Today", "/"],
+        ["Gym", "/gym"],
+        ["Hygiene", "/hygiene"],
+        ["Saturday workout", "/gym/saturday"],
+        ["Shop + scan", "/grocery"],
+        ["Labs", "/labs"],
+        ["Meals", "/meals"],
+      ];
+      var box = document.getElementById("links");
+      pages.forEach(function (p) {
+        var a = document.createElement("a");
+        a.href = base + p[1];
+        a.textContent = p[0];
+        box.appendChild(a);
+      });
+    })();
+  </script>
+</body>
+</html>

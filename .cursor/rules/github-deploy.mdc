@@ -1,0 +1,59 @@
+---
+description: Deploy Dr. Melani (melani_assistant) to GitHub — init, commit, push workflow
+alwaysApply: true
+---
+
+# GitHub deploy — Dr. Melani
+
+## Repository
+
+- **Project root:** `/Users/melanishrestha/melani_assistant`
+- **Remote:** `https://github.com/melanikshrestha-boop/dr.-Melani.git`
+- **Default branch:** `main`
+
+When the user asks to deploy, push, sync, or publish to GitHub, work from the project root above.
+
+## Never commit
+
+Personal data and secrets live outside the repo in `~/.melani_assistant/`. Never add or push:
+
+- `config.json`, `content_config.json`, `phone_url.json`, `content_phone_url.json`
+- `health.db`, `content.db`, OAuth tokens, tunnel logs/PIDs, API keys, passphrases, PIN overrides
+- Anything under `~/.melani_assistant/health_data/`, `content_data/`, or `content_inbox/`
+
+Ensure `.gitignore` exists and includes at least:
+
+```
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+*.log
+*.pid
+```
+
+## First-time setup
+
+If there is no `.git` directory:
+
+1. `git init`
+2. Add `.gitignore` if missing
+3. `git remote add origin https://github.com/melanikshrestha-boop/dr.-Melani.git`
+4. Stage source only (skip duplicate `* copy*` backup files unless the user wants them)
+5. Create the initial commit **only when the user asks**
+6. `git branch -M main` then `git push -u origin main`
+
+## Ongoing deploy
+
+1. `git status`, `git diff`, and `git log -3` to understand changes
+2. Commit **only when the user explicitly asks** — never auto-commit after feature work
+3. Push: `git push origin main` (or the current branch)
+4. If push is rejected, pull/rebase first; never force-push `main` unless the user explicitly requests it
+
+## Auth
+
+Prefer `gh` when installed. Otherwise use `git push` over HTTPS or SSH. If auth fails, tell the user to sign in (`gh auth login` or configure a GitHub credential/SSH key) and retry.
+
+## After push
+
+Confirm the remote URL and branch pushed. Remind the user that runtime data stays local in `~/.melani_assistant/` and is not backed up by this repo.

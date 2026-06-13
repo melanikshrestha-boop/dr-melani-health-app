@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block header %}Health / Gym{% endblock %}
+{% block content %}
+<div class="card notion-hero">
+  <div class="hero-icon">🏋️</div>
+  <h2 class="hero-title">Gym</h2>
+  {% for d in days if d.is_today %}
+  <p class="gym-today-label">Today · {% if d.workout_label %}{{ d.workout_emoji }} {{ d.workout_label }}{% else %}{{ d.title }}{% endif %}</p>
+  {% endfor %}
+  <div class="callout">✔ WORKOUTS: Gym (5x/week) & Run (2x/week)</div>
+  {% for d in days if d.is_today %}
+  <a href="{{ d.href }}" class="today-workout-link">{% if d.workout_label %}{{ d.workout_emoji }} {{ d.workout_label }} →{% else %}Today's workout → {{ d.title }}{% endif %}</a>
+  {% endfor %}
+</div>
+
+<div class="card gym-week-card">
+  <p class="gym-week-title">This week</p>
+  {% if gym_alert %}
+  <div class="gym-plan-alert gym-plan-alert-{{ gym_alert.level }}" role="alert">{{ gym_alert.message }}</div>
+  {% endif %}
+  <div class="gym-week-strip" id="gym_week_strip">
+    {% for c in week_strip %}
+    <a href="{{ c.href }}" class="gym-week-day{% if c.is_today %} is-today{% endif %}{% if c.workout_css %} is-workout-{{ c.workout_css }}{% endif %}" data-day="{{ c.day_key }}" data-full="{{ c.full }}" title="{{ c.full }}{% if c.workout_label %} · {{ c.workout_label }}{% endif %}">
+      <span class="gym-week-dow">{{ c.initial }}</span>
+      <span class="gym-week-num">{{ c.date_num }}</span>
+      <span class="gym-week-tag">{% if c.workout_emoji %}{{ c.workout_emoji }}{% elif c.is_today %}•{% endif %}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <details class="gym-week-plan-details">
+    <summary>Choose workouts for this week</summary>
+    <div id="gym_plan_alert" class="gym-plan-alert gym-plan-alert-block" hidden role="alert"></div>
+    <form method="post" action="/gym/week-plan" class="gym-week-plan-form" id="gym_week_plan_form">
+      <div class="gym-plan-hidden-fields" id="gym_plan_hidden_fields"></div>
+      {% for type_id, meta in workout_types.items() %}
+      <div class="gym-plan-type-row gym-plan-type-{{ meta.css }}"
+        data-type="{{ type_id }}"
+        data-max="{{ meta.get('max_days', '') }}"
+        data-min-gap="{{ meta.get('min_gap', '') }}">
+        <p class="gym-plan-type-label">
+          <span class="gym-plan-type-emoji">{{ meta.emoji }}</span>
+          {{ meta.label }}
+          {% if meta.get('hint') %}<span class="gym-plan-type-hint">{{ meta.hint }}</span>{% endif %}
+        </p>
+        <div class="gym-plan-day-picks">
+          {% for c in week_strip %}
+          <button type="button"
+            class="gym-day-pick{% if week_plan.get(c.day_key) == type_id %} is-on{% endif %}"
+            data-workout-type="{{ type_id }}"
+            data-day="{{ c.day_key }}"
+            data-day-label="{{ c.label }}"
+            aria-pressed="{% if week_plan.get(c.day_key) == type_id %}true{% else %}false{% endif %}">
+            <span class="gym-day-pick-inner">
+              <span class="gym-day-pick-badge" aria-hidden="true"></span>
+              <span class="gym-day-pick-label">{{ c.label }}</span>
+            </span>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      <button type="submit" class="gym-plan-save-btn">Save week</button>
+    </form>
+  </details>
+</div>
+
+<div class="card gym-lower-entry">
+  <a href="/gym/lower" class="gym-lower-entry-link">
+    <span class="page-emoji">🦵</span>
+    <span>
+      <strong>Lower body</strong>
+      <small>Workouts 1, 2, and 3</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+
+<div class="card gym-upper-entry">
+  <a href="/gym/upper" class="gym-upper-entry-link">
+    <span class="page-emoji">💪</span>
+    <span>
+      <strong>Upper body + Abs</strong>
+      <small>Workouts 1 and 2</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+
+<div class="card gym-cardio-entry">
+  <a href="/gym/cardio" class="gym-cardio-entry-link">
+    <span class="page-emoji">🏃</span>
+    <span>
+      <strong>Cardio</strong>
+      <small>Running tracker · swimming soon</small>
+    </span>
+    <span class="page-chevron">→</span>
+  </a>
+</div>
+
+<script>
+  window.gymWeekOrder = {{ week_strip | map(attribute='day_key') | list | tojson }};
+  window.gymPlanTypes = {{ workout_types | tojson }};
+  window.gymWeekPlan = {{ week_plan | tojson }};
+</script>
+<script src="/static/gym_week_plan.js?v={{ app_build if app_build is defined else '1' }}"></script>
+{% endblock %}
