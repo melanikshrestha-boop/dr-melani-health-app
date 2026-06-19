@@ -8,7 +8,7 @@ import sys
 import json
 import hashlib
 from urllib.parse import quote
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
@@ -619,6 +619,27 @@ def _progress_photo_cards() -> list[dict]:
     ]
 
 
+def _gym_whoop_context() -> dict:
+    st = wearables.status()
+    sleep = None
+    for offset in (0, -1):
+        d = (date.today() + timedelta(days=offset)).isoformat()
+        row = wearables.get_metric(d, "whoop", "sleep_hours")
+        if row and row.get("value") is not None:
+            sleep = {"hours": round(float(row["value"]), 1), "day": d}
+            break
+    if st.get("whoop_configured"):
+        connect_href = "/data/wearables/whoop/connect"
+    else:
+        connect_href = "/labs"
+    return {
+        "whoop_connected": st.get("whoop_connected"),
+        "whoop_configured": st.get("whoop_configured"),
+        "whoop_sleep": sleep,
+        "whoop_connect_href": connect_href,
+    }
+
+
 @app.get("/gym", response_class=HTMLResponse)
 def gym_page(request: Request):
     gym_plans.ensure_plans()
@@ -643,6 +664,7 @@ def gym_page(request: Request):
         workout_types=gym_plans.WORKOUT_TYPES,
         plan_violations=plan_violations,
         gym_alert=alert,
+        whoop=_gym_whoop_context(),
     )
 
 

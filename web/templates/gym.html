@@ -11,6 +11,20 @@
   {% for d in days if d.is_today %}
   <a href="{{ d.href }}" class="today-workout-link">{% if d.workout_label %}{{ d.workout_emoji }} {{ d.workout_label }} →{% else %}Today's workout → {{ d.title }}{% endif %}</a>
   {% endfor %}
+  {% if whoop.whoop_connected and whoop.whoop_sleep %}
+  <div class="gym-whoop-card">
+    <span class="gym-whoop-label">WHOOP · last night</span>
+    <strong class="gym-whoop-value">{{ whoop.whoop_sleep.hours }} h sleep</strong>
+  </div>
+  {% elif whoop.whoop_connected %}
+  <div class="gym-whoop-card gym-whoop-muted">
+    <span class="gym-whoop-label">WHOOP</span>
+    <span class="gym-whoop-value">No sleep synced yet</span>
+    <a href="/labs" class="secondary small gym-whoop-link">Sync in Labs →</a>
+  </div>
+  {% else %}
+  <a href="{{ whoop.whoop_connect_href }}" class="gym-whoop-connect secondary small">Connect WHOOP</a>
+  {% endif %}
 </div>
 
 <div class="card gym-week-card">
@@ -98,10 +112,59 @@
   </a>
 </div>
 
+<div class="card gym-warmup-card" id="gym_warmup_card">
+  <h3 class="section-title">Warm-up</h3>
+  <ul class="workout-checklist gym-warmup-list">
+    <li class="workout-item" data-warmup-id="head_stretch">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Head stretch</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="upper_neck">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Upper neck</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="upper_body">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Upper body</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="lower_body">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Lower body</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="jump_squats">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">10 jump squats high knees</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="swing_legs">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Swing legs</span>
+      </label>
+    </li>
+    <li class="workout-item" data-warmup-id="open_close_gate">
+      <label class="check-row">
+        <input type="checkbox" class="warmup-check">
+        <span class="item-text">Open and close a gate</span>
+      </label>
+    </li>
+  </ul>
+</div>
+
 <script>
   window.gymWeekOrder = {{ week_strip | map(attribute='day_key') | list | tojson }};
   window.gymPlanTypes = {{ workout_types | tojson }};
   window.gymWeekPlan = {{ week_plan | tojson }};
 </script>
 <script src="/static/gym_week_plan.js?v={{ app_build if app_build is defined else '1' }}"></script>
+<script src="/static/gym_home.js?v={{ app_build if app_build is defined else '1' }}"></script>
 {% endblock %}

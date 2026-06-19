@@ -870,6 +870,41 @@ small { color: var(--muted); font-weight: normal; }
 
 .gym-today-label { color: var(--muted); font-size: 0.95rem; margin: 4px 0 12px; }
 
+.gym-whoop-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.28);
+}
+.gym-whoop-card.gym-whoop-muted {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.gym-whoop-label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.gym-whoop-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #6ee7b7;
+}
+.gym-whoop-muted .gym-whoop-value { color: var(--muted); font-weight: 500; font-size: 0.92rem; }
+.gym-whoop-link { display: inline-block; margin-top: 6px; }
+.gym-whoop-connect {
+  display: inline-block;
+  margin-top: 12px;
+  text-decoration: none;
+}
+
+.gym-warmup-card { margin-bottom: 24px; }
+.gym-warmup-list { margin-top: 4px; }
+
 .breadcrumb {
   color: var(--muted);
   text-decoration: none;
