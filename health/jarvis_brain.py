@@ -28,6 +28,9 @@ from . import supplement_advisor
 from .profile import data_stats
 from . import gym_plans
 from . import symptoms
+from . import migraines
+from . import checkins
+from . import weekly_insights
 from . import cycle
 from . import journal as journal_mod
 from . import grocery
@@ -190,6 +193,7 @@ INTENTS = (
         "scoop", "spoon", "dose", "dosage", "thorne", "how much do i take",
     )),
     ("brain_fog", ("brain fog", "foggy", "fog", "can't focus", "cant focus", "tired", "fatigue", "exhausted")),
+    ("migraine", ("migraine", "headache", "migraines", "aura", "head pain", "throbbing")),
     ("nutrition", ("calorie", "protein", "hormone", "macro", "eat", "meal", "food", "diet", "weight loss", "gain")),
     ("gym", ("workout", "gym", "exercise", "lift", "squat", "hip thrust", "cardio", "rest day")),
     ("labs", ("lab", "ldl", "cholesterol", "triglyceride", "a1c", "glucose", "tsh", "blood test", "results")),
@@ -367,6 +371,15 @@ def context_for_question(question: str, history: list[dict] | None = None) -> st
             sleep_week_block(),
             _sleep_block(),
             recent_meals_block(),
+        ])
+    elif intent == "migraine":
+        parts.extend([
+            migraines.context_block(),
+            checkins.context_block(),
+            weekly_insights.context_block(),
+            _sleep_block(),
+            recent_meals_block(),
+            cycle.context_block(),
         ])
     elif intent == "nutrition":
         parts.extend([

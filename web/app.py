@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -234,6 +234,7 @@ def home(request: Request, week: str = "", weight_week: str = ""):
     from health import journal as journal_mod
 
     mood_saved_day = (request.query_params.get("mood_saved") or "").strip()
+    weekly_card = weekly_insights.build_card()
     return _render(
         request,
         "today.html",
@@ -263,6 +264,7 @@ def home(request: Request, week: str = "", weight_week: str = ""):
         mood_log_days=journal_mod.mood_log_by_day(),
         mood_saved_day=mood_saved_day,
         mood_notes_open=bool(mood_saved_day),
+        weekly_card=weekly_card,
     )
 
 
@@ -1327,7 +1329,7 @@ def autopilot_today_api():
 
 
 @app.get("/labs", response_class=HTMLResponse)
-def labs_page(request: Request, uploaded: str = ""):
+def labs_page(request: Request, uploaded: str = "", wearable: str = ""):
     tests = screening.list_screening()
     tests_due = any(t["status"] != "ok" for t in tests)
     raw_draws = all_lab_draws()
@@ -1338,6 +1340,20 @@ def labs_page(request: Request, uploaded: str = ""):
         upload_msg = {"type": "ok", "text": "Report imported — your data was updated automatically."}
     elif uploaded == "fail":
         upload_msg = {"type": "err", "text": request.cookies.get("lab_upload_err", "Could not read that PDF.")}
+    wearable_msg = None
+    wearable_flash = {
+        "whoop_ok": ("ok", "WHOOP connected and synced."),
+        "whoop_fail": ("err", "WHOOP connection failed — check credentials and try again."),
+        "whoop_config_saved": ("ok", "WHOOP credentials saved."),
+        "whoop_config": ("err", "Add WHOOP client ID and secret first."),
+        "whoop_sync_ok": ("ok", "WHOOP data synced (raw RHR/HRV/sleep only)."),
+        "whoop_sync_fail": ("err", "WHOOP sync failed — reconnect or check API access."),
+        "apple_ok": ("ok", "Apple Health CSV imported."),
+        "apple_fail": ("err", "Could not read that CSV — use Export All Health Data from iPhone."),
+    }
+    if wearable in wearable_flash:
+        kind, text = wearable_flash[wearable]
+        wearable_msg = {"type": kind, "text": text}
     return _render(
         request,
         "labs.html",
@@ -1358,6 +1374,9 @@ def labs_page(request: Request, uploaded: str = ""):
         upload_msg=upload_msg,
         cycle=cycle.cycle_overview(),
         photos=_progress_photo_cards(),
+        wearable_status=wearables.status(),
+        whoop_configured=bool(wearables.whoop_config().get("client_id")),
+        wearable_msg=wearable_msg,
     )
 
 
@@ -1376,6 +1395,51 @@ def cycle_flow_route(flow: str = Form(...)):
 def cycle_start_route():
     cycle.start_period()
     return RedirectResponse("/labs", status_code=303)
+
+
+@app.get("/data/wearables/whoop/connect")
+def whoop_connect():
+    if not wearables.whoop_config().get("client_id"):
+        return RedirectResponse("/labs?wearable=whoop_config", status_code=303)
+    return RedirectResponse(wearables.whoop_auth_url(), status_code=303)
+
+
+@app.get("/data/wearables/whoop/callback")
+def whoop_callback(code: str = "", error: str = ""):
+    if error or not code:
+        return RedirectResponse("/labs?wearable=whoop_fail", status_code=303)
+    try:
+        wearables.whoop_exchange_code(code)
+        wearables.sync_whoop()
+        return RedirectResponse("/labs?wearable=whoop_ok", status_code=303)
+    except Exception:
+        return RedirectResponse("/labs?wearable=whoop_fail", status_code=303)
+
+
+@app.post("/data/wearables/whoop/config")
+async def whoop_config_route(request: Request):
+    form = await request.form()
+    wearables.save_whoop_config(
+        str(form.get("client_id") or ""),
+        str(form.get("client_secret") or ""),
+        str(form.get("redirect_uri") or ""),
+    )
+    return RedirectResponse("/labs?wearable=whoop_config_saved", status_code=303)
+
+
+@app.post("/data/wearables/whoop/sync")
+def whoop_sync_route():
+    result = wearables.sync_whoop()
+    status = "whoop_sync_ok" if result.get("ok") else "whoop_sync_fail"
+    return RedirectResponse(f"/labs?wearable={status}", status_code=303)
+
+
+@app.post("/data/wearables/apple/import")
+async def apple_health_import_route(csv: UploadFile = File(...)):
+    content = await csv.read()
+    result = wearables.import_apple_health_csv(content)
+    status = "apple_ok" if result.get("ok") else "apple_fail"
+    return RedirectResponse(f"/labs?wearable={status}", status_code=303)
 
 
 @app.post("/labs/upload")
@@ -1468,7 +1532,23 @@ def links_page(request: Request):
 
 @app.get("/grocery", response_class=HTMLResponse)
 def grocery_page(request: Request):
-    return _render(request, "grocery.html", nav="grocery", items=grocery.list_items(checked_only=False))
+    items = grocery.list_items(checked_only=False)
+    unchecked = [i for i in items if not i.get("checked")]
+    return _render(
+        request,
+        "grocery.html",
+        nav="grocery",
+        items=items,
+        unchecked=unchecked,
+        sparky_prompt=grocery.format_sparky_prompt([i["name"] for i in unchecked]),
+    )
+
+
+@app.get("/api/grocery/sparky-prompt")
+def grocery_sparky_prompt():
+    unchecked = [i for i in grocery.list_items(checked_only=False) if not i.get("checked")]
+    prompt = grocery.format_sparky_prompt([i["name"] for i in unchecked])
+    return {"prompt": prompt, "count": len(unchecked), "items": [i["name"] for i in unchecked]}
 
 
 @app.post("/grocery/add")

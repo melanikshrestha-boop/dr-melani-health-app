@@ -20,7 +20,7 @@ NUDGES_FILE = HEALTH_DATA / "jarvis" / "nudges.json"
 CHAT_FILE = HEALTH_DATA / "jarvis" / "chat_history.json"
 PENDING_FILE = HEALTH_DATA / "jarvis" / "chat_pending.json"
 RESULT_FILE = HEALTH_DATA / "jarvis" / "chat_last_result.json"
-SHOPS = ("Trader Joe's", "Target")
+SHOPS = ("Walmart+", "Trader Joe's", "Target")
 
 KNOWN_PRODUCTS = (
     "olive oil", "oats", "salmon", "walnuts", "spinach", "eggs", "yogurt",
@@ -67,6 +67,7 @@ def _save_json(path, data):
 def shop_links(query: str) -> list[dict]:
     q = quote_plus(query.strip())
     return [
+        {"store": "Walmart", "url": grocery.walmart_search_url(query.strip())},
         {"store": "Target", "url": f"https://www.target.com/s?searchTerm={q}"},
         {"store": "Trader Joe's", "url": f"https://www.traderjoes.com/home/search?q={q}"},
     ]
@@ -305,12 +306,17 @@ def ask_jarvis(
         product = None
     links = shop_links(product) if product else []
 
-    add_match = re.search(r"add\s+(.+?)(?:\s+to|\s*$)", question.lower()) if question else None
-    added = None
-    if add_match:
-        item = add_match.group(1).strip().title()
-        if len(item) > 1:
-            added = grocery.add_item(item, added_by="dr_melani", reason="Added via Dr. Melani chat")
+    added_items: list[dict] = []
+    if question:
+        names = grocery.parse_item_names(question)
+        is_grocery = bool(
+            re.search(r"\b(?:add|ran|run)\s+out|running\s+low|out\s+of\b", question, re.I)
+            or ("grocery" in question.lower() or "list" in question.lower())
+        )
+        if names and is_grocery:
+            added_items = grocery.add_items(
+                names, added_by="dr_melani", reason="Added via Dr. Melani chat"
+            )
 
     curated = _curated_answer(product) if product and not has_image else None
     answer = curated
@@ -378,8 +384,9 @@ def ask_jarvis(
     if product and links and "Shop links:" not in answer:
         answer += _link_block(product if product != "olive oil" else "extra virgin olive oil")
 
-    if added:
-        answer += f"\n\n✓ Added {added['name']} to your grocery list."
+    if added_items:
+        names = ", ".join(i["name"] for i in added_items)
+        answer += f"\n\n✓ Added to your grocery list: {names}."
 
     hist_label = question or "[image]"
     if has_image and question:
@@ -390,7 +397,7 @@ def ask_jarvis(
     _append_history("user", hist_label)
     _append_history("assistant", answer)
 
-    return {"answer": answer, "links": links, "added": added, "had_image": has_image}
+    return {"answer": answer, "links": links, "added": added_items, "had_image": has_image}
 
 
 # ── Background chat jobs ─────────────────────────────────────────────────────

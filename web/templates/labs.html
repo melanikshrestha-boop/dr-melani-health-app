@@ -128,6 +128,9 @@
 {% if upload_msg %}
 <p class="upload-flash upload-flash-{{ upload_msg.type }}">{{ upload_msg.text }}</p>
 {% endif %}
+{% if wearable_msg %}
+<p class="upload-flash upload-flash-{{ wearable_msg.type }}">{{ wearable_msg.text }}</p>
+{% endif %}
 
 <div class="card lab-upload-card">
   <details class="lab-upload-panel">
@@ -227,6 +230,48 @@
       <p class="zone-hint">No photos yet — add one when you feel like it.</p>
       {% endif %}
     </div>
+  </details>
+</div>
+
+<div class="card wearable-card">
+  <h2>Wearables</h2>
+  <p class="zone-hint">Import raw WHOOP + Apple Health data only — no Recovery or Strain scores.</p>
+  {% set ws = wearable_status %}
+  <p class="wearable-status-line">
+    WHOOP: {% if ws.whoop_connected %}connected{% elif ws.whoop_configured %}configured — <a href="/data/wearables/whoop/connect">Connect</a>{% else %}not set up{% endif %}
+    {% if ws.whoop_last_sync %} · synced {{ ws.whoop_last_sync[:10] }}{% endif %}
+  </p>
+  {% if ws.hrv_week_avg %}<p class="wearable-metric-line">7-day HRV avg: <strong>{{ ws.hrv_week_avg }} ms</strong></p>{% endif %}
+  {% if ws.rhr_week_avg %}<p class="wearable-metric-line">7-day resting HR avg: <strong>{{ ws.rhr_week_avg }} bpm</strong></p>{% endif %}
+  {% if ws.apple_last_import %}<p class="wearable-metric-line">Apple Health imported {{ ws.apple_last_import[:10] }}{% if ws.steps_week_total %} · {{ ws.steps_week_total | int }} steps this week{% endif %}</p>{% endif %}
+
+  <details class="wearable-setup">
+    <summary>WHOOP setup</summary>
+    <p class="zone-hint">Create an app at <a href="https://developer.whoop.com/" target="_blank" rel="noopener">developer.whoop.com</a> and paste credentials here.</p>
+    <form method="post" action="/data/wearables/whoop/config" class="wearable-config-form">
+      <label for="whoop_client_id">Client ID</label>
+      <input id="whoop_client_id" name="client_id" type="text" autocomplete="off">
+      <label for="whoop_client_secret">Client secret</label>
+      <input id="whoop_client_secret" name="client_secret" type="password" autocomplete="off">
+      <label for="whoop_redirect">Redirect URI</label>
+      <input id="whoop_redirect" name="redirect_uri" type="text" value="http://127.0.0.1:8781/data/wearables/whoop/callback">
+      <button type="submit" class="secondary small">Save WHOOP config</button>
+    </form>
+    <div class="row wearable-actions">
+      <a href="/data/wearables/whoop/connect" class="secondary small">Connect WHOOP</a>
+      <form method="post" action="/data/wearables/whoop/sync">
+        <button type="submit" class="secondary small">Sync last 7 days</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="wearable-setup">
+    <summary>Apple Health import</summary>
+    <p class="zone-hint">On iPhone: Health app → profile → Export All Health Data → upload the CSV here.</p>
+    <form method="post" action="/data/wearables/apple/import" enctype="multipart/form-data">
+      <input type="file" name="csv" accept=".csv,text/csv" required>
+      <button type="submit" class="secondary small">Import CSV</button>
+    </form>
   </details>
 </div>
 {% endblock %}

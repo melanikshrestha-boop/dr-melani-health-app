@@ -2164,6 +2164,14 @@ button.primary-active { background: var(--accent); color: white; border-color: v
 .zone-hint.warn { color: #fbbf24; }
 
 .shop-chat-hint p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+.shop-sparky-card h2 { margin: 0 0 8px; }
+.sparky-steps { margin: 8px 0 12px; padding-left: 1.2rem; font-size: 0.88rem; color: var(--muted); }
+.sparky-steps li { margin-bottom: 4px; }
+.sparky-actions { flex-wrap: wrap; gap: 8px; }
+.sparky-actions .btn { flex: 1 1 auto; min-width: 120px; }
+.sparky-status { margin: 8px 0 0; color: #7dd3fc; }
+.grocery-walmart { font-size: 1.1rem; text-decoration: none; padding: 0 6px; opacity: 0.85; }
+.grocery-walmart:hover { opacity: 1; }
 
 /* Grocery list — aligned rows */
 .grocery-list-card { padding-bottom: 8px; }
@@ -4392,3 +4400,49 @@ body.hygiene-guide-body .hygiene-guide-num-highlight {
   color: #fff1f2;
   background: rgba(251, 113, 133, 0.2);
 }
+
+/* Tracking strategy — check-in, migraine, weekly insights, wearables */
+.weekly-insights-card { border-left: 3px solid #d4a574; }
+.weekly-insights-meta { color: var(--muted); font-size: 0.88rem; margin: 0 0 10px; }
+.weekly-insights-stats { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 12px; }
+.weekly-stat em { display: block; font-style: normal; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.weekly-insights-list { margin: 0; padding-left: 1.1rem; color: var(--text); }
+.weekly-insights-list li { margin-bottom: 6px; }
+
+.checkin-row { margin-bottom: 12px; }
+.checkin-row > label { display: block; font-size: 0.88rem; color: var(--muted); margin-bottom: 6px; }
+.rating-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.rating-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 36px; height: 36px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); cursor: pointer; font-size: 0.9rem;
+}
+.rating-btn input { position: absolute; opacity: 0; pointer-events: none; }
+.rating-btn.active { border-color: #d4a574; background: rgba(212, 165, 116, 0.15); font-weight: 600; }
+.rating-none { min-width: 52px; }
+.migraine-severity .rating-btn { min-width: 32px; font-size: 0.82rem; }
+.modifiers-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.modifiers-form label { font-size: 0.88rem; color: var(--muted); }
+.modifiers-form input[type="number"] { max-width: 120px; margin-bottom: 8px; }
+
+.trigger-fieldset { border: none; margin: 12px 0; padding: 0; }
+.trigger-fieldset legend { font-size: 0.88rem; color: var(--muted); margin-bottom: 8px; }
+.trigger-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.trigger-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+  font-size: 0.82rem; cursor: pointer;
+}
+.trigger-chip:has(input:checked) { border-color: #e879a9; background: rgba(232, 121, 169, 0.12); }
+.migraine-form label { font-size: 0.88rem; color: var(--muted); }
+.migraine-form input[type="text"] { width: 100%; margin: 6px 0 12px; }
+
+.wearable-card .wearable-status-line { margin: 0 0 8px; }
+.wearable-metric-line { margin: 4px 0; font-size: 0.92rem; }
+.wearable-setup { margin-top: 12px; }
+.wearable-config-form input { width: 100%; margin-bottom: 8px; }
+.wearable-actions { gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.flash-banner { margin-bottom: 12px; }
+.flash-ok { border-left: 3px solid #4ade80; }
+.flash-err { border-left: 3px solid #f87171; }

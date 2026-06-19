@@ -220,9 +220,34 @@ CREATE TABLE IF NOT EXISTS documents (
     uploaded_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS migraine_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day TEXT NOT NULL UNIQUE,
+    severity INTEGER NOT NULL DEFAULT 0,
+    triggers TEXT,
+    relief TEXT,
+    cycle_day INTEGER,
+    notes TEXT,
+    logged_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS wearable_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day TEXT NOT NULL,
+    source TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    value REAL,
+    value_text TEXT,
+    unit TEXT,
+    imported_at TEXT,
+    UNIQUE(day, source, metric)
+);
+
 CREATE INDEX IF NOT EXISTS idx_lab_values_draw ON lab_values(draw_id);
 CREATE INDEX IF NOT EXISTS idx_meals_day ON meals(day);
 CREATE INDEX IF NOT EXISTS idx_water_day ON water_logs(day);
+CREATE INDEX IF NOT EXISTS idx_migraine_day ON migraine_logs(day);
+CREATE INDEX IF NOT EXISTS idx_wearable_day ON wearable_metrics(day);
 """
 
 
@@ -284,6 +309,49 @@ def init_db(seed: bool = True):
         ensure_derm_catalog()
     except Exception:
         pass
+    _ensure_checkin_columns()
+    _ensure_tracking_tables()
+
+
+def _ensure_checkin_columns():
+    """Add caffeine/alcohol columns to daily_checkins if missing."""
+    with get_conn() as conn:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(daily_checkins)").fetchall()}
+        if "caffeine_servings" not in cols:
+            conn.execute("ALTER TABLE daily_checkins ADD COLUMN caffeine_servings INTEGER")
+        if "alcohol_drinks" not in cols:
+            conn.execute("ALTER TABLE daily_checkins ADD COLUMN alcohol_drinks INTEGER")
+
+
+def _ensure_tracking_tables():
+    with get_conn() as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS migraine_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL UNIQUE,
+                severity INTEGER NOT NULL DEFAULT 0,
+                triggers TEXT,
+                relief TEXT,
+                cycle_day INTEGER,
+                notes TEXT,
+                logged_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS wearable_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                day TEXT NOT NULL,
+                source TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                value REAL,
+                value_text TEXT,
+                unit TEXT,
+                imported_at TEXT,
+                UNIQUE(day, source, metric)
+            );
+            CREATE INDEX IF NOT EXISTS idx_migraine_day ON migraine_logs(day);
+            CREATE INDEX IF NOT EXISTS idx_wearable_day ON wearable_metrics(day);
+            """
+        )
 
 
 def refresh_stored_lab_flags():

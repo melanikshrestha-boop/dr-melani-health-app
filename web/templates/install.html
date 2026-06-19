@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-build="{{ app_build }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Melani Health">
+  <meta name="theme-color" content="#191919">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <link rel="manifest" href="/manifest.webmanifest?v={{ app_build }}">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v={{ app_build }}">
+  <title>Melani Health</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #191919;
+      color: #fff;
+      margin: 0;
+      padding: 24px 20px 48px;
+      max-width: 440px;
+      margin-inline: auto;
+    }
+    h1 { font-size: 1.55rem; margin: 0 0 6px; }
+    .tagline { color: #888; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
+    .card {
+      background: #2a2a2a;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: #aaa; margin: 0 0 10px; }
+    .pin { font-size: 2rem; font-weight: 700; letter-spacing: 0.12em; color: #fda4af; }
+    .link-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      margin-top: 10px;
+    }
+    .link-row input {
+      flex: 1;
+      min-width: 0;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 10px;
+      color: #7dd3fc;
+      font-size: 0.78rem;
+      padding: 10px;
+    }
+    .link-row button {
+      border: none;
+      border-radius: 10px;
+      background: #444;
+      color: #fff;
+      font-weight: 600;
+      padding: 0 14px;
+      font-size: 0.85rem;
+    }
+    .qr { text-align: center; margin: 12px 0 4px; }
+    .qr img { border-radius: 12px; background: #fff; padding: 8px; }
+    .steps { color: #bbb; font-size: 0.9rem; line-height: 1.55; margin: 0; padding-left: 1.1rem; }
+    .steps li { margin-bottom: 8px; }
+    .sync {
+      background: #16301f;
+      border: 1px solid #22c55e44;
+      color: #bbf7d0;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    .build { color: #666; font-size: 0.75rem; margin-top: 8px; }
+    a.btn {
+      display: block;
+      background: #2383e2;
+      color: #fff !important;
+      text-decoration: none;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 600;
+    }
+    a.btn.primary { background: #22c55e; font-size: 1.05rem; }
+    .note { color: #777; font-size: 0.82rem; line-height: 1.5; margin-top: 16px; }
+    .lan { color: #ccc; font-size: 0.82rem; word-break: break-all; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Melani Health</h1>
+  <p class="tagline">Your phone app — bookmark this page once. New features on your Mac appear here automatically when you open it.</p>
+
+  <div class="card sync">
+    <strong>Always up to date</strong><br>
+    Meals, gym, labs, and new tools load live from your Mac. No reinstall — just open this app.
+    <div class="build">Build {{ app_build }}</div>
+  </div>
+
+  <div class="card">
+    <h2>Import to iPhone</h2>
+    <ol class="steps">
+      <li>Scan the QR code, or copy the link and text it to yourself.</li>
+      <li>Open in <strong>Safari</strong> → Share → <strong>Add to Home Screen</strong>.</li>
+      <li>Use the home screen icon like an app. Enter PIN once; Safari remembers you.</li>
+    </ol>
+    {% if qr_url %}
+    <div class="qr">
+      <img src="{{ qr_url }}" width="200" height="200" alt="QR code for Melani Health install link">
+    </div>
+    {% endif %}
+    <div class="link-row">
+      <input id="install_url" type="text" readonly value="{{ install_url }}">
+      <button type="button" id="copy_btn">Copy</button>
+    </div>
+    {% if lan_urls %}
+    <p class="note">Same Wi‑Fi only (stable if tunnel changes):</p>
+    {% for u in lan_urls %}
+    <div class="lan"><a href="{{ u }}" style="color:#7dd3fc">{{ u }}</a></div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>PIN</h2>
+    <div class="pin">{{ pin }}</div>
+  </div>
+
+  <p class="note">{{ link_note }}</p>
+
+  <a href="/" class="btn primary">Open Today</a>
+  <a href="/meals" class="btn">Meals</a>
+  <a href="/gym" class="btn">Gym</a>
+  <a href="/gym/{{ gym_day }}" class="btn">Today's workout</a>
+  <a href="/hygiene" class="btn">Hygiene</a>
+  <a href="/grocery" class="btn">Shop</a>
+  <a href="/labs" class="btn">My Data</a>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js?v={{ app_build }}").catch(function () {});
+    }
+    var copyBtn = document.getElementById("copy_btn");
+    var input = document.getElementById("install_url");
+    if (copyBtn && input) {
+      copyBtn.addEventListener("click", function () {
+        input.select();
+        input.setSelectionRange(0, 99999);
+        var text = input.value;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            copyBtn.textContent = "Copied!";
+            setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+          });
+        } else {
+          try {
+            document.execCommand("copy");
+            copyBtn.textContent = "Copied!";
+            setTimeout(function () { copyBtn.textContent = "Copy"; }, 2000);
+          } catch (e) {}
+        }
+      });
+    }
+  </script>
+</body>
+</html>

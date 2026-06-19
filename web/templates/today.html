@@ -29,6 +29,25 @@
   {% endif %}
 </div>
 {% endif %}
+{% if weekly_card is defined %}
+<div class="card weekly-insights-card">
+  <h2>This week</h2>
+  <p class="weekly-insights-meta">{{ weekly_card.week_label }}</p>
+  <div class="weekly-insights-stats">
+    <span class="weekly-stat"><em>Brain fog</em> {{ weekly_card.brain_fog_days }} day{{ 's' if weekly_card.brain_fog_days != 1 else '' }}</span>
+    {% if weekly_card.avg_sleep_hours %}<span class="weekly-stat"><em>Avg sleep</em> {{ weekly_card.avg_sleep_hours }} h</span>{% endif %}
+    {% if weekly_card.avg_protein_g %}<span class="weekly-stat"><em>Avg protein</em> {{ weekly_card.avg_protein_g }}g</span>{% endif %}
+    {% if weekly_card.hrv_avg %}<span class="weekly-stat"><em>WHOOP HRV</em> {{ weekly_card.hrv_avg }} ms</span>{% endif %}
+    {% if weekly_card.steps_total %}<span class="weekly-stat"><em>Steps</em> {{ weekly_card.steps_total | int }}</span>{% endif %}
+  </div>
+  <ul class="weekly-insights-list">
+    {% for line in weekly_card.insights %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+  <p class="zone-hint">Your patterns — not WHOOP Recovery or Apple ring scores.</p>
+</div>
+{% endif %}
 <div class="card">
   <h2>Sleep</h2>
   <form method="post" action="/today/sleep" id="sleep_form">

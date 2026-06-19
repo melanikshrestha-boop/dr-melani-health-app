@@ -103,4 +103,60 @@
       .then(function () { window.location.reload(); })
       .catch(function () { alert("Could not add item."); });
   });
+
+  var sparkyPrompt = document.getElementById("sparky_prompt");
+  var sparkyStatus = document.getElementById("sparky_status");
+  var copyBtn = document.getElementById("sparky_copy_btn");
+  var shareBtn = document.getElementById("sparky_share_btn");
+
+  function showSparkyStatus(msg) {
+    if (!sparkyStatus) return;
+    sparkyStatus.textContent = msg;
+    sparkyStatus.hidden = false;
+    setTimeout(function () { sparkyStatus.hidden = true; }, 2500);
+  }
+
+  function getPromptText() {
+    return sparkyPrompt ? sparkyPrompt.value.trim() : "";
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener("click", function () {
+      var text = getPromptText();
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          showSparkyStatus("Copied — open Walmart → Ask Sparky → paste");
+        }).catch(function () { fallbackCopy(text); });
+      } else {
+        fallbackCopy(text);
+      }
+    });
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      showSparkyStatus("Copied — open Walmart → Ask Sparky → paste");
+    } catch (e) {
+      alert(text);
+    }
+    document.body.removeChild(ta);
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener("click", function () {
+      var text = getPromptText();
+      if (!text) return;
+      if (navigator.share) {
+        navigator.share({ title: "Grocery list", text: text }).catch(function () {});
+      } else {
+        fallbackCopy(text);
+      }
+    });
+  }
 })();

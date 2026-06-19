@@ -1331,6 +1331,23 @@ def _migrate_cardio_into_week_plan(all_plans: dict) -> None:
         _save_week_plans(all_plans)
 
 
+def _dedupe_single_day_types(plan: dict[str, str], ordered_days: list[str] | None = None) -> dict[str, str]:
+    """Keep at most one day per workout type that has max_days=1."""
+    ordered = ordered_days or WEEKDAY_KEYS
+    seen_single: set[str] = set()
+    out: dict[str, str] = {}
+    for dk in ordered:
+        wt = plan.get(dk)
+        if not wt:
+            continue
+        if WORKOUT_TYPES.get(wt, {}).get("max_days") == 1:
+            if wt in seen_single:
+                continue
+            seen_single.add(wt)
+        out[dk] = wt
+    return out
+
+
 def get_week_plan(week: str | None = None) -> dict[str, str]:
     """day_key → workout type for the given Sat-start week."""
     week = week or current_week_key()
@@ -1344,7 +1361,7 @@ def get_week_plan(week: str | None = None) -> dict[str, str]:
         kind = str(wt).strip().lower()
         if key in WEEKDAY_KEYS and kind in WORKOUT_TYPES:
             out[key] = kind
-    return out
+    return _dedupe_single_day_types(out, WEEKDAY_KEYS)
 
 
 def get_cardio_day(week: str | None = None) -> str | None:
@@ -1497,10 +1514,16 @@ def week_plan_from_form(form_lists: dict[str, list[str]], week: str | None = Non
     for wtype, day_keys in form_lists.items():
         if wtype not in WORKOUT_TYPES:
             continue
-        for dk in day_keys:
-            key = str(dk).strip().lower()
-            if key in WEEKDAY_KEYS:
-                plan[key] = wtype
+        meta = WORKOUT_TYPES[wtype]
+        keys = [
+            str(dk).strip().lower()
+            for dk in day_keys
+            if str(dk).strip().lower() in WEEKDAY_KEYS
+        ]
+        if meta.get("max_days") == 1 and len(keys) > 1:
+            keys = keys[-1:]
+        for key in keys:
+            plan[key] = wtype
     return save_week_plan(plan, week)
 
 

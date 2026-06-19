@@ -126,6 +126,19 @@
     }
     if (
       types[type] &&
+      types[type].max_days === 1 &&
+      countType(type) >= 1 &&
+      assigned !== type
+    ) {
+      var moveMeta = types[type] || {};
+      var errMove = validatePlan(trialPlan(day, type));
+      if (errMove) {
+        return { ok: false, code: "rule", message: dayLabel(day) + ": " + errMove };
+      }
+      return { ok: true, move: true };
+    }
+    if (
+      types[type] &&
       types[type].max_days &&
       types[type].max_days !== 1 &&
       countType(type) >= types[type].max_days &&
@@ -281,6 +294,11 @@
       return;
     }
 
+    if (types[type] && types[type].max_days === 1) {
+      Object.keys(plan).forEach(function (d) {
+        if (plan[d] === type) delete plan[d];
+      });
+    }
     plan[day] = type;
     clearAlert();
     syncUIFromPlan();

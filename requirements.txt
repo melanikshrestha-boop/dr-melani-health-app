@@ -5,3 +5,4 @@ python-multipart>=0.0.9
 requests>=2.31.0
 apscheduler>=3.10.0
 cryptography>=42.0.0
+qrcode[pil]>=7.4.0

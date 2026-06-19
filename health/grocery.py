@@ -3,7 +3,9 @@ from __future__ import annotations
 """Grocery list + product scan integration."""
 
 import json
+import re
 from datetime import datetime
+from urllib.parse import quote_plus
 
 from openai import OpenAI
 
@@ -23,6 +25,73 @@ def ensure_grocery_schema():
         ]:
             if col not in cols:
                 conn.execute(f"ALTER TABLE grocery_items ADD COLUMN {col} {typ}")
+
+
+def walmart_search_url(query: str) -> str:
+    return f"https://www.walmart.com/search?q={quote_plus(query.strip())}"
+
+
+def parse_item_names(text: str) -> list[str]:
+    """Pull grocery item names from natural language (ran out of, add X and Y, etc.)."""
+    chunk = (text or "").strip()
+    if not chunk:
+        return []
+    for prefix in (
+        r"^(?:please\s+)?(?:can you\s+)?",
+        r"^(?:add|put)\s+",
+        r"^(?:i\s+)?(?:ran|run)\s+out\s+of\s+",
+        r"^(?:we(?:'re| are)\s+)?(?:out\s+of|low\s+on|running\s+low\s+on|need(?:ing)?)\s+",
+        r"^(?:get|buy|pick\s+up)\s+",
+        r"^(?:restock|re-?stock)\s+",
+    ):
+        chunk = re.sub(prefix, "", chunk, flags=re.I)
+    chunk = re.sub(
+        r"\s+(?:to|on|for)\s+(?:my\s+)?(?:grocery|shopping)?\s*list\b.*$",
+        "",
+        chunk,
+        flags=re.I,
+    )
+    chunk = re.sub(r"\s+to\s+grocery\b.*$", "", chunk, flags=re.I)
+    parts = re.split(r",|\band\b|\n|;", chunk)
+    items: list[str] = []
+    skip = {"etc", "stuff", "things", "food", "groceries", "some", "grocery", "list", "shop"}
+    for part in parts:
+        name = part.strip().strip(".")
+        name = re.sub(r"^(some|a few|also|plus|the)\s+", "", name, flags=re.I)
+        name = name.strip()
+        if len(name) > 1 and name.lower() not in skip:
+            items.append(name.title())
+    out: list[str] = []
+    seen: set[str] = set()
+    for name in items:
+        key = name.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(name)
+    return out[:30]
+
+
+def format_sparky_prompt(items: list[str] | None = None) -> str:
+    """One paste-ready prompt for Walmart Ask Sparky."""
+    if items is None:
+        items = [i["name"] for i in list_items(checked_only=False) if not i.get("checked")]
+    if not items:
+        return ""
+    lines = "\n".join(f"- {name}" for name in items)
+    return (
+        "Add these grocery items to my cart for Walmart+ delivery. "
+        "Pick the best value organic option when available:\n"
+        f"{lines}"
+    )
+
+
+def add_items(names: list[str], *, added_by: str = "dr_melani", reason: str = "") -> list[dict]:
+    added = []
+    for name in names:
+        n = (name or "").strip()
+        if len(n) > 1:
+            added.append(add_item(n, added_by=added_by, reason=reason or "Added via Dr. Melani"))
+    return added
 
 
 def list_items(checked_only: bool | None = None) -> list:

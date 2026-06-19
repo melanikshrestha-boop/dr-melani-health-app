@@ -6,6 +6,10 @@ from datetime import date, timedelta
 
 from .agent_tools import health_status_text, lab_summary_text, all_lab_draws
 from . import symptoms
+from . import migraines
+from . import checkins
+from . import wearables
+from . import weekly_insights
 from . import screening
 from . import grocery
 from . import meal_presets
@@ -133,6 +137,14 @@ def full_data_context() -> str:
         lab_summary_text(),
         "",
         _brain_fog_block(),
+        "",
+        migraines.context_block(),
+        "",
+        checkins.context_block(),
+        "",
+        weekly_insights.context_block(),
+        "",
+        wearables.context_block(),
         "",
         _bowel_block(),
         "",

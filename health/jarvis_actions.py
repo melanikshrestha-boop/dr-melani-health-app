@@ -31,7 +31,8 @@ LOG_HINTS = (
     "water", "ml", "liter", "litre",
     "workout", "gym ", "trained", "exercise",
     "period started", "my period", "flow ",
-    "spotting", "add ", "grocery", "bought", "shopped", "picked up", "fridge", "pantry",
+    "spotting", "add ", "grocery", "ran out", "running low", "out of", "need ",
+    "bought", "shopped", "picked up", "fridge", "pantry",
     "tomorrow", "plan lunch", "plan dinner",
     "track ", "record ",
     "vitamin", "supplement", "ashwagandha", "immunogrid", "took my",
@@ -284,6 +285,25 @@ def _parse_tomorrow_meals(text: str) -> tuple[str, str]:
     return lunch, dinner
 
 
+def _wants_grocery_add(text: str) -> bool:
+    q = (text or "").lower()
+    if re.search(r"\b(?:ran|run)\s+out\s+of\b", q):
+        return True
+    if re.search(r"\b(?:out\s+of|running\s+low|low\s+on|need(?:ing)?|restock)\b", q) and any(
+        w in q for w in ("grocery", "list", "shop", "buy", "get", "walmart")
+    ):
+        return True
+    if re.search(r"\badd\b", q) and any(w in q for w in ("grocery", "list", "shop")):
+        return True
+    return False
+
+
+def _parse_grocery_request(text: str) -> list[str]:
+    if not _wants_grocery_add(text):
+        return []
+    return grocery.parse_item_names(text)
+
+
 def _wants_pantry_update(text: str) -> bool:
     q = (text or "").lower()
     return bool(
@@ -399,9 +419,10 @@ def _rule_parse(text: str) -> list[dict]:
                 "wake_time": wt.group(1) if wt else "",
             })
 
-    add_m = re.search(r"add\s+(.+?)(?:\s+to|\s*$)", q)
-    if add_m and ("grocery" in q or "list" in q or "shop" in q):
-        actions.append({"type": "grocery", "name": add_m.group(1).strip().title()})
+    grocery_items = _parse_grocery_request(text)
+    if grocery_items:
+        for name in grocery_items:
+            actions.append({"type": "grocery", "name": name})
 
     if _wants_preset_breakfast(q):
         actions.append({"type": "preset_breakfast"})

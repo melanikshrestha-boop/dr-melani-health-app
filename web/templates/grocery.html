@@ -1,7 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="card shop-sparky-card">
+  <h2>Order on Walmart+</h2>
+  <p class="zone-hint">Dr. Melani builds your list. <strong>Ask Sparky</strong> in the Walmart app adds everything to cart in one paste.</p>
+  <ol class="sparky-steps">
+    <li>Text Dr. Melani: <em>ran out of eggs, milk, chicken</em></li>
+    <li>Tap <strong>Copy for Sparky</strong> below</li>
+    <li>Open Walmart app → <strong>Ask Sparky</strong> (smiley face, bottom bar)</li>
+    <li>Paste → review items → checkout with Walmart+</li>
+  </ol>
+  <div class="sparky-actions row">
+    <button type="button" id="sparky_copy_btn" class="btn" {% if not sparky_prompt %}disabled{% endif %}>Copy for Sparky</button>
+    <button type="button" id="sparky_share_btn" class="btn secondary" {% if not sparky_prompt %}disabled{% endif %}>Share list</button>
+    <a href="https://www.walmart.com" class="btn secondary" target="_blank" rel="noopener">Open Walmart</a>
+  </div>
+  <textarea id="sparky_prompt" hidden>{{ sparky_prompt }}</textarea>
+  <p id="sparky_status" class="zone-hint sparky-status" hidden></p>
+</div>
+
 <div class="card shop-chat-hint">
-  <p>Scan products like Yuka — or ask <strong>Dr. Melani</strong> (💬) for evidence-based picks.</p>
+  <p>Or ask <strong>Dr. Melani</strong> (💬): <em>Add Greek yogurt to grocery</em> · <em>ran out of spinach and olive oil</em></p>
 </div>
 
 <div class="card">
@@ -37,7 +55,7 @@
 </div>
 
 <div class="card grocery-list-card">
-  <h2>List</h2>
+  <h2>List {% if unchecked %}({{ unchecked|length }} to buy){% endif %}</h2>
   {% for item in items %}
   <div class="grocery-row {% if item.checked %}done{% endif %}">
     <form method="post" action="/grocery/toggle/{{ item.id }}" class="grocery-check">
@@ -52,12 +70,15 @@
       <span class="grocery-reason">{{ item.reason[:50] }}</span>
       {% endif %}
     </div>
+    {% if not item.checked %}
+    <a class="grocery-walmart" href="https://www.walmart.com/search?q={{ item.name|urlencode }}" target="_blank" rel="noopener" aria-label="Search {{ item.name }} on Walmart">🛒</a>
+    {% endif %}
     <form method="post" action="/grocery/delete/{{ item.id }}" class="grocery-delete" onsubmit="return confirm('Remove this item?');">
       <button type="submit" class="delete-btn" aria-label="Delete">×</button>
     </form>
   </div>
   {% else %}
-  <p class="muted">Empty list — scan something or add manually.</p>
+  <p class="muted">Empty list — text Dr. Melani or add manually.</p>
   {% endfor %}
 </div>
 
