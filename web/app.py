@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced, apple_health, smart_health
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -1929,6 +1929,89 @@ async def link_whoop_to_appointment_api(appointment_id: str, date: str):
     """Link WHOOP data to appointment."""
     whoop_enhanced.link_whoop_to_appointment(appointment_id, date)
     return JSONResponse({"ok": True})
+
+
+# ── Smart Health Intelligence ────────────────────────────────────────────────
+
+@app.get("/health-insights", response_class=HTMLResponse)
+def health_insights_page(request: Request):
+    """AI-powered health insights dashboard."""
+    health_score = smart_health.HealthAnalytics.get_health_score()
+    alerts = smart_health.HealthAnalytics.get_health_alerts(7)
+    correlations = smart_health.HealthAnalytics.find_correlations(30)
+    recovery_pred = smart_health.HealthAnalytics.get_recovery_predictions(7)
+    report = smart_health.HealthAnalytics.generate_health_report(30)
+
+    return _render(
+        request,
+        "health_insights.html",
+        nav="insights",
+        health_score=health_score,
+        alerts=alerts,
+        correlations=correlations,
+        recovery_pred=recovery_pred,
+        report=report,
+    )
+
+
+@app.get("/api/health-score")
+def get_health_score_api(date: str = ""):
+    """Get health score for a date."""
+    score = smart_health.HealthAnalytics.get_health_score(date if date else None)
+    return JSONResponse(score)
+
+
+@app.get("/api/health-alerts")
+def get_health_alerts_api(days: int = 7):
+    """Get health alerts."""
+    alerts = smart_health.HealthAnalytics.get_health_alerts(days)
+    return JSONResponse({"alerts": alerts})
+
+
+@app.get("/api/health-correlations")
+def get_correlations_api(days: int = 30):
+    """Get correlations between metrics."""
+    correlations = smart_health.HealthAnalytics.find_correlations(days)
+    return JSONResponse(correlations)
+
+
+@app.get("/api/recovery-prediction")
+def get_recovery_prediction_api(days: int = 7):
+    """Get recovery predictions."""
+    prediction = smart_health.HealthAnalytics.get_recovery_predictions(days)
+    return JSONResponse(prediction)
+
+
+@app.post("/api/apple-health/import")
+async def import_apple_health_api(file: UploadFile = File(...)):
+    """Import Apple Health XML export."""
+    tmp_path = HEALTH_DATA / "apple" / f"export_{file.filename}"
+    tmp_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path.write_bytes(await file.read())
+
+    result = apple_health.AppleHealthKit.import_health_export(str(tmp_path))
+    return JSONResponse(result)
+
+
+@app.get("/api/apple-health/data")
+def get_apple_health_api(days: int = 30):
+    """Get Apple Health dashboard data."""
+    dashboard = apple_health.get_apple_health_dashboard(days)
+    return JSONResponse(dashboard)
+
+
+@app.get("/api/appointment/{appointment_id}/health-context")
+def get_appointment_health_context_api(appointment_id: str):
+    """Get full health context for an appointment."""
+    context = smart_health.HealthAnalytics.get_appointment_health_context(appointment_id)
+    return JSONResponse(context)
+
+
+@app.get("/api/health-report")
+def get_health_report_api(days: int = 30):
+    """Get comprehensive health report."""
+    report = smart_health.HealthAnalytics.generate_health_report(days)
+    return JSONResponse(report)
 
 
 def lan_ip() -> str:

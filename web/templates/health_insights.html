@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+{% block title %}Health Insights — Melani Health{% endblock %}
+{% block header %}🧠 AI Health Intelligence{% endblock %}
+
+{% block content %}
+<div class="card insights-header">
+  <h2>Your Complete Health Picture</h2>
+  <p class="zone-hint">Apple Watch + WHOOP + Labs + Appointments analyzed in real-time</p>
+</div>
+
+<!-- Health Score Card -->
+<div class="card">
+  <h2>📊 Overall Health Score</h2>
+  {% if health_score %}
+  <div class="health-score-display">
+    <div class="score-circle">
+      <span class="score-number">{{ health_score.percentage }}</span>
+      <span class="score-status">{{ health_score.status }}</span>
+    </div>
+    <div class="score-breakdown">
+      <div class="breakdown-item">
+        <span class="label">⌚ Apple Watch</span>
+        <span class="value">{{ health_score.breakdown.apple_watch }}/40</span>
+      </div>
+      <div class="breakdown-item">
+        <span class="label">💪 WHOOP Recovery</span>
+        <span class="value">{{ health_score.breakdown.whoop }}/40</span>
+      </div>
+      <div class="breakdown-item">
+        <span class="label">🧪 Labs</span>
+        <span class="value">{{ health_score.breakdown.labs }}/20</span>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">No data yet. Sync your Apple Watch and WHOOP to get started.</p>
+  {% endif %}
+</div>
+
+<!-- Alerts -->
+{% if alerts %}
+<div class="card alerts-card">
+  <h2>⚠️ Health Alerts</h2>
+  <div class="alerts-list">
+    {% for alert in alerts %}
+    <div class="alert alert-{{ alert.severity }}">
+      <span class="alert-icon">
+        {% if alert.severity == 'warning' %}⚠️{% elif alert.severity == 'critical' %}🚨{% else %}ℹ️{% endif %}
+      </span>
+      <div class="alert-content">
+        <strong>{{ alert.type|replace('_', ' ')|title }}</strong>
+        <p>{{ alert.message }}</p>
+        <span class="alert-date">{{ alert.date }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Recovery Prediction -->
+{% if recovery_pred %}
+<div class="card recovery-pred-card">
+  <h2>📈 Recovery Outlook</h2>
+  <div class="prediction-content">
+    <div class="trend-indicator {% if recovery_pred.recovery_trend == 'improving' %}positive{% else %}caution{% endif %}">
+      {% if recovery_pred.recovery_trend == 'improving' %}
+        ⬆️ Improving
+      {% else %}
+        ⬇️ Declining
+      {% endif %}
+    </div>
+    <p class="prediction-text">Your recovery is {{ recovery_pred.recovery_trend }} over the next {{ recovery_pred.days_ahead }} days</p>
+
+    {% if recovery_pred.recommendations %}
+    <div class="recommendations">
+      <h4>Recommendations</h4>
+      {% for rec in recovery_pred.recommendations %}
+      <div class="recommendation priority-{{ rec.priority }}">
+        <strong>{{ rec.action }}</strong>
+        <p>{{ rec.reason }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Correlations & Insights -->
+{% if correlations and correlations.correlations %}
+<div class="card insights-card">
+  <h2>🔍 Patterns & Correlations</h2>
+  <div class="correlations-list">
+    {% for corr in correlations.correlations %}
+    <div class="correlation-item insight-{{ corr.severity }}">
+      <span class="insight-icon">💡</span>
+      <div class="insight-content">
+        <p class="insight-text">{{ corr.insight }}</p>
+        <span class="insight-date">{{ corr.date }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Data Import -->
+<div class="card import-card">
+  <h2>📥 Import Health Data</h2>
+  <div class="import-controls">
+    <div class="import-section">
+      <h4>⌚ Apple Health</h4>
+      <p class="zone-hint">Export from Health app on iPhone, import here</p>
+      <label class="btn btn-small">
+        Upload XML
+        <input type="file" id="apple_health_file" accept=".xml" hidden>
+      </label>
+    </div>
+  </div>
+  <p id="import_status" class="zone-hint" hidden></p>
+</div>
+
+<!-- Download Report -->
+<div class="card">
+  <h2>📄 Health Report</h2>
+  <p class="zone-hint">Comprehensive 30-day health analysis</p>
+  <button type="button" id="download_report_btn" class="btn">
+    Download PDF Report
+  </button>
+</div>
+
+<style>
+.insights-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.insights-header h2,
+.insights-header .zone-hint {
+  color: white;
+}
+
+.health-score-display {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--score-bg, #f0f0f0);
+  font-weight: 700;
+}
+
+.score-number {
+  font-size: 36px;
+  color: #667eea;
+}
+
+.score-status {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin-top: 4px;
+}
+
+.score-breakdown {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--item-bg, #f9f9f9);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.breakdown-item .label {
+  font-weight: 600;
+}
+
+.breakdown-item .value {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.alerts-card {
+  border-left: 4px solid #f59e0b;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--alert-bg, #fef3c7);
+  border: 1px solid var(--alert-border, #fcd34d);
+}
+
+.alert-warning {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.alert-critical {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.alert-icon {
+  font-size: 20px;
+  min-width: 24px;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-content strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.alert-content p {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+}
+
+.alert-date {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
+.recovery-pred-card {
+  border-left: 4px solid #10b981;
+}
+
+.prediction-content {
+  padding: 16px 0;
+}
+
+.trend-indicator {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.trend-indicator.positive {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.trend-indicator.caution {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.prediction-text {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.recommendations {
+  background: var(--rec-bg, #f9f9f9);
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.recommendations h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+}
+
+.recommendation {
+  padding: 8px;
+  margin-bottom: 8px;
+  border-left: 3px solid #667eea;
+  background: white;
+  font-size: 13px;
+}
+
+.recommendation.priority-high {
+  border-left-color: #ef4444;
+}
+
+.recommendation strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.recommendation p {
+  margin: 0;
+  color: var(--text-muted, #999);
+  font-size: 12px;
+}
+
+.insights-card {
+  border-left: 4px solid #8b5cf6;
+}
+
+.correlations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.correlation-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--insight-bg, #f3f4f6);
+  border-left: 3px solid #667eea;
+}
+
+.correlation-item.insight-positive {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+}
+
+.insight-icon {
+  font-size: 20px;
+  min-width: 24px;
+}
+
+.insight-text {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.insight-date {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
+.import-card {
+  border: 2px dashed var(--border-color, #e0e0e0);
+}
+
+.import-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 16px 0;
+}
+
+.import-section {
+  padding: 16px;
+  background: var(--import-bg, #f9f9f9);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.import-section h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .score-circle {
+    background: var(--score-bg, #2a2a2a);
+  }
+
+  .breakdown-item {
+    background: var(--item-bg, #1a1a1a);
+  }
+
+  .import-section {
+    background: var(--import-bg, #1a1a1a);
+  }
+}
+</style>
+
+<script>
+document.getElementById('apple_health_file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const status = document.getElementById('import_status');
+  status.textContent = '📥 Importing...';
+  status.hidden = false;
+
+  try {
+    const resp = await fetch('/api/apple-health/import', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await resp.json();
+
+    if (result.ok) {
+      status.textContent = `✓ Imported ${result.imported} health records!`;
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      status.textContent = '❌ ' + (result.error || 'Import failed');
+    }
+  } catch (err) {
+    status.textContent = '❌ Error: ' + err.message;
+  }
+});
+
+document.getElementById('download_report_btn').addEventListener('click', async () => {
+  try {
+    const resp = await fetch('/api/health-report');
+    const report = await resp.json();
+
+    // Generate PDF content
+    let content = `HEALTH REPORT - ${report.generated_at}\n\n`;
+    content += `Overall Score: ${report.overall_score.overall_score}/${report.overall_score.max_score} (${report.overall_score.percentage})\n`;
+    content += `Status: ${report.overall_score.status}\n\n`;
+
+    content += `ALERTS (${report.alerts.length}):\n`;
+    report.alerts.forEach(a => {
+      content += `- ${a.type}: ${a.message}\n`;
+    });
+
+    content += `\nSUMMARY:\n${report.summary}\n`;
+
+    // Download as text file
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `health_report_${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+});
+</script>
+{% endblock %}
