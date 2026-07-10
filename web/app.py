@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced, apple_health, smart_health
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced, apple_health, smart_health, nutrition_ai
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -2012,6 +2012,82 @@ def get_health_report_api(days: int = 30):
     """Get comprehensive health report."""
     report = smart_health.HealthAnalytics.generate_health_report(days)
     return JSONResponse(report)
+
+
+@app.post("/api/nutrition/log-photo")
+async def log_nutrition_photo(file: UploadFile = File(...), meal_type: str = Form("lunch")):
+    """Log meal from food photo."""
+    contents = await file.read()
+    result = nutrition_ai.analyze_food_photo(contents)
+
+    if "error" in result:
+        return JSONResponse(result, status_code=400)
+
+    meal_result = nutrition_ai.log_meal(
+        str(today()),
+        meal_type,
+        result,
+        notes=f"Photo: {file.filename}"
+    )
+    return JSONResponse(meal_result)
+
+
+@app.post("/api/nutrition/log-text")
+async def log_nutrition_text(description: str = Form(...), meal_type: str = Form("lunch")):
+    """Log meal from text description."""
+    result = nutrition_ai.analyze_food_text(description)
+
+    if "error" in result:
+        return JSONResponse(result, status_code=400)
+
+    meal_result = nutrition_ai.log_meal(
+        str(today()),
+        meal_type,
+        result,
+        notes=description
+    )
+    return JSONResponse(meal_result)
+
+
+@app.get("/api/nutrition/daily")
+def get_daily_nutrition(date_str: str = None):
+    """Get daily nutrition summary."""
+    if not date_str:
+        date_str = str(today())
+    return JSONResponse(nutrition_ai.get_daily_nutrition(date_str))
+
+
+@app.get("/api/nutrition/insights")
+def get_nutrition_insights(date_str: str = None):
+    """Get AI-powered nutrition insights."""
+    if not date_str:
+        date_str = str(today())
+    return JSONResponse(nutrition_ai.get_nutrition_insights(date_str))
+
+
+@app.get("/api/nutrition/vs-activity")
+def get_nutrition_vs_activity(date_str: str = None):
+    """Correlate nutrition with activity and recovery."""
+    if not date_str:
+        date_str = str(today())
+    return JSONResponse(nutrition_ai.correlate_nutrition_with_activity(date_str))
+
+
+@app.get("/meals", response_class=HTMLResponse)
+def meals_page(request: Request):
+    """Nutrition logging page."""
+    today_str = str(today())
+    daily = nutrition_ai.get_daily_nutrition(today_str)
+    insights = nutrition_ai.get_nutrition_insights(today_str)
+
+    return templates.TemplateResponse("nutrition_logging.html", {
+        "request": request,
+        "nav": "meals",
+        "display_date": today().strftime("%a, %b %d, %Y"),
+        "daily": daily,
+        "insights": insights,
+        "app_build": app_build(),
+    })
 
 
 def lan_ip() -> str:

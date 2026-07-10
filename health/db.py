@@ -376,6 +376,11 @@ def init_db(seed: bool = True):
         ensure_derm_catalog()
     except Exception:
         pass
+    try:
+        from .nutrition_ai import create_nutrition_tables
+        create_nutrition_tables()
+    except Exception:
+        pass
     _ensure_checkin_columns()
     _ensure_tracking_tables()
 

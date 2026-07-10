@@ -369,5 +369,5 @@ def get_whoop_trends(metric: str = "recovery", days: int = 90) -> Dict[str, Any]
             "average": sum(values) / len(values) if values else 0,
             "min": min(values) if values else 0,
             "max": max(values) if values else 0,
-            "trend": "up" if values[-1] > values[0] if values else "flat"
+            "trend": "up" if values and values[-1] > values[0] else "flat"
         }

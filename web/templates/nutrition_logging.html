@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+{% block title %}Nutrition — Melani Health{% endblock %}
+{% block header %}🍽️ AI Nutrition Tracking{% endblock %}
+
+{% block content %}
+<div class="card nutrition-header">
+  <h2>Log Your Meals</h2>
+  <p class="zone-hint">Photo upload or text description for AI-powered nutrition analysis</p>
+</div>
+
+<!-- Log Meal Section -->
+<div class="card nutrition-input-card">
+  <h3>📸 Log a Meal</h3>
+  <div class="nutrition-tabs">
+    <button class="tab-btn active" data-tab="photo">📷 Photo</button>
+    <button class="tab-btn" data-tab="text">✏️ Text</button>
+  </div>
+
+  <!-- Photo Tab -->
+  <div id="photo-tab" class="tab-content active">
+    <div class="photo-upload-section">
+      <label class="photo-upload-label">
+        <input type="file" id="meal_photo" accept="image/*" hidden>
+        <div class="upload-box">
+          <span class="upload-icon">📸</span>
+          <p>Tap to take or upload a photo</p>
+          <p class="zone-hint">Include all food items on plate</p>
+        </div>
+      </label>
+      <div id="photo_preview" class="photo-preview" hidden>
+        <img id="preview_img" alt="Meal photo">
+        <button type="button" id="clear_photo" class="btn-small">Clear</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="meal_type_photo">Meal Type</label>
+      <select id="meal_type_photo">
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch" selected>Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="snack">Snack</option>
+      </select>
+    </div>
+    <button type="button" id="submit_photo" class="btn btn-primary">Analyze Photo</button>
+    <p id="photo_status" class="muted" hidden></p>
+  </div>
+
+  <!-- Text Tab -->
+  <div id="text-tab" class="tab-content" hidden>
+    <div class="form-group">
+      <label for="meal_description">Meal Description</label>
+      <textarea id="meal_description" placeholder="e.g., Grilled chicken breast with rice and broccoli, cup of green salad with olive oil dressing" rows="4"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="meal_type_text">Meal Type</label>
+      <select id="meal_type_text">
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch" selected>Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="snack">Snack</option>
+      </select>
+    </div>
+    <button type="button" id="submit_text" class="btn btn-primary">Analyze Meal</button>
+    <p id="text_status" class="muted" hidden></p>
+  </div>
+</div>
+
+<!-- Daily Summary -->
+{% if daily and daily.meals %}
+<div class="card nutrition-summary-card">
+  <h3>📊 Today's Nutrition Summary</h3>
+  <div class="nutrition-totals">
+    <div class="nutrition-item">
+      <span class="label">Calories</span>
+      <span class="value">{{ daily.totals.calories|int }} kcal</span>
+    </div>
+    <div class="nutrition-item">
+      <span class="label">Protein</span>
+      <span class="value">{{ daily.totals.protein_g|int }}g</span>
+    </div>
+    <div class="nutrition-item">
+      <span class="label">Carbs</span>
+      <span class="value">{{ daily.totals.carbs_g|int }}g</span>
+    </div>
+    <div class="nutrition-item">
+      <span class="label">Fat</span>
+      <span class="value">{{ daily.totals.fat_g|int }}g</span>
+    </div>
+    <div class="nutrition-item">
+      <span class="label">Fiber</span>
+      <span class="value">{{ daily.totals.fiber_g|int }}g</span>
+    </div>
+  </div>
+
+  <!-- Macros Breakdown -->
+  <div class="macros-breakdown">
+    <h4>Macro Breakdown</h4>
+    <div class="macro-bar">
+      <div class="macro-segment" style="width: {{ daily.macros.protein_pct }}%; background: #ff6b6b;" title="Protein">
+        <span class="macro-label">P {{ daily.macros.protein_pct }}%</span>
+      </div>
+      <div class="macro-segment" style="width: {{ daily.macros.carbs_pct }}%; background: #4ecdc4;" title="Carbs">
+        <span class="macro-label">C {{ daily.macros.carbs_pct }}%</span>
+      </div>
+      <div class="macro-segment" style="width: {{ daily.macros.fat_pct }}%; background: #ffe66d;" title="Fat">
+        <span class="macro-label">F {{ daily.macros.fat_pct }}%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meals List -->
+  <div class="meals-list">
+    <h4>Logged Meals</h4>
+    {% for meal in daily.meals %}
+    <div class="meal-item">
+      <div class="meal-header">
+        <strong>{{ meal.meal_type|title }}</strong>
+        <span class="meal-quality quality-{{ meal.quality|lower }}">{{ meal.quality }}</span>
+      </div>
+      <div class="meal-nutrition">
+        <span>{{ meal.calories|int }} cal</span>
+        <span class="separator">·</span>
+        <span>{{ meal.items|join(", ") }}</span>
+      </div>
+      {% if meal.notes %}
+      <p class="meal-notes">{{ meal.notes }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- AI Insights -->
+{% if insights %}
+<div class="card insights-card">
+  <h3>💡 AI Nutrition Insights</h3>
+  <div class="insights-list">
+    {% for insight in insights.insights %}
+    <div class="insight-item">
+      <span class="insight-icon">ℹ️</span>
+      <p>{{ insight }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if insights.recommendations %}
+  <div class="recommendations-section">
+    <h4>Recommendations</h4>
+    <ul class="recommendations-list">
+      {% for rec in insights.recommendations %}
+      <li>{{ rec }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="quality-score">
+    <p>Overall Quality Score: <strong>{{ insights.quality_score }}/100</strong> — {{ insights.quality_rating }}</p>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.nutrition-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.nutrition-header h2,
+.nutrition-header .zone-hint {
+  color: white;
+}
+
+.nutrition-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted, #999);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.photo-upload-label {
+  display: block;
+  cursor: pointer;
+}
+
+.upload-box {
+  padding: 40px 20px;
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  text-align: center;
+  background: var(--upload-bg, #f9f9f9);
+  transition: all 0.2s;
+}
+
+.upload-box:hover {
+  border-color: #667eea;
+  background: var(--upload-hover, #f0f0f0);
+}
+
+.upload-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.upload-box p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.upload-box .zone-hint {
+  font-size: 12px;
+}
+
+.photo-preview {
+  margin: 12px 0;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.photo-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.nutrition-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.nutrition-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--item-bg, #f9f9f9);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.nutrition-item .label {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  text-transform: uppercase;
+}
+
+.nutrition-item .value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.macros-breakdown {
+  margin: 16px 0;
+}
+
+.macros-breakdown h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+}
+
+.macro-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.macro-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  position: relative;
+}
+
+.macro-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.meals-list {
+  margin-top: 16px;
+}
+
+.meals-list h4 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+}
+
+.meal-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--meal-bg, #f9f9f9);
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.meal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.meal-quality {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.meal-quality.quality-excellent {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.meal-quality.quality-good {
+  background: #bfdbfe;
+  color: #1e40af;
+}
+
+.meal-quality.quality-fair {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.meal-quality.quality-poor {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.meal-nutrition {
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  margin-bottom: 4px;
+}
+
+.separator {
+  margin: 0 4px;
+}
+
+.meal-notes {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin: 4px 0 0 0;
+}
+
+.insights-card {
+  border-left: 4px solid #8b5cf6;
+}
+
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.insight-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.insight-icon {
+  font-size: 16px;
+  min-width: 16px;
+}
+
+.recommendations-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.recommendations-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+}
+
+.recommendations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendations-list li {
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.recommendations-list li:before {
+  content: "• ";
+  color: #667eea;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.quality-score {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  font-size: 13px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+}
+
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-primary:active {
+  background: #5568d3;
+}
+
+@media (prefers-color-scheme: dark) {
+  .upload-box {
+    background: var(--upload-bg, #1a1a1a);
+  }
+
+  .nutrition-item {
+    background: var(--item-bg, #1a1a1a);
+  }
+
+  .meal-item {
+    background: var(--meal-bg, #1a1a1a);
+  }
+}
+</style>
+
+<script>
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(tab + '-tab').classList.add('active');
+  });
+});
+
+// Photo upload
+const mealPhoto = document.getElementById('meal_photo');
+const photoPreview = document.getElementById('photo_preview');
+const previewImg = document.getElementById('preview_img');
+const clearPhotoBtn = document.getElementById('clear_photo');
+const submitPhotoBtn = document.getElementById('submit_photo');
+const photoStatus = document.getElementById('photo_status');
+
+mealPhoto.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    previewImg.src = event.target.result;
+    photoPreview.hidden = false;
+  };
+  reader.readAsDataURL(file);
+});
+
+clearPhotoBtn.addEventListener('click', () => {
+  mealPhoto.value = '';
+  photoPreview.hidden = true;
+});
+
+submitPhotoBtn.addEventListener('click', async () => {
+  if (!mealPhoto.files[0]) {
+    alert('Please select a photo');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', mealPhoto.files[0]);
+  formData.append('meal_type', document.getElementById('meal_type_photo').value);
+
+  photoStatus.textContent = '🔄 Analyzing...';
+  photoStatus.hidden = false;
+  submitPhotoBtn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/nutrition/log-photo', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      photoStatus.textContent = '❌ ' + result.error;
+    } else {
+      photoStatus.textContent = '✓ Meal logged! Reloading...';
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch (err) {
+    photoStatus.textContent = '❌ Error: ' + err.message;
+  } finally {
+    submitPhotoBtn.disabled = false;
+  }
+});
+
+// Text submission
+const mealDescription = document.getElementById('meal_description');
+const submitTextBtn = document.getElementById('submit_text');
+const textStatus = document.getElementById('text_status');
+
+submitTextBtn.addEventListener('click', async () => {
+  const desc = mealDescription.value.trim();
+  if (!desc) {
+    alert('Please describe your meal');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('description', desc);
+  formData.append('meal_type', document.getElementById('meal_type_text').value);
+
+  textStatus.textContent = '🔄 Analyzing...';
+  textStatus.hidden = false;
+  submitTextBtn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/nutrition/log-text', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      textStatus.textContent = '❌ ' + result.error;
+    } else {
+      textStatus.textContent = '✓ Meal logged! Reloading...';
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch (err) {
+    textStatus.textContent = '❌ Error: ' + err.message;
+  } finally {
+    submitTextBtn.disabled = false;
+  }
+});
+</script>
+{% endblock %}
