@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block title %}WHOOP Dashboard — Melani Health{% endblock %}
+{% block header %}Your WHOOP Data{% endblock %}
+
+{% block content %}
+<div class="card whoop-sync-card">
+  <h2>⌚ WHOOP Wearable Sync</h2>
+  <p class="zone-hint">Last synced: checking your WHOOP band for latest data</p>
+  <div class="sync-controls">
+    <button type="button" id="sync_whoop_btn" class="btn">
+      🔄 Sync Now
+    </button>
+    <button type="button" id="whoop_settings_btn" class="btn secondary">
+      ⚙️ Settings
+    </button>
+  </div>
+  <p id="sync_status" class="zone-hint" hidden></p>
+</div>
+
+<div class="whoop-grid">
+  <!-- Recovery -->
+  <div class="card metric-card recovery-card">
+    <h3>💪 Recovery</h3>
+    <div class="metric-value">
+      {% if whoop_data.recovery.data %}
+        <span class="score">{{ whoop_data.recovery.data[0].recovery_score|int }}%</span>
+      {% else %}
+        <span class="score">—</span>
+      {% endif %}
+    </div>
+    <p class="metric-label">30-day avg: {{ whoop_data.recovery.average }}%</p>
+    {% if whoop_data.recovery.data %}
+      <div class="mini-chart recovery-chart" id="recovery_chart"></div>
+      <ul class="metric-details">
+        <li>RHR: {% if whoop_data.recovery.data[0].resting_heart_rate %}{{ whoop_data.recovery.data[0].resting_heart_rate }} bpm{% else %}—{% endif %}</li>
+        <li>HRV Balance: {% if whoop_data.recovery.data[0].hrv_balance %}{{ whoop_data.recovery.data[0].hrv_balance }}{% else %}—{% endif %}</li>
+      </ul>
+    {% endif %}
+  </div>
+
+  <!-- Strain -->
+  <div class="card metric-card strain-card">
+    <h3>⚡ Strain</h3>
+    <div class="metric-value">
+      {% if whoop_data.strain.data %}
+        <span class="score">{{ whoop_data.strain.data[0].strain_score|round(1) }}</span>
+      {% else %}
+        <span class="score">—</span>
+      {% endif %}
+    </div>
+    <p class="metric-label">30-day avg: {{ whoop_data.strain.average }}</p>
+    {% if whoop_data.strain.data %}
+      <div class="mini-chart strain-chart" id="strain_chart"></div>
+      <ul class="metric-details">
+        <li>Max HR: {% if whoop_data.strain.data[0].max_heart_rate %}{{ whoop_data.strain.data[0].max_heart_rate }} bpm{% else %}—{% endif %}</li>
+        <li>Energy: {% if whoop_data.strain.data[0].kilojoules %}{{ whoop_data.strain.data[0].kilojoules|int }} kJ{% else %}—{% endif %}</li>
+      </ul>
+    {% endif %}
+  </div>
+
+  <!-- Sleep -->
+  <div class="card metric-card sleep-card">
+    <h3>😴 Sleep</h3>
+    <div class="metric-value">
+      {% if whoop_data.sleep.data %}
+        <span class="score">{{ whoop_data.sleep.data[0].duration_hours|round(1) }}h</span>
+      {% else %}
+        <span class="score">—</span>
+      {% endif %}
+    </div>
+    <p class="metric-label">30-day avg: {{ whoop_data.sleep.average_hours }}h</p>
+    {% if whoop_data.sleep.data %}
+      <div class="mini-chart sleep-chart" id="sleep_chart"></div>
+      <ul class="metric-details">
+        <li>Quality: {% if whoop_data.sleep.data[0].quality_percent %}{{ whoop_data.sleep.data[0].quality_percent|int }}%{% else %}—{% endif %}</li>
+        <li>Last night: {{ whoop_data.sleep.data[0].bedtime[:5] if whoop_data.sleep.data[0].bedtime }}</li>
+      </ul>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>📊 30-Day Trends</h2>
+  <div class="trend-controls">
+    <button type="button" class="trend-btn active" data-trend="recovery">Recovery</button>
+    <button type="button" class="trend-btn" data-trend="strain">Strain</button>
+    <button type="button" class="trend-btn" data-trend="sleep">Sleep</button>
+  </div>
+  <div class="trend-chart-container">
+    <canvas id="trend_chart" height="80"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📈 Weekly Summary</h2>
+  {% if whoop_data.recovery.data or whoop_data.strain.data or whoop_data.sleep.data %}
+    <div class="weekly-summary">
+      {% set days_data = [] %}
+      {% for day_num in range(7) %}
+        {% set target_date = "today" %}
+        <div class="day-card">
+          <span class="day-name">Day {{ day_num + 1 }}</span>
+          <div class="day-metrics">
+            {% if whoop_data.recovery.data and whoop_data.recovery.data|length > day_num %}
+              <div class="metric-badge recovery">{{ whoop_data.recovery.data[day_num].recovery_score|int }}%</div>
+            {% endif %}
+            {% if whoop_data.strain.data and whoop_data.strain.data|length > day_num %}
+              <div class="metric-badge strain">{{ whoop_data.strain.data[day_num].strain_score|round(1) }}</div>
+            {% endif %}
+            {% if whoop_data.sleep.data and whoop_data.sleep.data|length > day_num %}
+              <div class="metric-badge sleep">{{ whoop_data.sleep.data[day_num].duration_hours|round(1) }}h</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No WHOOP data yet. Sync your band to get started.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>🔗 Link WHOOP to Appointments</h2>
+  <p class="zone-hint">See how your health metrics align with doctor visits</p>
+  <button type="button" id="link_whoop_appt_btn" class="btn">
+    Link WHOOP to Appointment
+  </button>
+</div>
+
+<style>
+.whoop-sync-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px;
+}
+
+.whoop-sync-card h2 {
+  margin-top: 0;
+  color: white;
+}
+
+.whoop-sync-card .zone-hint {
+  color: rgba(255,255,255,0.9);
+}
+
+.sync-controls {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.sync-controls .btn {
+  background: white;
+  color: #667eea;
+  border: none;
+}
+
+.whoop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  border: 2px solid var(--border-color, #e0e0e0);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.metric-value {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.score {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--score-bg, #f0f0f0);
+  color: var(--score-color, #333);
+}
+
+.recovery-card .metric-value {
+  color: #10b981;
+}
+
+.strain-card .metric-value {
+  color: #f59e0b;
+}
+
+.sleep-card .metric-value {
+  color: #3b82f6;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--text-muted, #666);
+  text-align: center;
+  margin: 0 0 8px 0;
+}
+
+.metric-details {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  font-size: 12px;
+}
+
+.metric-details li {
+  padding: 2px 0;
+  color: var(--text-secondary, #666);
+}
+
+.mini-chart {
+  height: 40px;
+  margin-bottom: 8px;
+  background: var(--chart-bg, #f9f9f9);
+  border-radius: 4px;
+}
+
+.trend-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.trend-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trend-btn.active {
+  background: var(--primary, #667eea);
+  color: white;
+  border-color: var(--primary, #667eea);
+}
+
+.trend-chart-container {
+  position: relative;
+  height: 200px;
+  margin-bottom: 16px;
+}
+
+.weekly-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.day-card {
+  padding: 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  text-align: center;
+  background: var(--day-bg, #f9f9f9);
+}
+
+.day-name {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin-bottom: 6px;
+}
+
+.day-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.metric-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.metric-badge.recovery {
+  background: #10b981;
+}
+
+.metric-badge.strain {
+  background: #f59e0b;
+}
+
+.metric-badge.sleep {
+  background: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  .metric-card {
+    border-color: var(--border-color, #444);
+    background: var(--card-bg, #2a2a2a);
+  }
+
+  .metric-label {
+    color: var(--text-muted, #999);
+  }
+
+  .mini-chart {
+    background: var(--chart-bg, #1a1a1a);
+  }
+
+  .day-card {
+    background: var(--day-bg, #1a1a1a);
+  }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.getElementById('sync_whoop_btn').addEventListener('click', async () => {
+  const btn = document.getElementById('sync_whoop_btn');
+  const status = document.getElementById('sync_status');
+  btn.disabled = true;
+  btn.textContent = '🔄 Syncing...';
+
+  try {
+    const resp = await fetch('/api/whoop/sync', {method: 'POST'});
+    const data = await resp.json();
+
+    if (data.ok) {
+      status.textContent = '✓ Synced successfully!';
+      status.hidden = false;
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      status.textContent = '❌ ' + (data.error || 'Sync failed');
+      status.hidden = false;
+      btn.disabled = false;
+      btn.textContent = '🔄 Sync Now';
+    }
+  } catch (err) {
+    status.textContent = '❌ Error: ' + err.message;
+    status.hidden = false;
+    btn.disabled = false;
+    btn.textContent = '🔄 Sync Now';
+  }
+});
+
+document.querySelectorAll('.trend-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.trend-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const metric = btn.dataset.trend;
+    try {
+      const resp = await fetch(`/api/whoop/trends?metric=${metric}&days=30`);
+      const trend = await resp.json();
+      updateTrendChart(trend);
+    } catch (err) {
+      console.error('Error loading trend:', err);
+    }
+  });
+});
+
+let trendChart = null;
+function updateTrendChart(trend) {
+  const ctx = document.getElementById('trend_chart').getContext('2d');
+
+  if (trendChart) trendChart.destroy();
+
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trend.dates || [],
+      datasets: [{
+        label: trend.metric.charAt(0).toUpperCase() + trend.metric.slice(1),
+        data: trend.values || [],
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {display: true}
+      },
+      scales: {
+        y: {beginAtZero: true}
+      }
+    }
+  });
+}
+
+// Load initial trend
+document.querySelector('.trend-btn.active').click();
+
+document.getElementById('link_whoop_appt_btn').addEventListener('click', async () => {
+  const whoopDate = prompt('Enter date (YYYY-MM-DD):');
+  if (!whoopDate) return;
+
+  try {
+    const resp = await fetch('/api/appointments/list');
+    const {appointments} = await resp.json();
+
+    if (!appointments || appointments.length === 0) {
+      alert('No appointments found. Schedule one first.');
+      return;
+    }
+
+    const appointmentId = appointments[0].appointment_id; // Simplified - could be a selector
+    await fetch(`/api/appointments/${appointmentId}/link-whoop/${whoopDate}`, {method: 'POST'});
+    alert('✓ WHOOP linked to appointment!');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+});
+
+document.getElementById('whoop_settings_btn').addEventListener('click', () => {
+  const token = prompt('Enter your WHOOP API token:');
+  if (token) {
+    fetch('/api/whoop/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token})
+    }).then(() => {
+      alert('✓ Token saved! Sync your data next.');
+      location.reload();
+    }).catch(err => alert('Error: ' + err.message));
+  }
+});
+</script>
+{% endblock %}

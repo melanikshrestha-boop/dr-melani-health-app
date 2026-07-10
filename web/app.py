@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -1865,6 +1865,70 @@ def get_lab_timeline_api(days: int = 90):
     """Get timeline of labs and appointments."""
     timeline = lab_providers.sync_lab_results_timeline(days=days)
     return JSONResponse(timeline)
+
+
+# ── WHOOP Wearable Integration ────────────────────────────────────────────────
+
+@app.get("/whoop", response_class=HTMLResponse)
+def whoop_dashboard(request: Request):
+    """WHOOP wearable health dashboard."""
+    whoop_data = whoop_enhanced.get_whoop_dashboard(days=30)
+    recovery_trend = whoop_enhanced.get_whoop_trends("recovery", 30)
+    strain_trend = whoop_enhanced.get_whoop_trends("strain", 30)
+    sleep_trend = whoop_enhanced.get_whoop_trends("sleep", 30)
+
+    return _render(
+        request,
+        "whoop_dashboard.html",
+        nav="whoop",
+        whoop_data=whoop_data,
+        recovery_trend=recovery_trend,
+        strain_trend=strain_trend,
+        sleep_trend=sleep_trend,
+    )
+
+
+@app.post("/api/whoop/sync")
+async def sync_whoop_api(request: Request):
+    """Manually sync WHOOP data."""
+    try:
+        result = whoop_enhanced.sync_all_whoop_data(days=90)
+        if "error" in result:
+            return JSONResponse({"error": result["error"]}, status_code=400)
+        return JSONResponse({"ok": True, "synced_at": result.get("synced_at")})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/whoop/data/{date}")
+def get_whoop_for_date_api(date: str):
+    """Get WHOOP data for specific date."""
+    data = whoop_enhanced.get_whoop_for_date(date)
+    return JSONResponse(data)
+
+
+@app.get("/api/whoop/trends")
+def get_whoop_trends_api(metric: str = "recovery", days: int = 30):
+    """Get WHOOP trends."""
+    trends = whoop_enhanced.get_whoop_trends(metric, days)
+    return JSONResponse(trends)
+
+
+@app.post("/api/whoop/token")
+async def set_whoop_token_api(request: Request):
+    """Set WHOOP API token."""
+    data = await request.json()
+    whoop_enhanced.WHOOPClient._load_token = lambda: data.get("token", "")
+    from health.whoop import set_whoop_token
+    set_whoop_token(data.get("token", ""))
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/appointments/{appointment_id}/link-whoop/{date}")
+async def link_whoop_to_appointment_api(appointment_id: str, date: str):
+    """Link WHOOP data to appointment."""
+    whoop_enhanced.link_whoop_to_appointment(appointment_id, date)
+    return JSONResponse({"ok": True})
 
 
 def lan_ip() -> str:

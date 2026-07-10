@@ -304,6 +304,17 @@ CREATE TABLE IF NOT EXISTS appointment_lab_links (
 
 CREATE INDEX IF NOT EXISTS idx_lab_links_appointment ON appointment_lab_links(appointment_id);
 CREATE INDEX IF NOT EXISTS idx_lab_links_draw ON appointment_lab_links(lab_draw_id);
+
+CREATE TABLE IF NOT EXISTS appointment_whoop_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id TEXT NOT NULL,
+    whoop_date TEXT NOT NULL,
+    linked_at TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES doctor_appointments(appointment_id),
+    UNIQUE(appointment_id, whoop_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_whoop_links_appointment ON appointment_whoop_links(appointment_id);
 """
 
 
