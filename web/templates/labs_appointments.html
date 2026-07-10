@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+{% block title %}Labs & Appointments — Melani Health{% endblock %}
+{% block header %}Your Labs + Doctor Appointments{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>🔗 Connected Lab Providers</h2>
+  <div class="providers-grid">
+    {% for provider in providers %}
+    <div class="provider-card">
+      <h4>{{ provider.name }}</h4>
+      <p class="provider-hint">{{ provider.url }}</p>
+      <div class="provider-actions">
+        <a href="{{ provider.patient_portal }}" target="_blank" rel="noopener" class="btn btn-small">
+          Open Portal →
+        </a>
+        <button type="button" class="btn btn-small secondary connect-provider-btn" data-provider="{{ provider.name|lower }}" data-url="{{ provider.patient_portal }}">
+          Connect
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="zone-hint">
+    Connect your lab accounts to auto-sync results. Links are secure and never stored in plain text.
+  </p>
+</div>
+
+{% if connections %}
+<div class="card">
+  <h2>✓ Your Connected Accounts</h2>
+  <div class="connections-list">
+    {% for conn in connections %}
+    <div class="connection-item">
+      <span class="provider-name">{{ conn.provider|title }}</span>
+      <span class="connection-date">Connected {{ conn.connected_at[:10] }}</span>
+      <span class="status-badge connected">● Connected</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>📊 Lab Results + Appointments Timeline</h2>
+  <p class="zone-hint">Last 90 days — labs and doctor appointments side-by-side</p>
+
+  <div class="timeline">
+    {% if summary.recent_labs or summary.upcoming_appointments %}
+      {% set all_events = [] %}
+      {% for lab in summary.recent_labs %}
+        {% set _ = all_events.append({
+          "type": "lab",
+          "date": lab.collected,
+          "provider": lab.provider,
+          "lab": lab.lab,
+          "draw_id": lab.draw_id
+        }) %}
+      {% endfor %}
+      {% for appt in summary.upcoming_appointments %}
+        {% set _ = all_events.append({
+          "type": "appointment",
+          "date": appt.appointment_date,
+          "doctor": appt.doctor_name,
+          "reason": appt.reason_for_visit,
+          "id": appt.appointment_id
+        }) %}
+      {% endfor %}
+
+      {% for event in all_events|sort(attribute='date', reverse=True) %}
+      <div class="timeline-item {% if event.type == 'lab' %}lab-event{% else %}appt-event{% endif %}">
+        <div class="timeline-marker {% if event.type == 'lab' %}lab{% else %}appt{% endif %}">
+          {% if event.type == 'lab' %}🧪{% else %}👨‍⚕️{% endif %}
+        </div>
+        <div class="timeline-content">
+          {% if event.type == 'lab' %}
+            <strong>Lab Results</strong>
+            <p>{{ event.lab or event.provider }} — {{ event.date }}</p>
+            <button type="button" class="btn btn-small link-lab-btn" data-draw-id="{{ event.draw_id }}" data-provider="{{ event.provider }}">
+              Link to appointment
+            </button>
+          {% else %}
+            <strong>Doctor Appointment</strong>
+            <p>{{ event.doctor }} — {{ event.date }}</p>
+            <p class="appt-reason">{{ event.reason }}</p>
+            <button type="button" class="btn btn-small view-appt-btn" data-id="{{ event.id }}">
+              View & link labs
+            </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No recent labs or appointments. <a href="/appointments">Schedule an appointment →</a></p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>📈 Lab Counts by Provider</h2>
+  <div class="provider-stats">
+    {% for provider, count in summary.providers.items() %}
+    <div class="stat-row">
+      <span class="provider-name">{{ provider|title }}</span>
+      <span class="stat-value">{{ count }} result{% if count != 1 %}s{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card link-modal-card" id="link_modal" hidden>
+  <h3>Link Lab to Appointment</h3>
+  <p class="zone-hint">Select an appointment to link this lab result</p>
+  <div id="appointments_list" class="appointments-select">
+    <!-- Dynamically populated -->
+  </div>
+  <button type="button" class="btn" id="confirm_link_btn">Link Lab</button>
+  <button type="button" class="btn secondary" id="cancel_link_btn">Cancel</button>
+</div>
+
+<style>
+.providers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.provider-card {
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--provider-bg, #f9f9f9);
+}
+
+.provider-card h4 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.provider-hint {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin: 0 0 8px 0;
+}
+
+.provider-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.connections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connection-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: var(--connection-bg, #f0f7ff);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.provider-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+.connection-date {
+  color: var(--text-muted, #999);
+  font-size: 12px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-badge.connected {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background: var(--timeline-bg, #fafafa);
+}
+
+.timeline-item.lab-event {
+  border-left-color: #8b5cf6;
+}
+
+.timeline-item.appt-event {
+  border-left-color: #3b82f6;
+}
+
+.timeline-marker {
+  font-size: 24px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-content strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.timeline-content p {
+  margin: 2px 0;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+.appt-reason {
+  font-style: italic;
+}
+
+.provider-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: var(--stat-bg, #f5f5f5);
+  border-radius: 4px;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--primary, #0066cc);
+}
+
+.link-modal-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.appointments-select {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+}
+
+.appointment-option {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.appointment-option:hover {
+  background: var(--hover-bg, #f0f0f0);
+}
+
+.appointment-option input[type="radio"] {
+  margin-right: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .provider-card {
+    background: var(--provider-bg, #2a2a2a);
+    border-color: var(--border-color, #444);
+  }
+
+  .connection-item {
+    background: var(--connection-bg, #1a2a3a);
+  }
+
+  .timeline-item {
+    background: var(--timeline-bg, #1a1a1a);
+  }
+
+  .stat-row {
+    background: var(--stat-bg, #2a2a2a);
+  }
+}
+</style>
+
+<script>
+let currentLabData = null;
+
+document.querySelectorAll('.link-lab-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const drawId = btn.dataset.drawId;
+    const provider = btn.dataset.provider;
+    currentLabData = {drawId, provider};
+
+    // Fetch upcoming appointments
+    try {
+      const resp = await fetch('/api/appointments/list');
+      const data = await resp.json();
+      const appointmentsList = document.getElementById('appointments_list');
+      appointmentsList.innerHTML = '';
+
+      if (data.appointments && data.appointments.length > 0) {
+        data.appointments.forEach(appt => {
+          const div = document.createElement('div');
+          div.className = 'appointment-option';
+          div.innerHTML = `
+            <input type="radio" name="appt_select" value="${appt.appointment_id}" id="appt_${appt.appointment_id}">
+            <label for="appt_${appt.appointment_id}" style="cursor: pointer; flex: 1;">
+              <strong>${appt.doctor_name}</strong> — ${appt.appointment_date}
+            </label>
+          `;
+          appointmentsList.appendChild(div);
+        });
+
+        document.getElementById('link_modal').hidden = false;
+      } else {
+        alert('No appointments found. <a href="/appointments">Schedule one first →</a>');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+});
+
+document.getElementById('confirm_link_btn').addEventListener('click', async () => {
+  const selected = document.querySelector('input[name="appt_select"]:checked');
+  if (!selected) {
+    alert('Select an appointment');
+    return;
+  }
+
+  try {
+    await fetch(`/api/appointments/${selected.value}/link-lab/${currentLabData.drawId}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider: currentLabData.provider})
+    });
+    alert('✓ Lab linked!');
+    location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+});
+
+document.getElementById('cancel_link_btn').addEventListener('click', () => {
+  document.getElementById('link_modal').hidden = true;
+});
+
+document.querySelectorAll('.view-appt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.id;
+    window.location.href = `/appointments#appt-${id}`;
+  });
+});
+
+document.querySelectorAll('.connect-provider-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const provider = btn.dataset.provider;
+    const url = btn.dataset.url;
+    const userId = prompt(`Enter your ${provider} user ID or email:`);
+    if (userId) {
+      try {
+        await fetch('/api/lab-providers/connect', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({provider, user_id: userId})
+        });
+        alert('✓ Lab provider connected!');
+        location.reload();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

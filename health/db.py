@@ -291,6 +291,19 @@ CREATE TABLE IF NOT EXISTS appointment_reminders (
 CREATE INDEX IF NOT EXISTS idx_appointments_date ON doctor_appointments(appointment_date);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON doctor_appointments(status);
 CREATE INDEX IF NOT EXISTS idx_follow_ups_appointment ON appointment_follow_ups(appointment_id);
+
+CREATE TABLE IF NOT EXISTS appointment_lab_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id TEXT NOT NULL,
+    lab_draw_id TEXT NOT NULL,
+    provider TEXT,
+    linked_at TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES doctor_appointments(appointment_id),
+    UNIQUE(appointment_id, lab_draw_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_lab_links_appointment ON appointment_lab_links(appointment_id);
+CREATE INDEX IF NOT EXISTS idx_lab_links_draw ON appointment_lab_links(lab_draw_id);
 """
 
 

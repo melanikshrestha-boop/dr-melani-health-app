@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional, List, Dict, Any
 
 from .db import get_conn, today
@@ -289,3 +289,76 @@ def get_doctor_names() -> List[str]:
             "SELECT DISTINCT doctor_name FROM doctor_appointments ORDER BY doctor_name"
         ).fetchall()
         return [row["doctor_name"] for row in rows]
+
+
+def link_lab_to_appointment(appointment_id: str, lab_draw_id: str, provider: str = "unknown") -> bool:
+    """Link a lab result to an appointment."""
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT OR REPLACE INTO appointment_lab_links (appointment_id, lab_draw_id, provider, linked_at)
+               VALUES (?, ?, ?, ?)""",
+            (appointment_id, lab_draw_id, provider, datetime.now().isoformat())
+        )
+    return True
+
+
+def get_appointment_labs(appointment_id: str) -> List[Dict[str, Any]]:
+    """Get all labs linked to an appointment with values."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT link.id, link.lab_draw_id, link.provider, link.linked_at,
+                      draw.collected, draw.lab
+               FROM appointment_lab_links link
+               LEFT JOIN lab_draws draw ON link.lab_draw_id = draw.id
+               WHERE link.appointment_id = ?
+               ORDER BY link.linked_at DESC""",
+            (appointment_id,)
+        ).fetchall()
+
+        labs = [dict(row) for row in rows]
+
+        # Get lab values for each draw
+        for lab in labs:
+            if lab["lab_draw_id"]:
+                values = conn.execute(
+                    "SELECT test, result, unit, flag FROM lab_values WHERE draw_id = ? LIMIT 5",
+                    (lab["lab_draw_id"],)
+                ).fetchall()
+                lab["values"] = [dict(v) for v in values]
+
+        return labs
+
+
+def get_available_labs_to_link(appointment_id: str) -> List[Dict[str, Any]]:
+    """Get labs that can be linked to this appointment."""
+    appt = get_appointment(appointment_id)
+    if not appt:
+        return []
+
+    appt_date = datetime.fromisoformat(appt["appointment_date"]).date()
+    date_start = (appt_date - timedelta(days=90)).isoformat()
+    date_end = (appt_date + timedelta(days=30)).isoformat()
+
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT DISTINCT draw.id, draw.collected, draw.lab, draw.provider,
+                      COUNT(values.id) as test_count
+               FROM lab_draws draw
+               LEFT JOIN lab_values values ON draw.id = values.draw_id
+               WHERE draw.collected >= ? AND draw.collected <= ?
+               AND draw.id NOT IN (
+                   SELECT lab_draw_id FROM appointment_lab_links WHERE appointment_id = ?
+               )
+               GROUP BY draw.id
+               ORDER BY draw.collected DESC""",
+            (date_start, date_end, appointment_id)
+        ).fetchall()
+
+        return [dict(row) for row in rows]
+
+
+def unlink_lab_from_appointment(link_id: int) -> bool:
+    """Remove lab link from appointment."""
+    with get_conn() as conn:
+        conn.execute("DELETE FROM appointment_lab_links WHERE id = ?", (link_id,))
+    return True

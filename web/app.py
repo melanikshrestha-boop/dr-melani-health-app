@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -1783,6 +1783,88 @@ async def add_follow_up_api(appointment_id: str, request: Request):
 async def complete_follow_up_api(follow_up_id: int):
     appointments.complete_follow_up(follow_up_id)
     return JSONResponse({"ok": True})
+
+
+# ── Lab Provider Integration ────────────────────────────────────────────────────
+
+@app.get("/labs-appointments", response_class=HTMLResponse)
+def labs_appointments_page(request: Request):
+    summary = lab_providers.get_dashboard_summary()
+    connections = lab_providers.get_lab_connections()
+    providers = lab_providers.get_lab_provider_list()
+    return _render(
+        request,
+        "labs_appointments.html",
+        nav="data",
+        summary=summary,
+        connections=connections,
+        providers=providers,
+    )
+
+
+@app.get("/api/lab-providers")
+def get_lab_providers_api():
+    """Get list of all supported lab providers."""
+    return JSONResponse({"providers": lab_providers.get_lab_provider_list()})
+
+
+@app.post("/api/lab-providers/connect")
+async def connect_lab_provider_api(request: Request):
+    """Add a lab provider connection."""
+    data = await request.json()
+    result = lab_providers.add_lab_connection(
+        provider=data.get("provider", ""),
+        user_id=data.get("user_id", ""),
+        access_token=data.get("access_token"),
+    )
+    return JSONResponse(result)
+
+
+@app.get("/api/lab-providers/connections")
+def get_lab_connections_api():
+    """Get all lab provider connections."""
+    return JSONResponse({"connections": lab_providers.get_lab_connections()})
+
+
+@app.get("/api/appointments/{appointment_id}/available-labs")
+def get_available_labs_api(appointment_id: str):
+    """Get labs that can be linked to this appointment."""
+    labs = appointments.get_available_labs_to_link(appointment_id)
+    return JSONResponse({"labs": labs})
+
+
+@app.post("/api/appointments/{appointment_id}/link-lab/{lab_draw_id}")
+async def link_lab_to_appointment_api(appointment_id: str, lab_draw_id: str, request: Request):
+    """Link a lab result to an appointment."""
+    data = await request.json()
+    appointments.link_lab_to_appointment(
+        appointment_id=appointment_id,
+        lab_draw_id=lab_draw_id,
+        provider=data.get("provider", "unknown")
+    )
+    appt_labs = appointments.get_appointment_labs(appointment_id)
+    return JSONResponse({"ok": True, "labs": appt_labs})
+
+
+@app.get("/api/appointments/{appointment_id}/labs")
+def get_appointment_labs_api(appointment_id: str):
+    """Get all labs linked to an appointment."""
+    labs = appointments.get_appointment_labs(appointment_id)
+    return JSONResponse({"labs": labs})
+
+
+@app.delete("/api/lab-links/{link_id}")
+async def unlink_lab_api(link_id: int):
+    """Remove lab link from appointment."""
+    appointments.unlink_lab_from_appointment(link_id)
+    return JSONResponse({"ok": True})
+
+
+@app.get("/api/lab-timeline")
+def get_lab_timeline_api(days: int = 90):
+    """Get timeline of labs and appointments."""
+    timeline = lab_providers.sync_lab_results_timeline(days=days)
+    return JSONResponse(timeline)
 
 
 def lan_ip() -> str:
