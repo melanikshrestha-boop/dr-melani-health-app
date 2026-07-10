@@ -248,6 +248,49 @@ CREATE INDEX IF NOT EXISTS idx_meals_day ON meals(day);
 CREATE INDEX IF NOT EXISTS idx_water_day ON water_logs(day);
 CREATE INDEX IF NOT EXISTS idx_migraine_day ON migraine_logs(day);
 CREATE INDEX IF NOT EXISTS idx_wearable_day ON wearable_metrics(day);
+
+CREATE TABLE IF NOT EXISTS doctor_appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id TEXT NOT NULL UNIQUE,
+    doctor_name TEXT NOT NULL,
+    specialty TEXT,
+    appointment_date TEXT NOT NULL,
+    appointment_time TEXT NOT NULL,
+    location TEXT,
+    telehealth_link TEXT,
+    reason_for_visit TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'scheduled',
+    reminder_sent INTEGER DEFAULT 0,
+    created_at TEXT,
+    updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS appointment_follow_ups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id TEXT NOT NULL,
+    follow_up_type TEXT,
+    lab_test TEXT,
+    prescription TEXT,
+    instructions TEXT,
+    status TEXT DEFAULT 'pending',
+    completed_at TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES doctor_appointments(appointment_id)
+);
+
+CREATE TABLE IF NOT EXISTS appointment_reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    appointment_id TEXT NOT NULL,
+    reminder_time TEXT NOT NULL,
+    reminder_type TEXT DEFAULT 'notification',
+    sent INTEGER DEFAULT 0,
+    sent_at TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES doctor_appointments(appointment_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON doctor_appointments(appointment_date);
+CREATE INDEX IF NOT EXISTS idx_appointments_status ON doctor_appointments(status);
+CREATE INDEX IF NOT EXISTS idx_follow_ups_appointment ON appointment_follow_ups(appointment_id);
 """
 
 

@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block title %}Appointments — Melani Health{% endblock %}
+{% block header %}Doctor Appointments{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Schedule Appointment</h2>
+  <form id="appointment_form" class="appointment-form">
+    <div class="form-group">
+      <label for="doctor_name">Doctor Name *</label>
+      <input type="text" id="doctor_name" name="doctor_name" placeholder="Dr. Smith" required>
+    </div>
+
+    <div class="form-group">
+      <label for="specialty">Specialty</label>
+      <select id="specialty" name="specialty">
+        <option value="">Select specialty…</option>
+        <option value="General Practitioner">General Practitioner</option>
+        <option value="Cardiology">Cardiology</option>
+        <option value="Dermatology">Dermatology</option>
+        <option value="Endocrinology">Endocrinology</option>
+        <option value="Gastroenterology">Gastroenterology</option>
+        <option value="Neurology">Neurology</option>
+        <option value="Orthopedics">Orthopedics</option>
+        <option value="Psychiatry">Psychiatry</option>
+        <option value="Pulmonology">Pulmonology</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="appointment_date">Date *</label>
+        <input type="date" id="appointment_date" name="appointment_date" required>
+      </div>
+      <div class="form-group">
+        <label for="appointment_time">Time *</label>
+        <input type="time" id="appointment_time" name="appointment_time" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="reason_for_visit">Reason for Visit *</label>
+      <input type="text" id="reason_for_visit" name="reason_for_visit" placeholder="e.g., Annual checkup, Follow-up labs" required>
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location</label>
+      <input type="text" id="location" name="location" placeholder="e.g., 123 Main St, Suite 200">
+    </div>
+
+    <div class="form-group">
+      <label for="telehealth_link">Telehealth Link</label>
+      <input type="url" id="telehealth_link" name="telehealth_link" placeholder="https://...">
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" placeholder="Any additional details…"></textarea>
+    </div>
+
+    <button type="submit" class="btn" style="width: 100%;">Schedule Appointment</button>
+  </form>
+  <p id="form_status" class="zone-hint" hidden></p>
+</div>
+
+<div id="upcoming_section" class="card">
+  <h2>Upcoming Appointments {% if upcoming %}<span class="badge">{{ upcoming|length }}</span>{% endif %}</h2>
+  {% if upcoming %}
+  <div class="appointments-list">
+    {% for appt in upcoming %}
+    <div class="appointment-card">
+      <div class="appointment-header">
+        <div>
+          <strong class="doctor-name">{{ appt.doctor_name }}</strong>
+          {% if appt.specialty %}<span class="specialty-badge">{{ appt.specialty }}</span>{% endif %}
+        </div>
+        <div class="appointment-status">{{ appt.status|capitalize }}</div>
+      </div>
+
+      <div class="appointment-details">
+        <div class="detail-row">
+          <span class="label">📅</span>
+          <span class="value">{{ appt.appointment_date }} at {{ appt.appointment_time }}</span>
+        </div>
+        {% if appt.reason_for_visit %}
+        <div class="detail-row">
+          <span class="label">🏥</span>
+          <span class="value">{{ appt.reason_for_visit }}</span>
+        </div>
+        {% endif %}
+        {% if appt.location %}
+        <div class="detail-row">
+          <span class="label">📍</span>
+          <span class="value">{{ appt.location }}</span>
+        </div>
+        {% endif %}
+        {% if appt.telehealth_link %}
+        <div class="detail-row">
+          <span class="label">💻</span>
+          <a href="{{ appt.telehealth_link }}" target="_blank" rel="noopener">Join telehealth</a>
+        </div>
+        {% endif %}
+        {% if appt.notes %}
+        <div class="detail-row">
+          <span class="label">📝</span>
+          <span class="value">{{ appt.notes }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if appt.follow_ups %}
+      <div class="follow-ups">
+        <h4>Follow-ups</h4>
+        {% for fu in appt.follow_ups %}
+        <div class="follow-up-item {% if fu.status == 'completed' %}completed{% endif %}">
+          <span class="follow-up-type">{{ fu.follow_up_type }}</span>
+          {% if fu.lab_test %}<span>Lab: {{ fu.lab_test }}</span>{% endif %}
+          {% if fu.prescription %}<span>Rx: {{ fu.prescription }}</span>{% endif %}
+          <button type="button" class="complete-followup-btn" data-followup-id="{{ fu.id }}" {% if fu.status == 'completed' %}disabled{% endif %}>
+            {% if fu.status == 'completed' %}✓ Done{% else %}Mark done{% endif %}
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="appointment-actions">
+        <button type="button" class="btn secondary edit-appt-btn" data-id="{{ appt.appointment_id }}">Edit</button>
+        <button type="button" class="btn secondary add-followup-btn" data-id="{{ appt.appointment_id }}">Add follow-up</button>
+        <button type="button" class="btn secondary danger cancel-appt-btn" data-id="{{ appt.appointment_id }}">Cancel</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No upcoming appointments. Schedule one above!</p>
+  {% endif %}
+</div>
+
+{% if past %}
+<div id="past_section" class="card">
+  <h2>Past Appointments</h2>
+  <div class="appointments-list past">
+    {% for appt in past %}
+    <div class="appointment-card past">
+      <div class="appointment-header">
+        <div>
+          <strong class="doctor-name">{{ appt.doctor_name }}</strong>
+          {% if appt.specialty %}<span class="specialty-badge">{{ appt.specialty }}</span>{% endif %}
+        </div>
+        <div class="appointment-status">{{ appt.status|capitalize }}</div>
+      </div>
+      <div class="appointment-details">
+        <div class="detail-row">
+          <span class="label">📅</span>
+          <span class="value">{{ appt.appointment_date }} at {{ appt.appointment_time }}</span>
+        </div>
+        {% if appt.reason_for_visit %}
+        <div class="detail-row">
+          <span class="label">🏥</span>
+          <span class="value">{{ appt.reason_for_visit }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<style>
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appointment-card {
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--card-bg, #f9f9f9);
+}
+
+.appointment-card.past {
+  opacity: 0.7;
+}
+
+.appointment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.doctor-name {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.specialty-badge {
+  display: inline-block;
+  background: var(--badge-bg, #e8f4f8);
+  color: var(--badge-color, #0066cc);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.appointment-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--status-color, #666);
+  text-transform: capitalize;
+}
+
+.appointment-details {
+  margin-bottom: 12px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+.detail-row .label {
+  min-width: 20px;
+  font-size: 16px;
+}
+
+.detail-row .value {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.follow-ups {
+  background: var(--followup-bg, #f0f7ff);
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.follow-ups h4 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted, #666);
+}
+
+.follow-up-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  background: white;
+  border-radius: 3px;
+}
+
+.follow-up-item.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.follow-up-type {
+  font-weight: 600;
+}
+
+.complete-followup-btn {
+  margin-left: auto;
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  background: white;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.appointment-actions .btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.appointment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--primary, #0066cc);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .appointment-card {
+    background: var(--card-bg, #2a2a2a);
+    border-color: var(--border-color, #444);
+  }
+
+  .specialty-badge {
+    background: var(--badge-bg, #1a3a4a);
+    color: var(--badge-color, #66b3ff);
+  }
+
+  .follow-ups {
+    background: var(--followup-bg, #1a2a3a);
+  }
+}
+</style>
+
+<script>
+document.getElementById('appointment_form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const status = document.getElementById('form_status');
+
+  try {
+    const response = await fetch('/api/appointments/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        doctor_name: form.doctor_name.value,
+        specialty: form.specialty.value || undefined,
+        appointment_date: form.appointment_date.value,
+        appointment_time: form.appointment_time.value,
+        reason_for_visit: form.reason_for_visit.value,
+        location: form.location.value || undefined,
+        telehealth_link: form.telehealth_link.value || undefined,
+        notes: form.notes.value || undefined,
+      })
+    });
+
+    if (response.ok) {
+      status.textContent = '✓ Appointment scheduled!';
+      status.hidden = false;
+      form.reset();
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      status.textContent = '❌ Error scheduling appointment';
+      status.hidden = false;
+    }
+  } catch (err) {
+    status.textContent = '❌ Error: ' + err.message;
+    status.hidden = false;
+  }
+});
+
+document.querySelectorAll('.cancel-appt-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const reason = prompt('Cancellation reason (optional):');
+    if (reason !== null) {
+      try {
+        await fetch(`/api/appointments/${id}/cancel`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({reason})
+        });
+        location.reload();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+  });
+});
+
+document.querySelectorAll('.add-followup-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const type = prompt('Follow-up type (lab/prescription/other):');
+    if (type) {
+      const detail = prompt(`Enter ${type} details:`)
+      if (detail) {
+        try {
+          await fetch(`/api/appointments/${id}/follow-up`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              follow_up_type: type,
+              [type === 'lab' ? 'lab_test' : type === 'prescription' ? 'prescription' : 'instructions']: detail
+            })
+          });
+          location.reload();
+        } catch (err) {
+          alert('Error: ' + err.message);
+        }
+      }
+    }
+  });
+});
+
+document.querySelectorAll('.complete-followup-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.followupId;
+    try {
+      await fetch(`/api/follow-ups/${id}/complete`, {method: 'POST'});
+      location.reload();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  });
+});
+</script>
+{% endblock %}

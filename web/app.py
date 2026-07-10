@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -1688,6 +1688,101 @@ async def jarvis_chat_api(request: Request):
             photo_mode=str(data.get("photo_mode") or "auto"),
         )
     )
+
+
+# ── Appointments ────────────────────────────────────────────────────────────
+
+@app.get("/appointments", response_class=HTMLResponse)
+def appointments_page(request: Request):
+    upcoming = appointments.get_upcoming_appointments(days_ahead=90)
+    past = [a for a in appointments.get_all_appointments() if a["status"] == "completed"]
+    all_doctors = appointments.get_doctor_names()
+    return _render(
+        request,
+        "appointments.html",
+        nav="appointments",
+        upcoming=upcoming,
+        past=past,
+        all_doctors=all_doctors,
+    )
+
+
+@app.post("/api/appointments/create")
+async def create_appointment_api(request: Request):
+    data = await request.json()
+    appt = appointments.create_appointment(
+        doctor_name=data.get("doctor_name", ""),
+        specialty=data.get("specialty", ""),
+        appointment_date=data.get("appointment_date", ""),
+        appointment_time=data.get("appointment_time", ""),
+        reason_for_visit=data.get("reason_for_visit", ""),
+        location=data.get("location"),
+        telehealth_link=data.get("telehealth_link"),
+        notes=data.get("notes"),
+    )
+    return JSONResponse({"ok": True, "appointment": appt})
+
+
+@app.get("/api/appointments/list")
+def list_appointments_api():
+    upcoming = appointments.get_upcoming_appointments()
+    return JSONResponse({"appointments": upcoming})
+
+
+@app.get("/api/appointments/{appointment_id}")
+def get_appointment_api(appointment_id: str):
+    appt = appointments.get_appointment(appointment_id)
+    if not appt:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return JSONResponse(appt)
+
+
+@app.post("/api/appointments/{appointment_id}/update")
+async def update_appointment_api(appointment_id: str, request: Request):
+    data = await request.json()
+    appt = appointments.update_appointment(
+        appointment_id,
+        doctor_name=data.get("doctor_name"),
+        specialty=data.get("specialty"),
+        appointment_date=data.get("appointment_date"),
+        appointment_time=data.get("appointment_time"),
+        location=data.get("location"),
+        telehealth_link=data.get("telehealth_link"),
+        reason_for_visit=data.get("reason_for_visit"),
+        notes=data.get("notes"),
+        status=data.get("status"),
+    )
+    if not appt:
+        return JSONResponse({"error": "Not found"}, status_code=404)
+    return JSONResponse({"ok": True, "appointment": appt})
+
+
+@app.post("/api/appointments/{appointment_id}/cancel")
+async def cancel_appointment_api(appointment_id: str, request: Request):
+    data = await request.json()
+    appointments.cancel_appointment(appointment_id, reason=data.get("reason"))
+    appt = appointments.get_appointment(appointment_id)
+    return JSONResponse({"ok": True, "appointment": appt})
+
+
+@app.post("/api/appointments/{appointment_id}/follow-up")
+async def add_follow_up_api(appointment_id: str, request: Request):
+    data = await request.json()
+    appointments.add_follow_up(
+        appointment_id,
+        follow_up_type=data.get("follow_up_type", ""),
+        lab_test=data.get("lab_test"),
+        prescription=data.get("prescription"),
+        instructions=data.get("instructions"),
+    )
+    appt = appointments.get_appointment(appointment_id)
+    return JSONResponse({"ok": True, "appointment": appt})
+
+
+@app.post("/api/follow-ups/{follow_up_id}/complete")
+async def complete_follow_up_api(follow_up_id: int):
+    appointments.complete_follow_up(follow_up_id)
+    return JSONResponse({"ok": True})
 
 
 def lan_ip() -> str:
