@@ -381,6 +381,11 @@ def init_db(seed: bool = True):
         create_nutrition_tables()
     except Exception:
         pass
+    try:
+        from .fridge_safety import create_fridge_tables
+        create_fridge_tables()
+    except Exception:
+        pass
     _ensure_checkin_columns()
     _ensure_tracking_tables()
 

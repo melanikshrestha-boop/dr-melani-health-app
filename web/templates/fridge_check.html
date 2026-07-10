@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% block title %}Fridge Safety — Melani Health{% endblock %}
+{% block header %}🧊 Fridge Food Safety Checker{% endblock %}
+
+{% block content %}
+<div class="card fridge-header">
+  <h2>Is Your Food Safe?</h2>
+  <p class="zone-hint">AI-powered spoilage detection to prevent food poisoning</p>
+</div>
+
+<!-- Quick Camera Scan -->
+<div class="card fridge-scan-card">
+  <h3>📸 Scan Fridge Photo</h3>
+  <div class="scan-section">
+    <label class="photo-upload-label">
+      <input type="file" id="fridge_photo" accept="image/*" hidden>
+      <div class="upload-box fridge-upload">
+        <span class="upload-icon">📷</span>
+        <p>Take a photo of your fridge</p>
+        <p class="zone-hint">We'll analyze every item for spoilage</p>
+      </div>
+    </label>
+    <div id="scan_preview" class="photo-preview" hidden>
+      <img id="scan_img" alt="Fridge photo">
+    </div>
+  </div>
+  <button type="button" id="submit_scan" class="btn btn-primary" disabled>Analyze Now</button>
+  <p id="scan_status" class="muted" hidden></p>
+</div>
+
+<!-- Current Fridge Status -->
+{% if status and status.status != 'no_data' %}
+<div class="card fridge-status-card alert-{{ status.alert_level }}">
+  <h3>🚨 Current Status</h3>
+  <div class="status-grid">
+    <div class="status-item">
+      <span class="status-label">Last Scanned</span>
+      <span class="status-value">{{ status.last_scanned|truncate(19, True, '') }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">Total Items</span>
+      <span class="status-value">{{ status.total_items }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">🔴 Toss ASAP</span>
+      <span class="status-value danger">{{ status.unsafe_count }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">🟡 Risky</span>
+      <span class="status-value warning">{{ status.risky_count }}</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">🟢 Good</span>
+      <span class="status-value safe">{{ status.safe_count }}</span>
+    </div>
+  </div>
+
+  <!-- Unsafe Items - Immediate Action -->
+  {% if status.unsafe_items %}
+  <div class="items-section danger-section">
+    <h4>🔴 TOSS THESE NOW</h4>
+    {% for item in status.unsafe_items %}
+    <div class="item-card danger">
+      <div class="item-header">
+        <strong>{{ item.name }}</strong>
+        <span class="safety-badge danger">UNSAFE</span>
+      </div>
+      <div class="item-details">
+        <p><strong>{{ item.action|upper }}</strong></p>
+        {% if item.days_left is not none %}
+        <p class="muted">~{{ item.days_left }} days left</p>
+        {% endif %}
+        <p class="item-reason">{{ item.reason if item.reason else 'Spoilage detected' }}</p>
+        {% if item.visual_signs %}
+        <div class="visual-signs">
+          {% for sign in item.visual_signs[:3] %}
+          <span class="sign-badge">{{ sign }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Risky Items - Watch Closely -->
+  {% if status.risky_items %}
+  <div class="items-section warning-section">
+    <h4>🟡 RISKY - WATCH CLOSELY</h4>
+    {% for item in status.risky_items %}
+    <div class="item-card warning">
+      <div class="item-header">
+        <strong>{{ item.name }}</strong>
+        <span class="safety-badge warning">RISKY</span>
+      </div>
+      <div class="item-details">
+        <p><strong>{{ item.action|title }}</strong></p>
+        {% if item.days_left is not none %}
+        <p class="muted">~{{ item.days_left }} days left</p>
+        {% endif %}
+        {% if item.visual_signs %}
+        <div class="visual-signs">
+          {% for sign in item.visual_signs[:2] %}
+          <span class="sign-badge warning">{{ sign }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Safe Items -->
+  {% if status.safe_items and status.safe_count <= 5 %}
+  <div class="items-section safe-section">
+    <h4>🟢 SAFE TO EAT</h4>
+    <div class="safe-items-list">
+      {% for item in status.safe_items %}
+      <div class="item-mini safe">
+        <span>{{ item.name }}</span>
+        {% if item.days_left is not none %}
+        <span class="days-left">{{ item.days_left }}d</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% elif status.safe_items %}
+  <div class="items-section safe-section">
+    <h4>🟢 {{ status.safe_count }} items safe to eat</h4>
+    <p class="muted">All clear on the rest!</p>
+  </div>
+  {% endif %}
+
+</div>
+{% else %}
+<div class="card empty-state">
+  <p class="zone-hint" style="text-align: center;">📸 Take your first fridge photo to get started</p>
+</div>
+{% endif %}
+
+<!-- College Hacks Section -->
+<div class="card college-hacks">
+  <h3>💡 College Student Food Hacks</h3>
+  <div class="hacks-grid">
+    <div class="hack-card">
+      <h4>🥶 Extend Milk</h4>
+      <p>Store in back (coldest spot), not door. Adds 2-3 days.</p>
+    </div>
+    <div class="hack-card">
+      <h4>❄️ Save Meat</h4>
+      <p>Freeze TODAY if not eating in 2 days = free meal later.</p>
+    </div>
+    <div class="hack-card">
+      <h4>🍊 Keep Produce</h4>
+      <p>Separate ethylene producers (apples, tomatoes) from others.</p>
+    </div>
+    <div class="hack-card">
+      <h4>🍲 Leftovers Rule</h4>
+      <p>Label with date, toss after 3 days. Freezer = 3 months.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+.fridge-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.fridge-header h2,
+.fridge-header .zone-hint {
+  color: white;
+}
+
+.fridge-upload {
+  padding: 40px 20px;
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  text-align: center;
+  background: var(--upload-bg, #f9f9f9);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fridge-upload:hover {
+  border-color: #667eea;
+  background: var(--upload-hover, #f0f0f0);
+}
+
+.fridge-upload .upload-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.scan-preview {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scan-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.fridge-status-card {
+  border-left: 4px solid #667eea;
+}
+
+.fridge-status-card.alert-critical {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.fridge-status-card.alert-warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.fridge-status-card.alert-good {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: var(--item-bg, #f9f9f9);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted, #999);
+  font-weight: 600;
+}
+
+.status-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.status-value.danger {
+  color: #ef4444;
+}
+
+.status-value.warning {
+  color: #f59e0b;
+}
+
+.status-value.safe {
+  color: #10b981;
+}
+
+.items-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+}
+
+.items-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.danger-section h4 {
+  color: #ef4444;
+}
+
+.warning-section h4 {
+  color: #f59e0b;
+}
+
+.safe-section h4 {
+  color: #10b981;
+}
+
+.item-card {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.item-card.danger {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.item-card.warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.item-card.safe {
+  border-left-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.safety-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.safety-badge.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.safety-badge.warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.safety-badge.safe {
+  background: #10b981;
+  color: white;
+}
+
+.item-details {
+  font-size: 13px;
+}
+
+.item-details p {
+  margin: 4px 0;
+}
+
+.item-reason {
+  color: var(--text-muted, #999);
+  font-size: 12px;
+}
+
+.visual-signs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sign-badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 6px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+}
+
+.sign-badge.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #92400e;
+}
+
+.safe-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.item-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.days-left {
+  font-size: 10px;
+  color: var(--text-muted, #999);
+}
+
+.college-hacks {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-left: 4px solid #10b981;
+}
+
+.hacks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hack-card {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.hack-card h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hack-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted, #999);
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.btn-primary:active {
+  background: #5568d3;
+}
+
+.btn-primary:disabled {
+  background: var(--text-muted, #999);
+  cursor: not-allowed;
+}
+
+.photo-preview {
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.photo-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .hack-card {
+    background: var(--item-bg, #1a1a1a);
+  }
+}
+</style>
+
+<script>
+const fridgePhoto = document.getElementById('fridge_photo');
+const scanPreview = document.getElementById('scan_preview');
+const scanImg = document.getElementById('scan_img');
+const submitBtn = document.getElementById('submit_scan');
+const scanStatus = document.getElementById('scan_status');
+
+fridgePhoto.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    scanImg.src = event.target.result;
+    scanPreview.hidden = false;
+    submitBtn.disabled = false;
+  };
+  reader.readAsDataURL(file);
+});
+
+submitBtn.addEventListener('click', async () => {
+  if (!fridgePhoto.files[0]) return;
+
+  const formData = new FormData();
+  formData.append('file', fridgePhoto.files[0]);
+
+  scanStatus.textContent = '🔄 Analyzing fridge...';
+  scanStatus.hidden = false;
+  submitBtn.disabled = true;
+
+  try {
+    const resp = await fetch('/api/fridge/analyze-photo', {
+      method: 'POST',
+      body: formData
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      scanStatus.textContent = '❌ ' + result.error;
+    } else {
+      scanStatus.textContent = '✓ Analysis complete! Reloading...';
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch (err) {
+    scanStatus.textContent = '❌ Error: ' + err.message;
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+{% endblock %}

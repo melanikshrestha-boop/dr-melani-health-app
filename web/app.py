@@ -20,7 +20,7 @@ from markupsafe import Markup, escape
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced, apple_health, smart_health, nutrition_ai
+from health import init_db, nutrition, screening, grocery, workouts, progress_photos, food_scanner, gym_plans, gym_session, vitals, symptoms, jarvis_chat, product_scanner, autopilot, cycle, meal_presets, meal_planner, supplements, derm_hygiene, bhagavad_gita, wearables, weekly_insights, appointments, lab_providers, whoop_enhanced, apple_health, smart_health, nutrition_ai, fridge_safety
 from health.lab_import import import_health_pdf, list_lab_documents
 from health.lab_sections import build_lab_sections, current_section_status
 from health import profile as user_profile
@@ -2087,6 +2087,51 @@ def nutrition_logging_page(request: Request):
         "display_date": display_date,
         "daily": daily,
         "insights": insights,
+        "app_build": app_build(),
+    })
+
+
+@app.post("/api/fridge/analyze-photo")
+async def analyze_fridge_photo(file: UploadFile = File(...)):
+    """Analyze fridge photo for spoilage risks."""
+    contents = await file.read()
+    result = fridge_safety.analyze_fridge_photo(contents)
+
+    if "error" in result:
+        return JSONResponse(result, status_code=400)
+
+    logged = fridge_safety.log_fridge_scan(result.get("items", []), file.filename)
+    return JSONResponse({
+        "scan": logged,
+        "analysis": result
+    })
+
+
+@app.get("/api/fridge/status")
+def get_fridge_status():
+    """Get current fridge status and alerts."""
+    return JSONResponse(fridge_safety.get_fridge_status())
+
+
+@app.get("/api/fridge/alerts")
+def get_fridge_alerts():
+    """Get food safety alerts."""
+    alerts = fridge_safety.get_safety_alerts()
+    return JSONResponse({
+        "alert_count": len(alerts),
+        "alerts": alerts
+    })
+
+
+@app.get("/fridge-check", response_class=HTMLResponse)
+def fridge_check_page(request: Request):
+    """Fridge food safety checker page."""
+    status = fridge_safety.get_fridge_status()
+
+    return templates.TemplateResponse(request, "fridge_check.html", {
+        "nav": "fridge",
+        "display_date": datetime.now().strftime("%a, %b %d, %Y"),
+        "status": status,
         "app_build": app_build(),
     })
 
