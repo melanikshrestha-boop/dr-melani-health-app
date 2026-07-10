@@ -257,8 +257,12 @@ class HealthAnalytics:
     @staticmethod
     def get_recovery_predictions(next_days: int = 7) -> Dict[str, Any]:
         """Predict recovery based on current trends."""
-        recent_recovery = whoop_enhanced.get_whoop_trends("recovery", 14)
-        recent_strain = whoop_enhanced.get_whoop_trends("strain", 14)
+        try:
+            recent_recovery = whoop_enhanced.get_whoop_trends("recovery", 14)
+            recent_strain = whoop_enhanced.get_whoop_trends("strain", 14)
+        except Exception:
+            recent_recovery = {"trend": "stable", "average": 0}
+            recent_strain = {"trend": "stable", "average": 0}
 
         prediction = {
             "days_ahead": next_days,
@@ -321,28 +325,35 @@ class HealthAnalytics:
     @staticmethod
     def _generate_summary(days: int) -> str:
         """Generate text summary of health status."""
-        with get_conn() as conn:
-            steps_data = conn.execute(
-                "SELECT COUNT(*) as days, AVG(CAST(step_count AS REAL)) as avg_steps FROM apple_steps WHERE date >= date('now', ?)",
-                (f"-{days} days",)
-            ).fetchone()
-
-            recovery_data = conn.execute(
-                "SELECT AVG(CAST(recovery_score AS REAL)) as avg_recovery FROM whoop_recovery WHERE date >= date('now', ?)",
-                (f"-{days} days",)
-            ).fetchone()
-
         summary = []
 
-        if steps_data and steps_data["avg_steps"]:
-            avg_steps = int(steps_data["avg_steps"])
-            summary.append(f"Averaging {avg_steps} steps/day over {steps_data['days']} days")
+        try:
+            with get_conn() as conn:
+                steps_data = conn.execute(
+                    "SELECT COUNT(*) as days, AVG(CAST(step_count AS REAL)) as avg_steps FROM apple_steps WHERE date >= date('now', ?)",
+                    (f"-{days} days",)
+                ).fetchone()
 
-        if recovery_data and recovery_data["avg_recovery"]:
-            avg_recovery = int(recovery_data["avg_recovery"])
-            if avg_recovery < 40:
-                summary.append(f"Recovery is {avg_recovery}% - body needs rest")
-            elif avg_recovery > 70:
-                summary.append(f"Recovery is {avg_recovery}% - great to push harder")
+                if steps_data and steps_data["avg_steps"]:
+                    avg_steps = int(steps_data["avg_steps"])
+                    summary.append(f"Averaging {avg_steps} steps/day over {steps_data['days']} days")
+        except Exception:
+            pass
+
+        try:
+            with get_conn() as conn:
+                recovery_data = conn.execute(
+                    "SELECT AVG(CAST(recovery_score AS REAL)) as avg_recovery FROM whoop_recovery WHERE date >= date('now', ?)",
+                    (f"-{days} days",)
+                ).fetchone()
+
+                if recovery_data and recovery_data["avg_recovery"]:
+                    avg_recovery = int(recovery_data["avg_recovery"])
+                    if avg_recovery < 40:
+                        summary.append(f"Recovery is {avg_recovery}% - body needs rest")
+                    elif avg_recovery > 70:
+                        summary.append(f"Recovery is {avg_recovery}% - great to push harder")
+        except Exception:
+            pass
 
         return ". ".join(summary) if summary else "Insufficient data for summary"

@@ -351,8 +351,16 @@ def correlate_nutrition_with_activity(date_str: str) -> Dict[str, Any]:
     from . import apple_health, whoop_enhanced
 
     daily_nutrition = get_daily_nutrition(date_str)
-    apple_data = apple_health.get_apple_health_for_date(date_str)
-    whoop_data = whoop_enhanced.get_whoop_for_date(date_str)
+
+    try:
+        apple_data = apple_health.get_apple_health_for_date(date_str)
+    except Exception:
+        apple_data = {}
+
+    try:
+        whoop_data = whoop_enhanced.get_whoop_for_date(date_str)
+    except Exception:
+        whoop_data = {}
 
     cals_consumed = daily_nutrition["totals"]["calories"]
     cals_burned = apple_data.get("calories", {}).get("calories", 0) if apple_data.get("calories") else 0
