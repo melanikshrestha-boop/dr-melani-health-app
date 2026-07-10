@@ -27,23 +27,30 @@ class HealthAnalytics:
 
         # Apple Watch metrics (40 points)
         apple_score = 0
-        if apple.get("heart_rate"):
-            hr = apple["heart_rate"].get("avg_bpm")
-            if 60 <= hr <= 100:
+
+        # Heart rate check with null safety
+        heart_rate_data = apple.get("heart_rate")
+        if heart_rate_data and isinstance(heart_rate_data, dict):
+            hr = heart_rate_data.get("avg_bpm")
+            if hr is not None and 60 <= hr <= 100:
                 apple_score += 15
-            elif 50 <= hr <= 110:
+            elif hr is not None and 50 <= hr <= 110:
                 apple_score += 10
 
-        if apple.get("steps"):
-            steps = apple["steps"].get("step_count", 0)
+        # Steps check
+        steps_data = apple.get("steps")
+        if steps_data and isinstance(steps_data, dict):
+            steps = steps_data.get("step_count", 0) or 0
             if steps >= 8000:
                 apple_score += 15
             elif steps >= 5000:
                 apple_score += 10
 
-        if apple.get("blood_oxygen"):
-            spo2 = apple["blood_oxygen"].get("avg_spo2", 98)
-            if spo2 >= 95:
+        # Blood oxygen check
+        spo2_data = apple.get("blood_oxygen")
+        if spo2_data and isinstance(spo2_data, dict):
+            spo2 = spo2_data.get("avg_spo2")
+            if spo2 is not None and spo2 >= 95:
                 apple_score += 10
 
         breakdown["apple_watch"] = apple_score
@@ -103,28 +110,38 @@ class HealthAnalytics:
     @staticmethod
     def find_correlations(days: int = 30) -> Dict[str, Any]:
         """Find correlations between different health metrics."""
+        from datetime import datetime, timedelta
+
+        cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+
+        # SQLite doesn't support FULL OUTER JOIN, so get dates from each source separately
         with get_conn() as conn:
-            # Get dates with multiple data sources
-            dates = conn.execute(
-                """
-                SELECT DISTINCT
-                    COALESCE(a.date, w.date, l.date) as date
-                FROM apple_heart_rate a
-                FULL OUTER JOIN whoop_recovery w ON a.date = w.date
-                FULL OUTER JOIN lab_draws l ON a.date = l.collected
-                WHERE a.date >= date('now', ?) OR w.date >= date('now', ?) OR l.date >= date('now', ?)
-                LIMIT ?
-                """,
-                (f"-{days} days", f"-{days} days", f"-{days} days", days)
+            # Collect unique dates from all data sources
+            date_set = set()
+
+            # Get Apple Health dates
+            apple_dates = conn.execute(
+                "SELECT DISTINCT date FROM apple_heart_rate WHERE date >= ? LIMIT ?",
+                (cutoff_date, days)
             ).fetchall()
+            date_set.update(row["date"] for row in apple_dates if row["date"])
+
+            # Get WHOOP dates
+            whoop_dates = conn.execute(
+                "SELECT DISTINCT date FROM whoop_recovery WHERE date >= ? LIMIT ?",
+                (cutoff_date, days)
+            ).fetchall()
+            date_set.update(row["date"] for row in whoop_dates if row["date"])
+
+            # Get Lab dates
+            lab_dates = conn.execute(
+                "SELECT DISTINCT collected FROM lab_draws WHERE collected >= ? LIMIT ?",
+                (cutoff_date, days)
+            ).fetchall()
+            date_set.update(row["collected"] for row in lab_dates if row["collected"])
 
             correlations = []
-
-            for row in dates:
-                date_str = row["date"] if row["date"] else None
-                if not date_str:
-                    continue
-
+            for date_str in sorted(date_set, reverse=True)[:days]:
                 apple = apple_health.get_apple_health_for_date(date_str)
                 whoop = whoop_enhanced.get_whoop_for_date(date_str)
 
@@ -172,7 +189,8 @@ class HealthAnalytics:
                 (f"-{days} days", days)
             ).fetchall()
 
-            hr_values = [r["avg_bpm"] for r in recent_hr if r["avg_bpm"]]
+            # Filter out None values but preserve 0 (which is valid if it occurred)
+            hr_values = [r["avg_bpm"] for r in recent_hr if r["avg_bpm"] is not None]
 
             if hr_values:
                 avg_hr = sum(hr_values) / len(hr_values)

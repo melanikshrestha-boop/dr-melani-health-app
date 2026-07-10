@@ -9,15 +9,7 @@ from typing import Optional, Dict, Any, List
 from pathlib import Path
 
 from .db import get_conn
-
-
-def get_claude_client():
-    """Get Anthropic Claude client."""
-    try:
-        from anthropic import Anthropic
-        return Anthropic()
-    except ImportError:
-        return None
+from .claude_utils import get_claude_client, extract_json_from_response, safe_api_response_text
 
 
 def _mock_fridge_analysis() -> Dict[str, Any]:
@@ -191,16 +183,17 @@ Format as JSON:
             ],
         )
 
-        response_text = response.content[0].text
-
-        import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            fridge_data = json.loads(json_match.group())
-            return fridge_data
-        else:
-            # Fall back to mock if parsing fails
+        # Safely extract response text
+        response_text = safe_api_response_text(response)
+        if not response_text:
             return _mock_fridge_analysis()
+
+        # Extract and parse JSON
+        fridge_data = extract_json_from_response(response_text)
+        if not fridge_data:
+            return _mock_fridge_analysis()
+
+        return fridge_data
 
     except Exception as e:
         # On any error, use mock data instead

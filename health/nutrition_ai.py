@@ -10,15 +10,7 @@ from pathlib import Path
 
 from .db import get_conn
 from .paths import HEALTH_DATA
-
-
-def get_claude_client():
-    """Get Anthropic Claude client."""
-    try:
-        from anthropic import Anthropic
-        return Anthropic()
-    except ImportError:
-        return None
+from .claude_utils import get_claude_client, extract_json_from_response, safe_api_response_text
 
 
 def analyze_food_photo(image_bytes: bytes) -> Dict[str, Any]:
@@ -28,7 +20,10 @@ def analyze_food_photo(image_bytes: bytes) -> Dict[str, Any]:
         return {"error": "Claude API not configured"}
 
     # Convert to base64
-    image_b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+    try:
+        image_b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
+    except (TypeError, ValueError) as e:
+        return {"error": f"Invalid image data: {str(e)}"}
 
     prompt = """Analyze this food image and provide:
 
@@ -88,18 +83,18 @@ Format as JSON with these exact keys:
             ],
         )
 
-        # Parse response
-        response_text = response.content[0].text
+        # Safely extract response text
+        response_text = safe_api_response_text(response)
+        if not response_text:
+            return {"error": "Empty response from Claude API"}
 
-        # Extract JSON
-        import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            nutrition_data = json.loads(json_match.group())
-            nutrition_data["raw_response"] = response_text
-            return nutrition_data
-        else:
+        # Extract and parse JSON
+        nutrition_data = extract_json_from_response(response_text)
+        if not nutrition_data:
             return {"error": "Could not parse nutrition data", "raw": response_text}
+
+        nutrition_data["raw_response"] = response_text
+        return nutrition_data
 
     except Exception as e:
         return {"error": f"Claude API error: {str(e)}"}
@@ -160,16 +155,17 @@ Format as JSON:
             ],
         )
 
-        response_text = response.content[0].text
+        # Safely extract response text
+        response_text = safe_api_response_text(response)
+        if not response_text:
+            return {"error": "Empty response from Claude API"}
 
-        # Extract JSON
-        import re
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            nutrition_data = json.loads(json_match.group())
-            return nutrition_data
-        else:
-            return {"error": "Could not parse nutrition data"}
+        # Extract and parse JSON
+        nutrition_data = extract_json_from_response(response_text)
+        if not nutrition_data:
+            return {"error": "Could not parse nutrition data", "raw": response_text}
+
+        return nutrition_data
 
     except Exception as e:
         return {"error": f"Claude API error: {str(e)}"}
@@ -242,19 +238,33 @@ def get_daily_nutrition(date_str: str) -> Dict[str, Any]:
 
         for meal in meals:
             meal_dict = dict(meal)
-            totals["calories"] += meal_dict.get("calories", 0)
-            totals["protein_g"] += meal_dict.get("protein_g", 0)
-            totals["carbs_g"] += meal_dict.get("carbs_g", 0)
-            totals["fat_g"] += meal_dict.get("fat_g", 0)
-            totals["fiber_g"] += meal_dict.get("fiber_g", 0)
-            totals["sodium_mg"] += meal_dict.get("sodium_mg", 0)
+
+            # Extract nutrition once to avoid repeated lookups
+            nutrition = {
+                "calories": meal_dict.get("calories", 0),
+                "protein_g": meal_dict.get("protein_g", 0),
+                "carbs_g": meal_dict.get("carbs_g", 0),
+                "fat_g": meal_dict.get("fat_g", 0),
+                "fiber_g": meal_dict.get("fiber_g", 0),
+                "sodium_mg": meal_dict.get("sodium_mg", 0),
+            }
+
+            # Add to totals
+            for key, value in nutrition.items():
+                totals[key] += value
+
+            # Parse items safely
+            try:
+                items = json.loads(meal_dict.get("items", "[]"))
+            except (json.JSONDecodeError, TypeError):
+                items = []
 
             meal_list.append({
                 "id": meal_dict["id"],
                 "meal_type": meal_dict["meal_type"],
-                "calories": meal_dict.get("calories", 0),
+                "calories": nutrition["calories"],
                 "quality": meal_dict.get("quality", ""),
-                "items": json.loads(meal_dict.get("items", "[]")),
+                "items": items,
                 "notes": meal_dict.get("notes", "")
             })
 
