@@ -2073,17 +2073,18 @@ def get_nutrition_vs_activity(date_str: str = None):
     return JSONResponse(nutrition_ai.correlate_nutrition_with_activity(date_str))
 
 
-@app.get("/meals", response_class=HTMLResponse)
-def meals_page(request: Request):
-    """Nutrition logging page."""
-    today_str = str(today())
+@app.get("/nutrition-ai", response_class=HTMLResponse)
+def nutrition_logging_page(request: Request):
+    """AI-powered nutrition logging page."""
+    today_str = today()
     daily = nutrition_ai.get_daily_nutrition(today_str)
     insights = nutrition_ai.get_nutrition_insights(today_str)
 
-    return templates.TemplateResponse("nutrition_logging.html", {
-        "request": request,
+    display_date = datetime.strptime(today_str, "%Y-%m-%d").strftime("%a, %b %d, %Y")
+
+    return templates.TemplateResponse(request, "nutrition_logging.html", {
         "nav": "meals",
-        "display_date": today().strftime("%a, %b %d, %Y"),
+        "display_date": display_date,
         "daily": daily,
         "insights": insights,
         "app_build": app_build(),
