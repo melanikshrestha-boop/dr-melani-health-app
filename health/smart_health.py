@@ -18,8 +18,16 @@ class HealthAnalytics:
         if not date_str:
             date_str = date.today().isoformat()
 
-        apple = apple_health.get_apple_health_for_date(date_str)
-        whoop = whoop_enhanced.get_whoop_for_date(date_str)
+        # Gracefully handle missing tables or data
+        try:
+            apple = apple_health.get_apple_health_for_date(date_str)
+        except Exception:
+            apple = {}
+
+        try:
+            whoop = whoop_enhanced.get_whoop_for_date(date_str)
+        except Exception:
+            whoop = {}
 
         score = 0
         max_score = 100
@@ -113,34 +121,43 @@ class HealthAnalytics:
         from datetime import datetime, timedelta
 
         cutoff_date = (datetime.now() - timedelta(days=days)).isoformat()
+        correlations = []
 
         # SQLite doesn't support FULL OUTER JOIN, so get dates from each source separately
-        with get_conn() as conn:
-            # Collect unique dates from all data sources
+        try:
             date_set = set()
 
-            # Get Apple Health dates
-            apple_dates = conn.execute(
-                "SELECT DISTINCT date FROM apple_heart_rate WHERE date >= ? LIMIT ?",
-                (cutoff_date, days)
-            ).fetchall()
-            date_set.update(row["date"] for row in apple_dates if row["date"])
+            with get_conn() as conn:
+                # Get Apple Health dates (handle missing table)
+                try:
+                    apple_dates = conn.execute(
+                        "SELECT DISTINCT date FROM apple_heart_rate WHERE date >= ? LIMIT ?",
+                        (cutoff_date, days)
+                    ).fetchall()
+                    date_set.update(row["date"] for row in apple_dates if row["date"])
+                except Exception:
+                    pass
 
-            # Get WHOOP dates
-            whoop_dates = conn.execute(
-                "SELECT DISTINCT date FROM whoop_recovery WHERE date >= ? LIMIT ?",
-                (cutoff_date, days)
-            ).fetchall()
-            date_set.update(row["date"] for row in whoop_dates if row["date"])
+                # Get WHOOP dates (handle missing table)
+                try:
+                    whoop_dates = conn.execute(
+                        "SELECT DISTINCT date FROM whoop_recovery WHERE date >= ? LIMIT ?",
+                        (cutoff_date, days)
+                    ).fetchall()
+                    date_set.update(row["date"] for row in whoop_dates if row["date"])
+                except Exception:
+                    pass
 
-            # Get Lab dates
-            lab_dates = conn.execute(
-                "SELECT DISTINCT collected FROM lab_draws WHERE collected >= ? LIMIT ?",
-                (cutoff_date, days)
-            ).fetchall()
-            date_set.update(row["collected"] for row in lab_dates if row["collected"])
+                # Get Lab dates (handle missing table)
+                try:
+                    lab_dates = conn.execute(
+                        "SELECT DISTINCT collected FROM lab_draws WHERE collected >= ? LIMIT ?",
+                        (cutoff_date, days)
+                    ).fetchall()
+                    date_set.update(row["collected"] for row in lab_dates if row["collected"])
+                except Exception:
+                    pass
 
-            correlations = []
             for date_str in sorted(date_set, reverse=True)[:days]:
                 apple = apple_health.get_apple_health_for_date(date_str)
                 whoop = whoop_enhanced.get_whoop_for_date(date_str)
@@ -168,6 +185,9 @@ class HealthAnalytics:
                             "severity": "positive"
                         })
 
+        except Exception:
+            pass
+
         return {"correlations": correlations, "period_days": days}
 
     @staticmethod
@@ -176,54 +196,61 @@ class HealthAnalytics:
         alerts = []
 
         # Check recent heart rate for anomalies
-        with get_conn() as conn:
-            recent_hr = conn.execute(
-                """
-                SELECT date, AVG(CAST(bpm AS REAL)) as avg_bpm
-                FROM apple_heart_rate
-                WHERE date >= date('now', ?)
-                GROUP BY date
-                ORDER BY date DESC
-                LIMIT ?
-                """,
-                (f"-{days} days", days)
-            ).fetchall()
+        try:
+            with get_conn() as conn:
+                recent_hr = conn.execute(
+                    """
+                    SELECT date, AVG(CAST(bpm AS REAL)) as avg_bpm
+                    FROM apple_heart_rate
+                    WHERE date >= date('now', ?)
+                    GROUP BY date
+                    ORDER BY date DESC
+                    LIMIT ?
+                    """,
+                    (f"-{days} days", days)
+                ).fetchall()
 
-            # Filter out None values but preserve 0 (which is valid if it occurred)
-            hr_values = [r["avg_bpm"] for r in recent_hr if r["avg_bpm"] is not None]
+                # Filter out None values but preserve 0 (which is valid if it occurred)
+                hr_values = [r["avg_bpm"] for r in recent_hr if r["avg_bpm"] is not None]
 
-            if hr_values:
-                avg_hr = sum(hr_values) / len(hr_values)
+                if hr_values:
+                    avg_hr = sum(hr_values) / len(hr_values)
 
-                for r in recent_hr:
-                    if r["avg_bpm"] > avg_hr * 1.2:
-                        alerts.append({
-                            "date": r["date"],
-                            "type": "elevated_heart_rate",
-                            "value": f"{r['avg_bpm']:.0f} bpm",
-                            "message": f"Heart rate 20% above your average ({avg_hr:.0f} bpm)",
-                            "severity": "warning"
-                        })
+                    for r in recent_hr:
+                        if r["avg_bpm"] > avg_hr * 1.2:
+                            alerts.append({
+                                "date": r["date"],
+                                "type": "elevated_heart_rate",
+                                "value": f"{r['avg_bpm']:.0f} bpm",
+                                "message": f"Heart rate 20% above your average ({avg_hr:.0f} bpm)",
+                                "severity": "warning"
+                            })
+        except Exception:
+            pass  # Tables may not exist
 
-            # Check for low sleep
-            low_sleep = conn.execute(
-                """
-                SELECT date, duration_hours
-                FROM apple_sleep
-                WHERE date >= date('now', ?) AND duration_hours < 6
-                ORDER BY date DESC
-                """,
-                (f"-{days} days",)
-            ).fetchall()
+        # Check for low sleep
+        try:
+            with get_conn() as conn:
+                low_sleep = conn.execute(
+                    """
+                    SELECT date, duration_hours
+                    FROM apple_sleep
+                    WHERE date >= date('now', ?) AND duration_hours < 6
+                    ORDER BY date DESC
+                    """,
+                    (f"-{days} days",)
+                ).fetchall()
 
-            for s in low_sleep:
-                alerts.append({
-                    "date": s["date"],
-                    "type": "insufficient_sleep",
-                    "value": f"{s['duration_hours']:.1f} hours",
-                    "message": "Less than recommended 7-9 hours of sleep",
-                    "severity": "warning"
-                })
+                for s in low_sleep:
+                    alerts.append({
+                        "date": s["date"],
+                        "type": "insufficient_sleep",
+                        "value": f"{s['duration_hours']:.1f} hours",
+                        "message": "Less than recommended 7-9 hours of sleep",
+                        "severity": "warning"
+                    })
+        except Exception:
+            pass  # Table may not exist
 
         return alerts
 
