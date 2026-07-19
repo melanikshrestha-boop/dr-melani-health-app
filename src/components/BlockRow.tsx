@@ -4,12 +4,17 @@ import type { Block } from "../types";
 type Props = {
   block: Block;
   index: number;
-  listIndex?: number; // for numbered lists
+  listIndex?: number;
   autoFocus?: boolean;
+  linkedTitle?: string;
   onChange: (id: string, patch: Partial<Block>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>, block: Block, index: number) => void;
   onFocus: (id: string) => void;
   onPlus: (index: number) => void;
+  onOpenPage?: (pageId: string) => void;
+  onDragStart: (index: number) => void;
+  onDragOver: (index: number) => void;
+  onDrop: (index: number) => void;
 };
 
 function autoGrow(el: HTMLTextAreaElement | null) {
@@ -23,17 +28,23 @@ export function BlockRow({
   index,
   listIndex,
   autoFocus,
+  linkedTitle,
   onChange,
   onKeyDown,
   onFocus,
   onPlus,
+  onOpenPage,
+  onDragStart,
+  onDragOver,
+  onDrop,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const empty = !block.text;
+  const indent = Math.min(Math.max(block.indent || 0, 0), 4);
 
   useEffect(() => {
     autoGrow(ref.current);
-  }, [block.text, block.type]);
+  }, [block.text, block.type, indent]);
 
   useEffect(() => {
     if (autoFocus && ref.current) {
@@ -43,14 +54,72 @@ export function BlockRow({
     }
   }, [autoFocus]);
 
-  if (block.type === "divider") {
+  if (block.type === "page_link" && block.pageId) {
     return (
-      <div className="block-row">
-        <div className="block-gutter">
-          <button type="button" className="block-plus" onClick={() => onPlus(index)} aria-label="Add block">
+      <div
+        className="block-row"
+        style={{ paddingLeft: 42 + indent * 24 }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver(index);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDrop(index);
+        }}
+      >
+        <div className="block-gutter" style={{ left: indent * 24 }}>
+          <button type="button" className="block-plus" onClick={() => onPlus(index)}>
             +
           </button>
-          <button type="button" className="block-handle" aria-label="Drag">
+          <button
+            type="button"
+            className="block-handle"
+            draggable
+            onDragStart={() => onDragStart(index)}
+            aria-label="Drag"
+          >
+            ⋮⋮
+          </button>
+        </div>
+        <button
+          type="button"
+          className="block-page-link"
+          onClick={() => onOpenPage?.(block.pageId!)}
+        >
+          <span className="block-page-link-icon">📄</span>
+          <span className="block-page-link-title">
+            {linkedTitle || block.text || "Untitled"}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
+  if (block.type === "divider") {
+    return (
+      <div
+        className="block-row"
+        style={{ paddingLeft: 42 + indent * 24 }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDragOver(index);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDrop(index);
+        }}
+      >
+        <div className="block-gutter" style={{ left: indent * 24 }}>
+          <button type="button" className="block-plus" onClick={() => onPlus(index)}>
+            +
+          </button>
+          <button
+            type="button"
+            className="block-handle"
+            draggable
+            onDragStart={() => onDragStart(index)}
+          >
             ⋮⋮
           </button>
         </div>
@@ -111,7 +180,6 @@ export function BlockRow({
           type="button"
           className={`block-todo-check${block.checked ? " is-checked" : ""}`}
           onClick={() => onChange(block.id, { checked: !block.checked })}
-          aria-label={block.checked ? "Uncheck" : "Check"}
         >
           {block.checked ? "✓" : ""}
         </button>
@@ -142,12 +210,29 @@ export function BlockRow({
   }
 
   return (
-    <div className={`block-row${empty ? " is-empty" : ""}`}>
-      <div className="block-gutter">
-        <button type="button" className="block-plus" onClick={() => onPlus(index)} aria-label="Add block">
+    <div
+      className={`block-row${empty ? " is-empty" : ""}`}
+      style={{ paddingLeft: 42 + indent * 24 }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        onDragOver(index);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop(index);
+      }}
+    >
+      <div className="block-gutter" style={{ left: indent * 24 }}>
+        <button type="button" className="block-plus" onClick={() => onPlus(index)}>
           +
         </button>
-        <button type="button" className="block-handle" aria-label="Drag">
+        <button
+          type="button"
+          className="block-handle"
+          draggable
+          onDragStart={() => onDragStart(index)}
+          aria-label="Drag"
+        >
           ⋮⋮
         </button>
       </div>

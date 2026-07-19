@@ -2,7 +2,7 @@ import type { BlockType } from "./types";
 
 export type SlashCommand = {
   id: string;
-  type: BlockType;
+  type: BlockType | "new_page" | "new_database";
   name: string;
   description: string;
   icon: string;
@@ -17,6 +17,22 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     description: "Just start writing with plain text.",
     icon: "T",
     keywords: ["text", "paragraph", "plain"],
+  },
+  {
+    id: "page",
+    type: "new_page",
+    name: "Page",
+    description: "Embed a sub-page inside this page.",
+    icon: "📄",
+    keywords: ["page", "subpage", "nested"],
+  },
+  {
+    id: "database",
+    type: "new_database",
+    name: "Table — Database",
+    description: "Create a full-page database table.",
+    icon: "▦",
+    keywords: ["database", "table", "db", "board"],
   },
   {
     id: "h1",

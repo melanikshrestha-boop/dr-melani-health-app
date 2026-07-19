@@ -1,91 +1,84 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Page, Workspace } from "./types";
+import type { Workspace } from "./types";
+import { forceImportDrMelani, loadWorkspace, saveWorkspace } from "./storage";
 import {
-  createPage,
-  defaultWorkspace,
-  forceImportDrMelani,
-  loadWorkspace,
-  saveWorkspace,
-} from "./storage";
+  activePages,
+  addChildPage,
+  addDatabasePage,
+  breadcrumbTrail,
+  createSubpageFromBlock,
+  duplicatePage,
+  emptyTrash,
+  restorePage,
+  setActivePage,
+  softDeletePage,
+  toggleFavorite,
+  updatePageInWs,
+} from "./workspaceOps";
 import { Sidebar } from "./components/Sidebar";
 import { PageEditor } from "./components/PageEditor";
+import { SearchModal } from "./components/SearchModal";
 import "./notion.css";
 
 export default function App() {
   const [ws, setWs] = useState<Workspace>(() => {
-    if (typeof window === "undefined") return defaultWorkspace();
+    if (typeof window === "undefined") return forceImportDrMelani();
     return loadWorkspace();
   });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
-  // Auto-save whenever workspace changes
   useEffect(() => {
     saveWorkspace(ws);
   }, [ws]);
 
+  // Global shortcuts — like Notion
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if (meta && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+      if (meta && e.key.toLowerCase() === "n" && !e.shiftKey) {
+        e.preventDefault();
+        setWs((prev) => addChildPage(prev, prev.activePageId));
+      }
+      if (meta && e.shiftKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setWs((prev) => addChildPage(prev, null));
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const live = useMemo(() => activePages(ws), [ws]);
   const activePage = useMemo(
-    () => ws.pages.find((p) => p.id === ws.activePageId) || ws.pages[0],
-    [ws]
+    () => live.find((p) => p.id === ws.activePageId) || live[0],
+    [ws, live]
   );
 
   const childPages = useMemo(
-    () => (activePage ? ws.pages.filter((p) => p.parentId === activePage.id) : []),
+    () =>
+      activePage
+        ? live.filter((p) => p.parentId === activePage.id)
+        : [],
+    [live, activePage]
+  );
+
+  const crumbs = useMemo(
+    () => (activePage ? breadcrumbTrail(ws, activePage.id) : []),
     [ws, activePage]
   );
 
-  function setActive(id: string) {
-    setWs((prev) => ({ ...prev, activePageId: id }));
-  }
-
-  function updatePage(page: Page) {
-    setWs((prev) => ({
-      ...prev,
-      pages: prev.pages.map((p) => (p.id === page.id ? page : p)),
-    }));
-  }
-
-  function addPage() {
-    // New page under current page if it has a parent hub, else top-level
-    const parentId = activePage?.parentId === null ? activePage.id : null;
-    // Prefer top-level new pages from Home; under hubs nest children
-    const nestUnder =
-      activePage &&
-      ["pg-fitness", "pg-hygiene", "pg-my-data"].includes(activePage.id)
-        ? activePage.id
-        : null;
-    const page = createPage(nestUnder ?? parentId);
-    setWs((prev) => ({
-      ...prev,
-      pages: [...prev.pages, page],
-      activePageId: page.id,
-    }));
-  }
-
-  function deletePage(id: string) {
-    setWs((prev) => {
-      if (prev.pages.length <= 1) return prev;
-      // also drop children of deleted page
-      const drop = new Set<string>([id]);
-      prev.pages.forEach((p) => {
-        if (p.parentId && drop.has(p.parentId)) drop.add(p.id);
-      });
-      // second pass for deeper nests
-      prev.pages.forEach((p) => {
-        if (p.parentId && drop.has(p.parentId)) drop.add(p.id);
-      });
-      const pages = prev.pages.filter((p) => !drop.has(p.id));
-      const activePageId = drop.has(prev.activePageId)
-        ? pages[0].id
-        : prev.activePageId;
-      return { ...prev, pages, activePageId };
-    });
-  }
-
-  function toggleSidebar() {
-    setWs((prev) => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
-  }
-
-  function reimport() {
-    setWs(forceImportDrMelani());
+  function openPage(id: string) {
+    setWs((prev) => setActivePage(prev, id));
+    setMoreOpen(false);
   }
 
   if (!activePage) return null;
@@ -102,63 +95,159 @@ export default function App() {
     <div className="app">
       <Sidebar
         workspaceName={ws.name}
-        pages={ws.pages}
+        pages={live}
+        allPages={ws.pages}
+        recents={ws.recents || []}
         activePageId={activePage.id}
         open={ws.sidebarOpen}
-        onSelect={setActive}
-        onNewPage={addPage}
-        onDeletePage={deletePage}
+        onSelect={openPage}
+        onNewPage={() => setWs((p) => addChildPage(p, p.activePageId))}
+        onNewTopPage={() => setWs((p) => addChildPage(p, null))}
+        onNewDatabase={() => setWs((p) => addDatabasePage(p, p.activePageId))}
+        onDeletePage={(id) => setWs((p) => softDeletePage(p, id))}
+        onToggleFavorite={(id) => setWs((p) => toggleFavorite(p, id))}
+        onOpenSearch={() => setSearchOpen(true)}
         onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
-        onReimport={reimport}
+        onReimport={() => {
+          if (
+            window.confirm(
+              "Re-import full Dr. Melani export? Local edits to the tree may be replaced."
+            )
+          ) {
+            setWs(forceImportDrMelani());
+          }
+        }}
       />
 
       <main className="main">
         <header className="topbar">
-          {!ws.sidebarOpen && (
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={toggleSidebar}
-              title="Open sidebar"
-            >
-              ☰
-            </button>
-          )}
-          {ws.sidebarOpen && (
-            <button
-              type="button"
-              className="topbar-btn"
-              onClick={toggleSidebar}
-              title="Close sidebar"
-            >
-              ☰
-            </button>
-          )}
+          <button
+            type="button"
+            className="topbar-btn"
+            onClick={() =>
+              setWs((p) => ({ ...p, sidebarOpen: !p.sidebarOpen }))
+            }
+            title="Toggle sidebar"
+          >
+            ☰
+          </button>
 
           <div className="breadcrumb">
-            <span className="breadcrumb-icon">{activePage.icon}</span>
-            <span className="breadcrumb-title">
-              {activePage.title.trim() || "Untitled"}
-            </span>
+            {crumbs.map((c, i) => (
+              <span key={c.id} className="breadcrumb-seg">
+                {i > 0 && <span className="breadcrumb-sep">/</span>}
+                <button
+                  type="button"
+                  className="breadcrumb-link"
+                  onClick={() => openPage(c.id)}
+                >
+                  <span className="breadcrumb-icon">
+                    {c.kind === "database" ? "▦" : c.icon}
+                  </span>
+                  <span className="breadcrumb-title">
+                    {c.title.trim() || "Untitled"}
+                  </span>
+                </button>
+              </span>
+            ))}
           </div>
 
           <div className="topbar-spacer" />
           <span className="topbar-meta">{editedLabel}</span>
-          <button type="button" className="topbar-btn" title="Share (demo)">
-            Share
+          <button
+            type="button"
+            className="topbar-btn"
+            title="Favorite"
+            onClick={() => setWs((p) => toggleFavorite(p, activePage.id))}
+          >
+            {activePage.favorite ? "★" : "☆"}
           </button>
-          <button type="button" className="topbar-btn" title="More">
-            ···
+          <button
+            type="button"
+            className="topbar-btn"
+            title="Search (⌘K)"
+            onClick={() => setSearchOpen(true)}
+          >
+            ⌕
           </button>
+          <div className="topbar-more-wrap">
+            <button
+              type="button"
+              className="topbar-btn"
+              title="More"
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              ···
+            </button>
+            {moreOpen && (
+              <div className="more-menu">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => duplicatePage(p, activePage.id));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => softDeletePage(p, activePage.id));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Move to Trash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => addDatabasePage(p, activePage.id));
+                    setMoreOpen(false);
+                  }}
+                >
+                  New database here
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWs((p) => emptyTrash(p));
+                    setMoreOpen(false);
+                  }}
+                >
+                  Empty trash
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <PageEditor
           page={activePage}
+          allPages={ws.pages}
           childPages={childPages}
-          onUpdatePage={updatePage}
-          onOpenPage={setActive}
+          onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
+          onOpenPage={openPage}
+          onCreateSubpage={(blockIndex) =>
+            setWs((p) => createSubpageFromBlock(p, activePage.id, blockIndex))
+          }
+          onCreateDatabase={() =>
+            setWs((p) => addDatabasePage(p, activePage.id))
+          }
         />
       </main>
+
+      {searchOpen && (
+        <SearchModal
+          ws={ws}
+          onOpen={openPage}
+          onClose={() => setSearchOpen(false)}
+          onRestore={(id) => {
+            setWs((p) => restorePage(p, id));
+            setSearchOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

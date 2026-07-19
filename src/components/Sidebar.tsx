@@ -2,12 +2,18 @@ import type { Page } from "../types";
 
 type Props = {
   workspaceName: string;
-  pages: Page[];
+  pages: Page[]; // active only
+  allPages: Page[];
+  recents: string[];
   activePageId: string;
   open: boolean;
   onSelect: (id: string) => void;
   onNewPage: () => void;
+  onNewTopPage: () => void;
+  onNewDatabase: () => void;
   onDeletePage: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
+  onOpenSearch: () => void;
   onClose: () => void;
   onReimport?: () => void;
 };
@@ -19,6 +25,7 @@ function PageTreeItem({
   depth,
   onSelect,
   onDeletePage,
+  onToggleFavorite,
 }: {
   page: Page;
   pages: Page[];
@@ -26,6 +33,7 @@ function PageTreeItem({
   depth: number;
   onSelect: (id: string) => void;
   onDeletePage: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
 
@@ -40,7 +48,9 @@ function PageTreeItem({
           className="page-row-main"
           onClick={() => onSelect(page.id)}
         >
-          <span className="page-emoji">{page.icon}</span>
+          <span className="page-emoji">
+            {page.kind === "database" ? "▦" : page.icon}
+          </span>
           <span className="page-title-side">
             {page.title.trim() || "Untitled"}
           </span>
@@ -49,11 +59,22 @@ function PageTreeItem({
           <button
             type="button"
             className="page-mini-btn"
-            title="Delete page"
+            title={page.favorite ? "Unfavorite" : "Favorite"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(page.id);
+            }}
+          >
+            {page.favorite ? "★" : "☆"}
+          </button>
+          <button
+            type="button"
+            className="page-mini-btn"
+            title="Delete"
             onClick={(e) => {
               e.stopPropagation();
               if (pages.length <= 1) return;
-              if (window.confirm("Delete this page?")) onDeletePage(page.id);
+              if (window.confirm("Move to trash?")) onDeletePage(page.id);
             }}
           >
             ×
@@ -69,6 +90,7 @@ function PageTreeItem({
           depth={depth + 1}
           onSelect={onSelect}
           onDeletePage={onDeletePage}
+          onToggleFavorite={onToggleFavorite}
         />
       ))}
     </>
@@ -78,16 +100,27 @@ function PageTreeItem({
 export function Sidebar({
   workspaceName,
   pages,
+  recents,
   activePageId,
   open,
   onSelect,
   onNewPage,
+  onNewTopPage,
+  onNewDatabase,
   onDeletePage,
+  onToggleFavorite,
+  onOpenSearch,
   onClose,
   onReimport,
 }: Props) {
   const topPages = pages.filter((p) => p.parentId === null);
+  const favorites = pages.filter((p) => p.favorite);
   const home = pages.find((p) => p.id === "pg-home") || topPages[0];
+  const recentPages = recents
+    .map((id) => pages.find((p) => p.id === id))
+    .filter(Boolean)
+    .slice(0, 5) as Page[];
+
   const initial = workspaceName.trim().charAt(0).toUpperCase() || "D";
 
   return (
@@ -97,12 +130,11 @@ export function Sidebar({
           <span className="workspace-icon">{initial}</span>
           <span className="workspace-name">{workspaceName}</span>
         </button>
-        <button type="button" className="sidebar-icon-btn" onClick={onClose} title="Close sidebar">
+        <button type="button" className="sidebar-icon-btn" onClick={onClose}>
           «
         </button>
       </div>
 
-      {/* Home pill row like real Notion */}
       {home && (
         <button
           type="button"
@@ -114,10 +146,65 @@ export function Sidebar({
         </button>
       )}
 
-      <div className="sidebar-search" title="Search">
+      <button type="button" className="sidebar-search" onClick={onOpenSearch}>
         <span>🔍</span>
         <span>Search</span>
-      </div>
+        <span className="sidebar-kbd">⌘K</span>
+      </button>
+
+      {favorites.length > 0 && (
+        <>
+          <div className="sidebar-section-label">Favorites</div>
+          <div className="sidebar-scroll" style={{ flex: "0 0 auto", maxHeight: 140 }}>
+            {favorites.map((p) => (
+              <div
+                key={p.id}
+                className={`page-row${p.id === activePageId ? " is-active" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="page-row-main"
+                  onClick={() => onSelect(p.id)}
+                >
+                  <span className="page-emoji">
+                    {p.kind === "database" ? "▦" : p.icon}
+                  </span>
+                  <span className="page-title-side">
+                    {p.title.trim() || "Untitled"}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {recentPages.length > 0 && (
+        <>
+          <div className="sidebar-section-label">Recents</div>
+          <div className="sidebar-scroll" style={{ flex: "0 0 auto", maxHeight: 120 }}>
+            {recentPages.map((p) => (
+              <div
+                key={p.id}
+                className={`page-row${p.id === activePageId ? " is-active" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="page-row-main"
+                  onClick={() => onSelect(p.id)}
+                >
+                  <span className="page-emoji">
+                    {p.kind === "database" ? "▦" : p.icon}
+                  </span>
+                  <span className="page-title-side">
+                    {p.title.trim() || "Untitled"}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="sidebar-section-label">Private</div>
 
@@ -131,6 +218,7 @@ export function Sidebar({
             depth={0}
             onSelect={onSelect}
             onDeletePage={onDeletePage}
+            onToggleFavorite={onToggleFavorite}
           />
         ))}
       </div>
@@ -139,21 +227,21 @@ export function Sidebar({
         <span>+</span>
         <span>New page</span>
       </button>
+      <button type="button" className="sidebar-new" onClick={onNewTopPage}>
+        <span>+</span>
+        <span>New top-level page</span>
+      </button>
+      <button type="button" className="sidebar-new" onClick={onNewDatabase}>
+        <span>▦</span>
+        <span>New database</span>
+      </button>
 
       {onReimport && (
         <button
           type="button"
           className="sidebar-new"
           style={{ color: "rgba(55,53,47,0.55)", fontSize: 12 }}
-          onClick={() => {
-            if (
-              window.confirm(
-                "Re-import full Dr. Melani export? This replaces the workspace tree (your typed edits on old pages may be lost)."
-              )
-            ) {
-              onReimport();
-            }
-          }}
+          onClick={onReimport}
         >
           <span>↺</span>
           <span>Re-import Dr. Melani</span>
@@ -162,7 +250,7 @@ export function Sidebar({
 
       <div className="sidebar-footer">
         <div className="sidebar-footer-note">
-          Full health system from Dr. Melani · light Notion UI
+          Works like Notion · ⌘K search · / blocks · Tab indent
         </div>
       </div>
     </aside>
