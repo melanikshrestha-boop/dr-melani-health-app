@@ -4,9 +4,15 @@
    ═══════════════════════════════════════════ */
 
 :root {
-  --notion-font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  /* Sidebar / chrome — Notion UI (sans) */
+  --notion-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji",
     "Segoe UI Symbol";
+  /* Page writing — Notion “Serif” style (same idea as Style → Serif) */
+  --notion-serif: Lyon-Text, Georgia, "Times New Roman", ui-serif, serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  /* Default content font = serif (how you write inside Notion) */
+  --notion-font: var(--notion-serif);
   --notion-mono: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono",
     Courier, monospace;
 
@@ -42,11 +48,47 @@ body,
 }
 
 body {
-  font-family: var(--notion-font);
+  font-family: var(--notion-serif);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Chrome stays sans; writing surface is serif — like Notion Serif style */
+.sidebar,
+.topbar,
+.search-modal,
+.slash-menu,
+.emoji-picker,
+.more-menu,
+.cover-picker {
+  font-family: var(--notion-ui);
+}
+
+.page-inner,
+.page-title-input,
+.block-input,
+.block-page-link,
+.child-page-link,
+.db-view,
+.db-cell-input,
+.db-col-name,
+.db-cell-select {
+  font-family: var(--notion-serif) !important;
+}
+
+.page-title-input {
+  letter-spacing: -0.02em;
+}
+
+.block-input {
+  letter-spacing: 0.01em;
+}
+
+.block-input.type-code {
+  font-family: var(--notion-mono) !important;
+  letter-spacing: 0;
 }
 
 ::selection {
