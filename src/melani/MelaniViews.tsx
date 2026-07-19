@@ -23,34 +23,21 @@ export function MelaniData() {
 
   return (
     <div className="melani-shell">
-      <div className="melani-inner">
-        {/* Profile — top stack */}
-        <div className="melani-card">
-          <h2 className="melani-h2">Profile</h2>
-          <div className="profile-stat-row">
-            <span className="profile-stat">
-              <em>Age</em>
-              {PROFILE.ageDisplay} · {PROFILE.sex}
-            </span>
-            <span className="profile-stat">
-              <em>Height</em>
-              {PROFILE.height}
-            </span>
-            <span className="profile-stat">
-              <em>Provider</em>
-              {PROFILE.provider}
-            </span>
-            <span className="profile-stat">
-              <em>Patient ID</em>
-              {PROFILE.patientId}
-            </span>
-          </div>
-          <p className="melani-hint" style={{ marginTop: 12 }}>
-            {PROFILE.conditions}
-          </p>
-          <p className="melani-hint">Water goal: {PROFILE.waterGoalMl} ml</p>
+      {/* Sticky strip — age + height only, always on top while scrolling */}
+      <div className="profile-sticky">
+        <div className="profile-stat-row profile-stat-row-minimal">
+          <span className="profile-stat">
+            <em>Age</em>
+            {PROFILE.ageDisplay} · {PROFILE.sex}
+          </span>
+          <span className="profile-stat">
+            <em>Height</em>
+            {PROFILE.height}
+          </span>
         </div>
+      </div>
 
+      <div className="melani-inner melani-inner-below-profile">
         {/* Period tracker — collapsed by default, toggle to open */}
         <div className="melani-card melani-toggle-card">
           <button

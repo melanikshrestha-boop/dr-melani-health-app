@@ -624,8 +624,12 @@
 .profile-stat-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
-  margin-top: 8px;
+  gap: 12px 28px;
+  margin-top: 0;
+}
+
+.profile-stat-row-minimal {
+  gap: 20px 36px;
 }
 
 .profile-stat em {
@@ -641,6 +645,24 @@
 .profile-stat {
   font-size: 14px;
   color: #fff;
+}
+
+/* Always pinned to top of the scroll area on Data */
+.profile-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #000;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.melani-inner-below-profile {
+  padding-top: 12px;
 }
 
 /* When Melani page is open, main canvas goes black */
