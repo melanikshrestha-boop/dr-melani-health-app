@@ -18,6 +18,7 @@ import {
 import { Sidebar } from "./components/Sidebar";
 import { PageEditor } from "./components/PageEditor";
 import { SearchModal } from "./components/SearchModal";
+import { isMelaniRichPage, MelaniRichPage } from "./melani/MelaniViews";
 import "./notion.css";
 
 export default function App() {
@@ -91,6 +92,8 @@ export default function App() {
     minute: "2-digit",
   })}`;
 
+  const melaniMode = isMelaniRichPage(activePage.id);
+
   return (
     <div className="app">
       <Sidebar
@@ -119,7 +122,7 @@ export default function App() {
         }}
       />
 
-      <main className="main">
+      <main className={`main${melaniMode ? " is-melani" : ""}`}>
         <header className="topbar">
           <button
             type="button"
@@ -222,19 +225,24 @@ export default function App() {
           </div>
         </header>
 
-        <PageEditor
-          page={activePage}
-          allPages={ws.pages}
-          childPages={childPages}
-          onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
-          onOpenPage={openPage}
-          onCreateSubpage={(blockIndex) =>
-            setWs((p) => createSubpageFromBlock(p, activePage.id, blockIndex))
-          }
-          onCreateDatabase={() =>
-            setWs((p) => addDatabasePage(p, activePage.id))
-          }
-        />
+        {/* Health pages: real Dr. Melani UI (rings, cycle calendar, neon labs) */}
+        {melaniMode ? (
+          <MelaniRichPage pageId={activePage.id} onGo={openPage} />
+        ) : (
+          <PageEditor
+            page={activePage}
+            allPages={ws.pages}
+            childPages={childPages}
+            onUpdatePage={(page) => setWs((p) => updatePageInWs(p, page))}
+            onOpenPage={openPage}
+            onCreateSubpage={(blockIndex) =>
+              setWs((p) => createSubpageFromBlock(p, activePage.id, blockIndex))
+            }
+            onCreateDatabase={() =>
+              setWs((p) => addDatabasePage(p, activePage.id))
+            }
+          />
+        )}
       </main>
 
       {searchOpen && (

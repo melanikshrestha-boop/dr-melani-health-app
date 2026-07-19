@@ -1,0 +1,625 @@
+/* Dr. Melani dark UI — matches the real app pages inside Notion shell */
+
+.melani-shell {
+  --m-bg: #000000;
+  --m-surface: #020303;
+  --m-text: #ffffff;
+  --m-muted: rgba(255, 255, 255, 0.62);
+  --m-border: rgba(255, 255, 255, 0.12);
+  --m-green: #2eea7f;
+  --m-yellow: #facc15;
+  --m-orange: #ff8a3d;
+  --m-blue: #4da3ff;
+  --m-pink: #fb7185;
+  --m-font: "Times New Roman", Times, ui-serif, Georgia, serif;
+
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-family: var(--m-font);
+  min-height: 100%;
+  padding: 8px 0 48px;
+}
+
+.melani-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.melani-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 8px 0 16px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid var(--m-border);
+  margin-bottom: 16px;
+}
+
+.melani-subnav button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.melani-subnav button.is-active {
+  color: #fff;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.melani-subnav .dot {
+  opacity: 0.4;
+  user-select: none;
+}
+
+.melani-h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.melani-hint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--m-muted);
+  line-height: 1.35;
+}
+
+.melani-card {
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(77, 163, 255, 0.055), transparent 44%),
+    #020303;
+  padding: 15px 14px;
+  margin: 0 0 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.melani-live-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(35, 131, 226, 0.12);
+  border: 1px solid rgba(35, 131, 226, 0.28);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.melani-live-bar a {
+  color: #9ecbff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Macro rings (exact Melani look) ── */
+.macro-ring-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 16px;
+  isolation: isolate;
+}
+
+.macro-rings {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.macro-rings circle {
+  fill: none;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+.ring-track {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.ring-protein {
+  stroke: #2eea7f;
+  stroke-width: 6.5;
+  filter: drop-shadow(0 0 4px rgba(46, 234, 127, 0.26));
+}
+
+.ring-cal {
+  stroke: rgba(255, 255, 255, 0.28);
+}
+
+.ring-carbs {
+  stroke: #facc15;
+}
+
+.ring-fat {
+  stroke: #ff8a3d;
+}
+
+.ring-fiber {
+  stroke: #4da3ff;
+}
+
+.ring-hole {
+  fill: #020303;
+  stroke: none;
+}
+
+.macro-ring-center {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.macro-ring-num {
+  color: #fff;
+  font-size: 1.58rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+}
+
+.macro-ring-num small {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.macro-ring-sub,
+.macro-ring-goal {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+.macro-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.macro-stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.macro-stats li:first-child {
+  border-top: none;
+}
+
+.macro-stats strong {
+  color: #fff;
+  margin-left: auto;
+}
+
+.macro-stats em {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+  font-style: normal;
+  margin-left: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-cal {
+  background: rgba(255, 255, 255, 0.45);
+}
+.dot-protein {
+  background: #2eea7f;
+}
+.dot-carbs {
+  background: #facc15;
+}
+.dot-fat {
+  background: #ff8a3d;
+}
+.dot-fiber {
+  background: #4da3ff;
+}
+
+.meal-usual {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.meal-usual-title {
+  font-weight: 650;
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+
+.meal-usual-macros {
+  font-size: 13px;
+  color: var(--m-muted);
+  margin: 0 0 8px;
+}
+
+.meal-usual ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.45;
+}
+
+/* ── Period tracker / cycle calendar ── */
+.cycle-status {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.cycle-phase {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.cycle-subhead {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 650;
+}
+
+.cycle-meta {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.cycle-flow-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.cycle-flow-btn {
+  flex: 1 1 calc(25% - 8px);
+  min-width: 72px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.cycle-flow-btn.active,
+.cycle-flow-btn:hover {
+  border-color: #fb7185;
+  box-shadow: 0 0 12px rgba(251, 113, 133, 0.25);
+}
+
+.cycle-flow-spotting.active {
+  border-color: #fda4af;
+}
+.cycle-flow-light.active {
+  border-color: #fb7185;
+}
+.cycle-flow-medium.active {
+  border-color: #f43f5e;
+}
+.cycle-flow-heavy.active {
+  border-color: #e11d48;
+}
+
+.cycle-start-btn {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.cycle-phase-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.cycle-phase-chip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cycle-phase-chip.is-current {
+  border-color: rgba(77, 163, 255, 0.55);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(77, 163, 255, 0.25);
+}
+
+.cycle-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px 4px;
+  margin: 12px 0 8px;
+}
+
+.cycle-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  border-radius: 10px;
+}
+
+.cycle-day-today {
+  box-shadow: 0 0 0 1.5px rgba(77, 163, 255, 0.85);
+}
+
+.cycle-day-ovulation {
+  box-shadow: 0 0 0 1.5px rgba(251, 191, 36, 0.75);
+}
+
+.cycle-day-today.cycle-day-ovulation {
+  box-shadow: 0 0 0 1.5px rgba(77, 163, 255, 0.85),
+    inset 0 0 0 1px rgba(251, 191, 36, 0.5);
+}
+
+.cycle-day-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+.cycle-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cycle-dot-empty {
+  background: rgba(255, 255, 255, 0.08);
+}
+.cycle-dot-spotting {
+  background: #fda4af;
+  box-shadow: 0 0 8px rgba(253, 164, 175, 0.45);
+}
+.cycle-dot-light {
+  background: #fb7185;
+  box-shadow: 0 0 8px rgba(251, 113, 133, 0.45);
+}
+.cycle-dot-medium {
+  background: #f43f5e;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+}
+.cycle-dot-heavy {
+  background: #e11d48;
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.55);
+}
+
+.cycle-day-num {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Neon lab chips ── */
+.neon-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.neon-chip {
+  flex: 1 1 calc(33% - 8px);
+  min-width: 96px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.neon-chip-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 4px;
+}
+
+.neon-chip-value {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.neon-chip-badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.neon-ok {
+  border-color: rgba(74, 222, 128, 0.45);
+  box-shadow: inset 0 0 22px rgba(74, 222, 128, 0.08),
+    0 0 14px rgba(74, 222, 128, 0.12);
+}
+.neon-ok .neon-chip-badge {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.85);
+}
+
+.neon-high {
+  border-color: rgba(251, 113, 133, 0.55);
+  box-shadow: inset 0 0 24px rgba(251, 113, 133, 0.1),
+    0 0 16px rgba(251, 113, 133, 0.15);
+}
+.neon-high .neon-chip-badge {
+  color: #fb7185;
+  background: rgba(251, 113, 133, 0.15);
+  text-shadow: 0 0 12px rgba(251, 113, 133, 0.95);
+}
+
+/* Sleep / gym rows */
+.melani-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+.melani-line label {
+  min-width: 72px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.melani-line span {
+  color: #fff;
+}
+
+.bf-row {
+  display: flex;
+  gap: 16px;
+  margin: 10px 0;
+}
+
+.bf-btn {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bf-btn.yes-active {
+  color: #ef4444;
+}
+.bf-btn.no-active {
+  color: #22c55e;
+}
+
+.gym-week {
+  display: grid;
+  gap: 8px;
+}
+
+.gym-day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 14px;
+}
+
+.gym-day-row strong {
+  letter-spacing: 0.04em;
+}
+
+.profile-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 8px;
+}
+
+.profile-stat em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
+
+.profile-stat {
+  font-size: 14px;
+  color: #fff;
+}
+
+/* When Melani page is open, main canvas goes black */
+.main.is-melani {
+  background: #000;
+}
+
+.main.is-melani .topbar {
+  background: #000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.main.is-melani .topbar-btn,
+.main.is-melani .breadcrumb-link,
+.main.is-melani .topbar-meta,
+.main.is-melani .breadcrumb-title,
+.main.is-melani .breadcrumb-sep {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.main.is-melani .breadcrumb-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
