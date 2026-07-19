@@ -62,7 +62,7 @@ function saveShowRecents(show: boolean) {
 
 function PageIcon({ page }: { page: Page }) {
   return (
-    <span className="page-icon-wrap">
+    <span className="side-icon" aria-hidden>
       <MinimalIcon name={iconForPage(page)} size={16} />
     </span>
   );
@@ -113,7 +113,7 @@ function PageTreeItem({
             {isCollapsed ? "▸" : "▾"}
           </button>
         ) : (
-          <span style={{ width: 22, flexShrink: 0 }} />
+          <span className="page-collapse-spacer" aria-hidden />
         )}
         <button
           type="button"

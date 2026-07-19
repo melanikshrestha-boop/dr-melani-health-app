@@ -169,22 +169,24 @@ textarea {
   flex-shrink: 0;
 }
 
-/* Collapse toggle for parent pages (Fitness, Hygiene, My Data…) */
+/* Collapse toggle for parent pages (Fitness, Hygiene…) */
 .page-collapse-btn {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 28px;
   flex-shrink: 0;
   border: none;
   background: transparent;
   border-radius: 3px;
   color: var(--text-faint);
   cursor: pointer;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
   padding: 0;
+  margin: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
 }
 
 .page-collapse-btn:hover {
@@ -330,14 +332,16 @@ textarea {
 
 .page-row {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  border-radius: 4px;
-  min-height: 30px;
-  padding: 2px 4px 2px 2px;
+  align-items: center; /* vertical center: toggle + icon + text */
+  gap: 0;
+  border-radius: 6px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 6px 0 2px;
   cursor: pointer;
   color: var(--text);
   position: relative;
+  box-sizing: border-box;
 }
 
 .page-row:hover {
@@ -351,38 +355,60 @@ textarea {
 .page-row-main {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: center; /* icon vertically middle of label */
+  gap: 8px;
   min-width: 0;
+  min-height: 32px;
+  height: 32px;
   border: none;
   background: transparent;
-  padding: 2px 4px;
+  padding: 0 4px;
+  margin: 0;
   cursor: pointer;
   color: inherit;
   text-align: left;
   font-size: 14px;
+  line-height: 1;
+  font-family: inherit;
+  box-sizing: border-box;
 }
 
-.page-emoji,
-.page-icon-wrap {
-  width: 20px;
-  height: 20px;
+/* Sidebar line icons only — NOT the big page emoji picker */
+.side-icon {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.72);
+  line-height: 0;
+}
+
+.side-icon .min-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .min-icon {
   display: block;
   flex-shrink: 0;
   color: inherit;
+  vertical-align: middle;
 }
 
-.page-row.is-active .page-icon-wrap,
-.page-row:hover .page-icon-wrap {
+.page-row.is-active .side-icon,
+.page-row:hover .side-icon {
   color: #fff;
+}
+
+/* Spacer when no children — same width as collapse so icons line up */
+.page-collapse-spacer {
+  width: 18px;
+  height: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
 }
 
 /* Recents section toggle */
@@ -417,11 +443,16 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 400;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
 }
 
 .page-row-actions {
   display: none;
   gap: 2px;
+  align-items: center;
+  height: 32px;
 }
 
 .page-row:hover .page-row-actions {
@@ -432,6 +463,9 @@ textarea {
   width: 22px;
   height: 22px;
   border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border-radius: 3px;
   color: var(--text-muted);
