@@ -3,6 +3,7 @@ import type { Block, Page } from "../types";
 import { newBlock } from "../storage";
 import { BlockRow } from "./BlockRow";
 import { SlashMenu } from "./SlashMenu";
+import { EmojiPicker } from "./EmojiPicker";
 import { filterSlash, type SlashCommand } from "../slashCommands";
 
 type Props = {
@@ -24,6 +25,7 @@ type SlashState = {
 export function PageEditor({ page, childPages = [], onUpdatePage, onOpenPage }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [slash, setSlash] = useState<SlashState>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
 
   const slashItems = useMemo(
     () => (slash ? filterSlash(slash.query) : []),
@@ -192,19 +194,32 @@ export function PageEditor({ page, childPages = [], onUpdatePage, onOpenPage }: 
     <div className="page-scroll">
       <div className="page-inner">
         <div className="page-cover-space" />
-        <button
-          type="button"
-          className="page-icon-btn"
-          title="Change icon"
-          onClick={() => {
-            const next = window.prompt("Emoji icon", page.icon || "📄");
-            if (next != null && next.trim()) {
-              onUpdatePage({ ...page, icon: next.trim().slice(0, 4), updatedAt: Date.now() });
-            }
-          }}
-        >
-          {page.icon || "📄"}
-        </button>
+        <div className="page-icon-wrap">
+          <button
+            type="button"
+            className="page-icon-btn"
+            title="Change icon"
+            aria-haspopup="dialog"
+            aria-expanded={emojiOpen}
+            onClick={() => setEmojiOpen((v) => !v)}
+          >
+            {page.icon || "📄"}
+          </button>
+          {emojiOpen && (
+            <EmojiPicker
+              current={page.icon || "📄"}
+              onPick={(emoji) => {
+                onUpdatePage({
+                  ...page,
+                  icon: emoji,
+                  updatedAt: Date.now(),
+                });
+                setEmojiOpen(false);
+              }}
+              onClose={() => setEmojiOpen(false)}
+            />
+          )}
+        </div>
 
         <textarea
           className="page-title-input"
