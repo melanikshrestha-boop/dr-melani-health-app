@@ -466,19 +466,20 @@
   border-bottom-color: #6eb4ff;
 }
 
-/* Crossed out when done */
+/* Done = gray only, no strikethrough */
 .consume-row.is-done .consume-name {
-  text-decoration: line-through;
-  color: rgba(255, 255, 255, 0.4);
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .consume-row.is-done .consume-sub {
-  text-decoration: line-through;
+  text-decoration: none;
   color: rgba(255, 255, 255, 0.28);
 }
 
 .consume-row.is-done .consume-time {
   color: rgba(110, 180, 255, 0.55);
+  text-decoration: none;
 }
 
 /* Minimal menu only — no extra top junk on Fitness */
