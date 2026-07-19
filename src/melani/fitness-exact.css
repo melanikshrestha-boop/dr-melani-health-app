@@ -1,0 +1,412 @@
+/* Exact Dr. Melani Fitness layout (screenshot match) */
+
+.fx-page {
+  background: #000;
+  color: #fff;
+  font-family: "Times New Roman", Times, ui-serif, Georgia, serif;
+  min-height: 100%;
+  padding: 8px 0 64px;
+}
+
+.fx-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 12px 20px 48px;
+  text-align: left;
+}
+
+/* Quote — plain text only */
+.fx-quote {
+  margin: 4px 0 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.fx-quote-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.fx-quote-author {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #9ecbff;
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* Subnav: Sleep · Meals · Gym · Body */
+.fx-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+  margin: 0 0 22px;
+  padding: 0;
+  font-size: 14px;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.fx-subnav-item {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.fx-dot {
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.4);
+  user-select: none;
+}
+
+.fx-subnav-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.fx-subnav-link.is-active {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+.fx-subnav-link:hover {
+  color: #fff;
+}
+
+/* Sections */
+.fx-section {
+  margin: 0 0 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.fx-h2 {
+  margin: 0 0 10px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: "Times New Roman", Times, serif;
+}
+
+.fx-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  margin: 0 0 6px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: "Times New Roman", Times, serif;
+}
+
+.fx-key {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.fx-val {
+  color: #fff;
+}
+
+.fx-input {
+  display: inline-block;
+  width: auto;
+  min-width: 5.5em;
+  margin: 0;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.fx-input:focus {
+  outline: none;
+  border-bottom-color: rgba(255, 255, 255, 0.85);
+}
+
+.fx-meta {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: "Times New Roman", Times, serif;
+}
+
+.fx-meta strong {
+  color: #fff;
+  font-weight: 650;
+}
+
+/* Brain fog Yes / No — underline text, not pills */
+.fx-bf-btns {
+  display: flex;
+  gap: 14px;
+  margin: 4px 0 10px;
+}
+
+.fx-bf-tap {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+}
+
+.fx-bf-yes.is-on {
+  color: #ef4444;
+  text-decoration-color: #ef4444;
+}
+
+.fx-bf-no.is-on {
+  color: #22c55e;
+  text-decoration-color: #22c55e;
+}
+
+/* Week letters S S M T W T F */
+.fx-bf-week {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 4px 0 6px;
+}
+
+.fx-bf-day {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+
+.fx-bf-day.is-fog {
+  color: #ef4444;
+  text-decoration-color: #ef4444;
+}
+
+.fx-bf-summary {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: "Times New Roman", Times, serif;
+}
+
+/* Weekly sleep chart card */
+.fx-chart-wrap {
+  margin-top: 12px;
+  padding: 12px 8px 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 28, 40, 0.9) 0%,
+    rgba(8, 10, 14, 0.95) 100%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.fx-chart {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+/* Macro rings (meals tab — same as Melani) */
+.macro-ring-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 12px auto 16px;
+}
+
+.macro-rings {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.macro-rings circle {
+  fill: none;
+  stroke-width: 5.5;
+  stroke-linecap: round;
+}
+
+.ring-track {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+.ring-protein {
+  stroke: #2eea7f;
+  stroke-width: 6.5;
+}
+.ring-cal {
+  stroke: rgba(255, 255, 255, 0.28);
+}
+.ring-carbs {
+  stroke: #facc15;
+}
+.ring-fat {
+  stroke: #ff8a3d;
+}
+.ring-fiber {
+  stroke: #4da3ff;
+}
+.ring-hole {
+  fill: #000;
+  stroke: none;
+}
+
+.macro-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.macro-ring-num {
+  color: #fff;
+  font-size: 1.58rem;
+  font-weight: 750;
+  line-height: 1.05;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.macro-ring-num small {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.macro-ring-sub,
+.macro-ring-goal {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+}
+
+.macro-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.macro-stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.macro-stats li:first-child {
+  border-top: none;
+}
+
+.macro-stats strong {
+  margin-left: auto;
+  color: #fff;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-cal {
+  background: rgba(255, 255, 255, 0.45);
+}
+.dot-protein {
+  background: #2eea7f;
+}
+.dot-carbs {
+  background: #facc15;
+}
+.dot-fat {
+  background: #ff8a3d;
+}
+.dot-fiber {
+  background: #4da3ff;
+}
+
+.fx-usual {
+  margin: 0 0 12px;
+}
+
+.fx-usual-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Minimal menu only — no extra top junk on Fitness */
+.fx-menu-btn {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 30;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.fx-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.main.is-fitness {
+  background: #000;
+}
