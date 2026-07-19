@@ -1,0 +1,98 @@
+{
+  "day_key": "monday",
+  "title": "Monday (Glutes + Abs)",
+  "emoji": "\ud83e\udec1",
+  "subtitle": "Gym (5x/week) & Run (2x/week)",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "7 mins on treadmill",
+          "checked": false
+        },
+        {
+          "id": "w2",
+          "text": "Dynamic stretches \u2014 deep lunge w/ reach, 90/90, leg swings, kick-backs, hip circles, squat",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "glutes",
+      "title": "Glutes workout:",
+      "items": [
+        {
+          "id": "g1",
+          "text": "Sumo Squats \u2014 4 x Failure (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "g2",
+          "text": "Barbell Hip Thrusts \u2014 4 x Failure; 2 sec holds (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "g3",
+          "text": "Bulgarian Split Squats \u2014 4 x Failure; Split: 4/3; progressive overload to 35",
+          "checked": false
+        },
+        {
+          "id": "g4",
+          "text": "Cable Pull-Throughs \u2014 4 x 6 (split: 8/7/6/6) w/ progressive overload",
+          "checked": false
+        },
+        {
+          "id": "g5",
+          "text": "Glute Kickbacks on the Machine \u2014 3 x Failure (progressive overload)",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Abs workout:",
+      "items": [
+        {
+          "id": "a1",
+          "text": "Rope Cable Crunches \u2014 4 x Failure (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "a2",
+          "text": "Hanging Leg Raises \u2014 3 x Failure",
+          "checked": false
+        },
+        {
+          "id": "a3",
+          "text": "Ab Machine \u2014 3 x Failure",
+          "checked": false
+        },
+        {
+          "id": "a4",
+          "text": "Decline Bench Weighted Crunches \u2014 3 x Failure",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "wrap",
+      "title": "Cardio:",
+      "items": [
+        {
+          "id": "r1",
+          "text": "20 mins on treadmill (incline: 12.0, speed: 3.5)",
+          "checked": false
+        },
+        {
+          "id": "r2",
+          "text": "Stretch (split: 13 mins / 17 mins) (30 mins)",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}

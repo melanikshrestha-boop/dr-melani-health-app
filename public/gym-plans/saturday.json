@@ -1,0 +1,86 @@
+{
+  "day_key": "saturday",
+  "title": "Saturday (Glutes + Abs)",
+  "emoji": "\ud83e\ude90",
+  "subtitle": "",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "Stretching",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "title": "",
+      "items": [
+        {
+          "id": "m1",
+          "text": "Hip Thrusts (3 x 8) \u2014 progressive overload & 10 sec hold",
+          "checked": false
+        },
+        {
+          "id": "m2",
+          "text": "Bulgarian Split Squats w/ weights (3 x 8) \u2014 progressive overload",
+          "checked": false
+        },
+        {
+          "id": "m3",
+          "text": "Sumo Squats (3 x 10) \u2014 progressive overload",
+          "checked": false
+        },
+        {
+          "id": "m4",
+          "text": "RDLs (3 x 10) \u2014 progressive overload",
+          "checked": false
+        },
+        {
+          "id": "m5",
+          "text": "In and outs + weight (3 x 30)",
+          "checked": false
+        },
+        {
+          "id": "m6",
+          "text": "Leg raises w/ weights (3 x 30)",
+          "checked": false
+        },
+        {
+          "id": "m7",
+          "text": "Russian twists w/ weights (3 x 50)",
+          "checked": false
+        },
+        {
+          "id": "m8",
+          "text": "Decline sit-ups with weights (3 x 20)",
+          "checked": false
+        },
+        {
+          "id": "m9",
+          "text": "Over-unders (3 x 30)",
+          "checked": false
+        },
+        {
+          "id": "m10",
+          "text": "Hollow Body Hold (2 mins x 3)",
+          "checked": false
+        },
+        {
+          "id": "m11",
+          "text": "Plank (2 mins x 3)",
+          "checked": false
+        },
+        {
+          "id": "m12",
+          "text": "Treadmill (10 mins at least)",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}

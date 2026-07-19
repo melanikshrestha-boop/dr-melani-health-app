@@ -1,0 +1,57 @@
+{
+  "day_key": "thursday",
+  "title": "Thursday (Chest + Abs)",
+  "emoji": "\ud83d\udd2d",
+  "subtitle": "",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "Dynamic stretches",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "block1",
+      "title": "Block 1: Triceps & Arms:",
+      "items": [
+        {
+          "id": "b1",
+          "text": "Tricep Rope Pushdowns \u2014 3 x 15 (Weight: 25 lbs, Rest: 45 sec)",
+          "checked": false
+        },
+        {
+          "id": "b2",
+          "text": "Lat pulldowns \u2014 3 x 15 (Weight: 40 lbs)",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Abs:",
+      "items": [
+        {
+          "id": "a1",
+          "text": "Hanging Leg Raises \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "a2",
+          "text": "Dead Bugs \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "a3",
+          "text": "Plank with hip dips \u2014 3 x 45 secs",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}

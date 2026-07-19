@@ -1,0 +1,176 @@
+{
+  "day_key": "upper_abs_one",
+  "title": "Upper body + Abs 1",
+  "emoji": "\ud83d\udcaa",
+  "subtitle": "Back taper & sleek arms",
+  "session_mode": true,
+  "sections": [
+    {
+      "id": "upper",
+      "title": "Upper Body",
+      "items": [
+        {
+          "id": "u1_lat",
+          "text": "Wide-Grip Lat Pulldowns \u2014 3 x 12",
+          "name": "Wide-Grip Lat Pulldowns",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "The Back Taper",
+          "rest_sec": 90,
+          "rest_label": "1 min 30 sec",
+          "notes": [
+            "Target: the upper back (lats) to narrow the appearance of your waist.",
+            "Pick a weight where reps 11 and 12 force you to slow down.",
+            "If you hit 12 and could easily keep going to 20, go 1\u20132 plates heavier.",
+            "Sit tall, lock your thighs under the pads, pull the bar to your upper chest.",
+            "Drive your elbows down toward your back pockets.",
+            "Squeeze your shoulder blades tightly at the bottom."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "Go to failure",
+              "failure": true
+            }
+          }
+        },
+        {
+          "id": "u1_row",
+          "text": "Seated Cable Rows \u2014 3 x 12",
+          "name": "Seated Cable Rows",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "Mid-back & posture",
+          "rest_sec": 90,
+          "rest_label": "1 min 30 sec",
+          "notes": [
+            "Target: mid-back and rear shoulders for posture and a tighter upper profile.",
+            "Use a weight similar to or slightly lighter than lat pulldowns.",
+            "It should heavily challenge your grip by the 12th rep.",
+            "Use the close-grip V-bar attachment.",
+            "Sit with knees slightly bent, pull the handle to your belly button.",
+            "Puff your chest out proud as you squeeze your back muscles."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "12 reps"
+            }
+          }
+        },
+        {
+          "id": "u1_curl",
+          "text": "Cable Bicep Curls \u2014 3 x 12",
+          "name": "Cable Bicep Curls",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "Sleek arm pull",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Target: the front of the arms to tighten skin and tone the upper arm.",
+            "Use light-to-moderate weight on the low cable with a straight bar or rope.",
+            "Sets 1 and 2: clean 12 reps. Set 3: go to failure.",
+            "Stand tall, pin your elbows firmly against your ribcage.",
+            "Curl the bar toward your shoulders.",
+            "Keep your elbows frozen so your arms do 100% of the work."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "Go to failure",
+              "failure": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Ab Section",
+      "items": [
+        {
+          "id": "u1_deadbug",
+          "text": "Deadbugs \u2014 3 x 10 per side",
+          "name": "Deadbugs",
+          "sets_target": 3,
+          "reps_label": "10 per side reps",
+          "checked": false,
+          "subtitle": "The Deep Core Stability Anchor",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Keeps your lower back safe and teaches your deep core to stabilize your hips without adding width to your waist.",
+            "Lie flat on your back, gluing your spine into the floor.",
+            "Raise your arms straight up and bend your knees to 90 degrees.",
+            "Slowly lower your right arm behind you while extending your left leg straight out just above the floor.",
+            "Return to the center and switch sides \u2014 10 reps per side (20 total)."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "10 per side (20 total)"
+            },
+            "2": {
+              "label": "10 per side (20 total)"
+            },
+            "3": {
+              "label": "10 per side (20 total)"
+            }
+          }
+        },
+        {
+          "id": "u1_knee_raise",
+          "text": "Hanging Knee Raises or Captain's Chair Raises \u2014 3 x 15",
+          "name": "Hanging Knee Raises or Captain's Chair Raises",
+          "sets_target": 3,
+          "reps_label": "15 reps",
+          "checked": false,
+          "subtitle": "The Lower Ab Wall Flatteners",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Targets the lower portion of the front ab wall by forcing your pelvis to tilt upward, tightening that lower pouch.",
+            "Hang from a pull-up bar or lock your forearms into a Captain's Chair frame.",
+            "Do not just swing your legs up \u2014 focus on rolling your pelvis upward and bringing your knees all the way up to your chest.",
+            "Squeeze your abs at the top for a split second, then lower slowly under complete control to prevent swinging."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "15 reps"
+            },
+            "2": {
+              "label": "15 reps"
+            },
+            "3": {
+              "label": "15 reps"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "plan_version": 6
+}

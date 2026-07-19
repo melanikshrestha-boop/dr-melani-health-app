@@ -1,0 +1,336 @@
+/* Gym — original Melani workout UI inside Fitness → Gym */
+
+.gx {
+  color: #fff;
+  font-family: "Times New Roman", Times, serif;
+  padding: 0 0 48px;
+}
+
+.gx-live {
+  display: inline-block;
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6eb4ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gx-h2,
+.gx-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.gx-title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 20px;
+}
+
+.gx-sub {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gx-err {
+  color: #f87171;
+  font-size: 13px;
+}
+
+.gx-back {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.gx-back:hover {
+  color: #fff;
+}
+
+.gx-btn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gx-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gx-btn-sm {
+  margin-bottom: 16px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.gx-section {
+  margin: 0 0 28px;
+}
+
+.gx-sec-title {
+  margin: 18px 0 10px;
+  font-size: 15px;
+  font-weight: 650;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Warm-up list — cross out like Melani */
+.gx-warmup {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gx-warmup-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 6px 0;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.gx-warmup-item.is-done {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Workout picker rows */
+.gx-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gx-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 12px;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+}
+
+.gx-nav-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gx-nav-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+  filter: invert(1);
+}
+
+.gx-nav-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gx-nav-text strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.gx-nav-text small {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gx-chev {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 16px;
+}
+
+/* Exercise cards */
+.gx-ex {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0 0 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.gx-ex.is-done {
+  opacity: 0.55;
+}
+
+.gx-ex-name {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 650;
+  color: #fff;
+}
+
+.gx-ex-sub {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+.gx-ex-meta {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gx-notes {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.gx-notes summary {
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.gx-notes ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.gx-sets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gx-set {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.gx-set:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.gx-set.is-done {
+  border-color: rgba(46, 234, 127, 0.35);
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: line-through;
+}
+
+.gx-set.is-fail.is-done {
+  border-color: rgba(251, 113, 133, 0.45);
+}
+
+.gx-set-box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+.gx-set.is-done .gx-set-box {
+  border-color: #2eea7f;
+  color: #2eea7f;
+  background: rgba(46, 234, 127, 0.12);
+}
+
+/* Rest timer overlay */
+.gx-timer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gx-timer-card {
+  width: min(320px, 100%);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.gx-timer-msg {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.35;
+}
+
+.gx-timer-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gx-timer-count {
+  margin: 0 0 8px;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.gx-timer-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.gx-timer-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}

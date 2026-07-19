@@ -1,0 +1,88 @@
+{
+  "day_key": "friday",
+  "title": "Friday (Glutes + Abs)",
+  "emoji": "\ud83c\udf32",
+  "subtitle": "",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "Treadmill (7 mins)",
+          "checked": false
+        },
+        {
+          "id": "w2",
+          "text": "Dynamic Stretches",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "glutes",
+      "title": "Glutes workout:",
+      "items": [
+        {
+          "id": "g1",
+          "text": "Barbell Hip Thrusts \u2014 4 x Failure; 2 sec holds (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "g2",
+          "text": "Bulgarian Split Squats w/ weights \u2014 3 x 10 (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "g3",
+          "text": "Romanian Deadlifts (RDLs) \u2014 4 x 10 (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "g4",
+          "text": "Hyperextensions \u2014 3 x 10 (progressive overload)",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Abs Workout:",
+      "items": [
+        {
+          "id": "a1",
+          "text": "Weighted Dead Bugs \u2014 4 x 12",
+          "checked": false
+        },
+        {
+          "id": "a2",
+          "text": "Hanging Leg Raises + side to side \u2014 4 x 10",
+          "checked": false
+        },
+        {
+          "id": "a3",
+          "text": "Side to Side w/ bottle in front \u2014 3 x 20",
+          "checked": false
+        },
+        {
+          "id": "a4",
+          "text": "Plank with hip dips \u2014 3 x 45 secs",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "cardio",
+      "title": "Cardio:",
+      "items": [
+        {
+          "id": "c1",
+          "text": "Incline Treadmill (30 mins)",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}

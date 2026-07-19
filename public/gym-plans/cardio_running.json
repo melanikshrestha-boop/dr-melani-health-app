@@ -1,0 +1,9 @@
+{
+  "day_key": "cardio_running",
+  "title": "Running",
+  "emoji": "\ud83c\udfc3",
+  "subtitle": "Progress tracker",
+  "tracker_mode": true,
+  "sections": [],
+  "plan_version": 2
+}

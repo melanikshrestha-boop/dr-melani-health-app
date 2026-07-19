@@ -1,0 +1,152 @@
+{
+  "day_key": "lower_two",
+  "title": "Lower body 2",
+  "emoji": "\ud83e\uddb5",
+  "subtitle": "Glute focus",
+  "session_mode": true,
+  "sections": [
+    {
+      "id": "main",
+      "title": "",
+      "items": [
+        {
+          "id": "l2_sumo",
+          "text": "Sumo Squats \u2014 3 x 12",
+          "name": "Sumo Squats",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "Gluteus Maximus \u00b7 Main Mass & Upper Shelf",
+          "rest_sec": 90,
+          "rest_label": "1 min 30 sec",
+          "notes": [
+            "Glute max is the largest muscle and forms the main bulk of the backside.",
+            "Wide feet stretch the lower base of the glute max.",
+            "Also works glute medius as a secondary mover."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "12 reps"
+            }
+          }
+        },
+        {
+          "id": "l2_abductor",
+          "text": "Seated Hip Abductor Machine \u2014 4 x 15",
+          "name": "Seated Hip Abductor Machine",
+          "sets_target": 4,
+          "reps_label": "15 reps",
+          "checked": false,
+          "subtitle": "The Hip Multi-Angle Method",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "15 to 20 reps per set.",
+            "High volume to pump blood into the side glutes.",
+            "Sets 3 and 4 go to absolute failure (0 RIR).",
+            "Rest 1 minute between sets."
+          ],
+          "instructions": [
+            "Sets 1 and 2: lean torso forward 45 degrees, chest up.",
+            "Pushing out while leaned forward targets the upper outer shelf of your glutes.",
+            "Sets 3 and 4: sit upright or slightly leaned back into the pad.",
+            "Leaning back shifts tension to the middle-side of your hip to fill hip dips."
+          ],
+          "notes_label": "Notes + Instructions",
+          "set_specs": {
+            "1": {
+              "label": "15 reps"
+            },
+            "2": {
+              "label": "15 reps"
+            },
+            "3": {
+              "label": "Go to failure",
+              "failure": true
+            },
+            "4": {
+              "label": "Go to failure",
+              "failure": true
+            }
+          }
+        },
+        {
+          "id": "l2_backext",
+          "text": "Glute-Focused Back Extensions \u2014 3 x 12",
+          "name": "Glute-Focused Back Extensions",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "45-Degree Bench",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Builds the upper shelf of the glutes with zero balance needed.",
+            "Set the thigh pad just below your hip crease.",
+            "Turn your toes out 45 degrees.",
+            "Round your upper back and tuck your chin. This locks out your lower back so your glutes do the work.",
+            "Hinge down, squeeze your butt to pull up.",
+            "Stop when hips line up with legs. Do not arch your lower back at the top."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "Go to failure",
+              "failure": true
+            }
+          }
+        },
+        {
+          "id": "l2_stepup",
+          "text": "The Glute-Biased Step-Up \u2014 3 x 12",
+          "name": "The Glute-Biased Step-Up",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "rest_sec": 90,
+          "rest_label": "1 min 30 sec",
+          "notes": [
+            "Rest 60 seconds between legs.",
+            "Rest 1 minute 30 seconds between sets."
+          ],
+          "instructions": [
+            "Use a Smith machine or squat rack for stability.",
+            "Set a flat bench or plyo box inside the rack.",
+            "Hold the rack frame with one hand so you load your glutes, not your balance.",
+            "Box height: thigh roughly parallel at the top. Too high rounds your lower back. Too low skips the stretch.",
+            "Lean chest forward about 30 degrees over your thigh. Hinge hips back before you step.",
+            "Drive up through the heel of your top foot.",
+            "Do not push off the floor with your back foot. Top leg does all the work.",
+            "Lower down slowly over 3 seconds."
+          ],
+          "notes_label": "Notes + Instructions",
+          "set_specs": {
+            "1": {
+              "label": "12 reps \u00b7 1 RIR"
+            },
+            "2": {
+              "label": "12 reps \u00b7 1 RIR"
+            },
+            "3": {
+              "label": "12 reps \u00b7 1 RIR"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "plan_version": 17
+}

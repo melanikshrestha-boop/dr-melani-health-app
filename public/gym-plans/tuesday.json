@@ -1,0 +1,88 @@
+{
+  "day_key": "tuesday",
+  "title": "Tuesday (Upper Body + Abs)",
+  "emoji": "\ud83d\udcaa",
+  "subtitle": "",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "7 mins on treadmill",
+          "checked": false
+        },
+        {
+          "id": "w2",
+          "text": "Dynamic stretches",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "upper",
+      "title": "Upper Body:",
+      "items": [
+        {
+          "id": "u1",
+          "text": "Lat Pulldown \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "u2",
+          "text": "Seated Cable Rows \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "u3",
+          "text": "Bent Over Rows \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "u4",
+          "text": "Lateral Raises \u2014 3 x 15",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Abs:",
+      "items": [
+        {
+          "id": "a1",
+          "text": "Hanging Leg Raises \u2014 3 x 12",
+          "checked": false
+        },
+        {
+          "id": "a2",
+          "text": "Kneeling Cable Crunch \u2014 3 x 8 (progressive overload)",
+          "checked": false
+        },
+        {
+          "id": "a3",
+          "text": "Plank w hip dips \u2014 3 x 45 secs",
+          "checked": false
+        },
+        {
+          "id": "a4",
+          "text": "Side Plank + Reach-Through Twist \u2014 3 x 45 secs",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "cardio",
+      "title": "Cardio:",
+      "items": [
+        {
+          "id": "c1",
+          "text": "Stair master (30 mins)",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}

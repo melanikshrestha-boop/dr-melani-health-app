@@ -1,0 +1,171 @@
+{
+  "day_key": "upper_abs_two",
+  "title": "Upper body + Abs 2",
+  "emoji": "\ud83d\udcaa",
+  "subtitle": "Bust-lift & under-arm sleeking",
+  "session_mode": true,
+  "sections": [
+    {
+      "id": "upper",
+      "title": "Upper Body",
+      "items": [
+        {
+          "id": "u2_incline",
+          "text": "Incline Dumbbell Chest Press \u2014 3 x 12",
+          "name": "Incline Dumbbell Chest Press",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "Lift & firm the bust \u00b7 bypass the shoulders",
+          "rest_sec": 90,
+          "rest_label": "1 min 30 sec",
+          "notes": [
+            "Target: the upper chest to lift and firm the bust area while safely bypassing the shoulder joints.",
+            "Set the bench to a 30-degree incline.",
+            "Pick a weight where reps 11 and 12 are genuinely tough to push up.",
+            "Feet flat on the floor, elbows tucked in an arrow shape at your sides.",
+            "Press the dumbbells straight up, then lower slowly for a deep stretch at the bottom."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "12 reps"
+            }
+          }
+        },
+        {
+          "id": "u2_lateral",
+          "text": "Dumbbell Lateral Raises \u2014 3 x 15",
+          "name": "Dumbbell Lateral Raises",
+          "sets_target": 3,
+          "reps_label": "15 reps",
+          "checked": false,
+          "subtitle": "Kept for subtle definition",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Target: keeping the muscle active so it stays tight and firm against the bone, preventing softness.",
+            "Use very light weights (like 5 lb dumbbells).",
+            "High reps and light weight here purely to flush blood into the muscle and tone the skin \u2014 not to build size.",
+            "Stand tall, lift the weights out to your sides until they are level with your shoulders.",
+            "Lower them slowly \u2014 do not swing your body."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "15 reps"
+            },
+            "2": {
+              "label": "15 reps"
+            },
+            "3": {
+              "label": "15 reps"
+            }
+          }
+        },
+        {
+          "id": "u2_pushdown",
+          "text": "Tricep Rope Pushdowns \u2014 3 x 15",
+          "name": "Tricep Rope Pushdowns",
+          "sets_target": 3,
+          "reps_label": "15 reps",
+          "checked": false,
+          "subtitle": "Under-arm sleeking",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Target: the back of the arms to completely tighten and tone down the under-arm skin.",
+            "Select a weight on the cable machine that allows you to get a massive, deep burning sensation in the back of your arms by the 15th rep.",
+            "Pin your elbows firmly against your ribs and do not let them move.",
+            "Push the rope straight down to the floor, and forcefully flare the two ends of the rope completely apart at the very bottom to maximize the skin-tightening squeeze."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "15 reps"
+            },
+            "2": {
+              "label": "15 reps"
+            },
+            "3": {
+              "label": "15 reps"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "abs",
+      "title": "Ab Section",
+      "items": [
+        {
+          "id": "u2_hslr",
+          "text": "Hanging Straight-Leg Raises \u2014 3 x 12",
+          "name": "Hanging Straight-Leg Raises",
+          "sets_target": 3,
+          "reps_label": "12 reps",
+          "checked": false,
+          "subtitle": "The Maximum Leverage Front Core Builder",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Keeping your legs straight forces your lower and upper front ab wall to fight heavy leverage.",
+            "Deeply conditions the front of your stomach without touching your sides.",
+            "Hang completely straight from a pull-up bar.",
+            "Without swinging or momentum, contract your abs to lift your legs straight out in front until parallel to the floor (an L shape).",
+            "Hold for a split second at the top, then lower slowly under strict control."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "12 reps"
+            },
+            "2": {
+              "label": "12 reps"
+            },
+            "3": {
+              "label": "12 reps"
+            }
+          }
+        },
+        {
+          "id": "u2_deadbug",
+          "text": "Deadbugs \u2014 3 x 10 per side",
+          "name": "Deadbugs",
+          "sets_target": 3,
+          "reps_label": "10 per side reps",
+          "checked": false,
+          "subtitle": "The Deep Core Stability Anchor",
+          "rest_sec": 60,
+          "rest_label": "1 min",
+          "notes": [
+            "Keeps your lower back safe and teaches your deep core to stabilize your hips without adding width to your waist.",
+            "Lie flat on your back, gluing your spine into the floor.",
+            "Raise your arms straight up and bend your knees to 90 degrees.",
+            "Slowly lower your right arm behind you while extending your left leg straight out just above the floor.",
+            "Return to the center and switch sides \u2014 10 reps per side (20 total)."
+          ],
+          "notes_label": "Notes",
+          "set_specs": {
+            "1": {
+              "label": "10 per side (20 total)"
+            },
+            "2": {
+              "label": "10 per side (20 total)"
+            },
+            "3": {
+              "label": "10 per side (20 total)"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "plan_version": 6
+}

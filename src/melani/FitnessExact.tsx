@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CIRC,
   DAILY_SUPPLEMENTS,
-  GYM_WEEK,
   MACRO_CURRENT,
   MACRO_GOALS,
   MEAL_PRESETS,
@@ -16,7 +15,9 @@ import {
   todayKey,
   type ConsumeLog,
 } from "./data";
+import { GymExact } from "./GymExact";
 import "./fitness-exact.css";
+import "./gym-exact.css";
 
 const CONSUME_KEY = "dr-melani-meals-consume";
 
@@ -425,17 +426,8 @@ function MealsPanel() {
 }
 
 function GymPanel() {
-  return (
-    <section className="fx-section">
-      <h2 className="fx-h2">GYM</h2>
-      {GYM_WEEK.map((d) => (
-        <p key={d.day} className="fx-line">
-          <span className="fx-key">{d.day}:</span>
-          <span className="fx-val">{d.title}</span>
-        </p>
-      ))}
-    </section>
-  );
+  // Full Melani gym: warm-up, plans, sets, rest timer
+  return <GymExact />;
 }
 
 function BodyPanel() {

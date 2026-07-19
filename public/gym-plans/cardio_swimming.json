@@ -1,0 +1,16 @@
+{
+  "day_key": "cardio_swimming",
+  "title": "Swimming",
+  "emoji": "\ud83c\udfca",
+  "subtitle": "Pool day",
+  "session_mode": true,
+  "placeholder": "Swim workout coming soon. You'll add this next.",
+  "sections": [
+    {
+      "id": "main",
+      "title": "",
+      "items": []
+    }
+  ],
+  "plan_version": 2
+}

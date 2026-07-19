@@ -1,0 +1,47 @@
+{
+  "day_key": "sunday",
+  "title": "Sunday (Leg day)",
+  "emoji": "\ud83e\uddb5",
+  "subtitle": "Edit this plan to match your leg routine",
+  "sections": [
+    {
+      "id": "warmup",
+      "title": "Warm up:",
+      "items": [
+        {
+          "id": "w1",
+          "text": "7 mins on treadmill",
+          "checked": false
+        },
+        {
+          "id": "w2",
+          "text": "Dynamic stretches \u2014 leg swings, hip circles",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "legs",
+      "title": "Leg workout:",
+      "items": [
+        {
+          "id": "l1",
+          "text": "Add your leg exercises here \u2014 tap Edit plan",
+          "checked": false
+        }
+      ]
+    },
+    {
+      "id": "cardio",
+      "title": "Cardio:",
+      "items": [
+        {
+          "id": "c1",
+          "text": "Optional cardio",
+          "checked": false
+        }
+      ]
+    }
+  ],
+  "plan_version": 3
+}
