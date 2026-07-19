@@ -4,34 +4,33 @@
    ═══════════════════════════════════════════ */
 
 :root {
-  /* Sidebar / chrome — Notion UI (sans) */
+  /* Sidebar / chrome — same black as page (no two-tone) */
   --notion-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji",
     "Segoe UI Symbol";
-  /* Page writing — Notion “Serif” style (same idea as Style → Serif) */
   --notion-serif: Lyon-Text, Georgia, "Times New Roman", ui-serif, serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  /* Default content font = serif (how you write inside Notion) */
   --notion-font: var(--notion-serif);
   --notion-mono: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono",
     Courier, monospace;
 
-  --bg: #ffffff;
-  --sidebar-bg: #f7f6f3;
-  --sidebar-hover: rgba(55, 53, 47, 0.08);
-  --sidebar-active: rgba(55, 53, 47, 0.08);
-  --text: rgb(55, 53, 47);
-  --text-muted: rgba(55, 53, 47, 0.65);
-  --text-faint: rgba(55, 53, 47, 0.45);
-  --text-placeholder: rgba(55, 53, 47, 0.4);
-  --border: rgba(55, 53, 47, 0.09);
+  /* One canvas — sidebar = page = pure black */
+  --bg: #000000;
+  --sidebar-bg: #000000;
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-active: rgba(255, 255, 255, 0.12);
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.65);
+  --text-faint: rgba(255, 255, 255, 0.4);
+  --text-placeholder: rgba(255, 255, 255, 0.35);
+  --border: rgba(255, 255, 255, 0.1);
   --blue: #2383e2;
   --blue-soft: rgba(35, 131, 226, 0.14);
-  --selection: rgba(35, 131, 226, 0.28);
-  --callout-bg: rgba(241, 241, 239, 1);
-  --code-bg: rgba(247, 246, 243, 1);
-  --shadow-menu: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px,
-    rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+  --selection: rgba(35, 131, 226, 0.35);
+  --callout-bg: rgba(255, 255, 255, 0.06);
+  --code-bg: rgba(255, 255, 255, 0.05);
+  --shadow-menu: rgba(0, 0, 0, 0.5) 0px 0px 0px 1px,
+    rgba(0, 0, 0, 0.45) 0px 8px 24px;
   --sidebar-w: 240px;
   --page-max: 900px;
 }
@@ -114,13 +113,14 @@ textarea {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
   height: 100%;
-  background: var(--sidebar-bg);
-  border-right: 1px solid transparent;
+  background: var(--sidebar-bg); /* same black as page */
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 0;
   user-select: none;
   transition: margin 0.15s ease, opacity 0.15s ease;
+  color: var(--text);
 }
 
 .sidebar.is-closed {
@@ -159,14 +159,45 @@ textarea {
   width: 20px;
   height: 20px;
   border-radius: 3px;
-  background: #37352f;
-  color: #fff;
+  background: #fff;
+  color: #000;
   font-size: 11px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Collapse toggle for parent pages (Fitness, Hygiene, My Data…) */
+.page-collapse-btn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-collapse-btn:hover {
+  background: var(--sidebar-hover);
+  color: var(--text);
+}
+
+.page-collapse-btn.is-open {
+  color: var(--text-muted);
+}
+
+.page-row-main.has-kids {
+  padding-left: 0;
 }
 
 .workspace-name {
@@ -792,10 +823,12 @@ textarea {
   width: 320px;
   max-height: 320px;
   overflow-y: auto;
-  background: #fff;
+  background: #111;
   border-radius: 6px;
   box-shadow: var(--shadow-menu);
   padding: 6px 0;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
 }
 
 .slash-menu-label {
@@ -880,12 +913,14 @@ textarea {
   z-index: 80;
   width: 352px;
   max-width: min(352px, calc(100vw - 48px));
-  background: #fff;
+  background: #111;
   border-radius: 8px;
   box-shadow: var(--shadow-menu);
   display: flex;
   flex-direction: column;
   max-height: 380px;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
   overflow: hidden;
   font-family: var(--notion-font);
 }
@@ -1102,10 +1137,11 @@ textarea {
   top: 100%;
   z-index: 40;
   min-width: 180px;
-  background: #fff;
+  background: #111;
   border-radius: 6px;
   box-shadow: var(--shadow-menu);
   padding: 4px 0;
+  border: 1px solid rgba(255,255,255,0.1);
 }
 .more-menu button {
   display: block;
@@ -1135,10 +1171,11 @@ textarea {
 }
 .search-modal {
   width: min(640px, calc(100vw - 32px));
-  background: #fff;
+  background: #111;
   border-radius: 10px;
   box-shadow: var(--shadow-menu);
   overflow: hidden;
+  color: #fff;
 }
 .search-modal-input {
   width: 100%;

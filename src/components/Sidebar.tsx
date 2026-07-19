@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Page } from "../types";
 
 type Props = {
@@ -18,11 +19,34 @@ type Props = {
   onReimport?: () => void;
 };
 
+const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
+
+function loadCollapsed(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    if (raw) return JSON.parse(raw) as Record<string, boolean>;
+  } catch {
+    /* ignore */
+  }
+  // Default: Fitness collapsed so Sleep/Meals/Gym/Body stay hidden until toggled
+  return { "pg-fitness": true, "pg-hygiene": true, "pg-my-data": true };
+}
+
+function saveCollapsed(map: Record<string, boolean>) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 function PageTreeItem({
   page,
   pages,
   activePageId,
   depth,
+  collapsed,
+  onToggleCollapse,
   onSelect,
   onDeletePage,
   onToggleFavorite,
@@ -31,21 +55,41 @@ function PageTreeItem({
   pages: Page[];
   activePageId: string;
   depth: number;
+  collapsed: Record<string, boolean>;
+  onToggleCollapse: (id: string) => void;
   onSelect: (id: string) => void;
   onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string) => void;
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
+  const hasKids = kids.length > 0;
+  const isCollapsed = hasKids && !!collapsed[page.id];
 
   return (
     <>
       <div
         className={`page-row${page.id === activePageId ? " is-active" : ""}`}
-        style={{ paddingLeft: 2 + depth * 14 }}
+        style={{ paddingLeft: 2 + depth * 12 }}
       >
+        {hasKids ? (
+          <button
+            type="button"
+            className={`page-collapse-btn${isCollapsed ? "" : " is-open"}`}
+            title={isCollapsed ? "Show sub-pages" : "Hide sub-pages"}
+            aria-expanded={!isCollapsed}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse(page.id);
+            }}
+          >
+            {isCollapsed ? "▸" : "▾"}
+          </button>
+        ) : (
+          <span style={{ width: 22, flexShrink: 0 }} />
+        )}
         <button
           type="button"
-          className="page-row-main"
+          className={`page-row-main${hasKids ? " has-kids" : ""}`}
           onClick={() => onSelect(page.id)}
         >
           <span className="page-emoji">
@@ -81,18 +125,21 @@ function PageTreeItem({
           </button>
         </div>
       </div>
-      {kids.map((child) => (
-        <PageTreeItem
-          key={child.id}
-          page={child}
-          pages={pages}
-          activePageId={activePageId}
-          depth={depth + 1}
-          onSelect={onSelect}
-          onDeletePage={onDeletePage}
-          onToggleFavorite={onToggleFavorite}
-        />
-      ))}
+      {!isCollapsed &&
+        kids.map((child) => (
+          <PageTreeItem
+            key={child.id}
+            page={child}
+            pages={pages}
+            activePageId={activePageId}
+            depth={depth + 1}
+            collapsed={collapsed}
+            onToggleCollapse={onToggleCollapse}
+            onSelect={onSelect}
+            onDeletePage={onDeletePage}
+            onToggleFavorite={onToggleFavorite}
+          />
+        ))}
     </>
   );
 }
@@ -113,6 +160,24 @@ export function Sidebar({
   onClose,
   onReimport,
 }: Props) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(loadCollapsed);
+
+  // Auto-expand parent when you're on a child page (so you can see where you are)
+  useEffect(() => {
+    const active = pages.find((p) => p.id === activePageId);
+    if (active?.parentId && collapsed[active.parentId]) {
+      // keep collapsed unless user opens — don't force expand
+    }
+  }, [activePageId, pages, collapsed]);
+
+  function toggleCollapse(id: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
   const topPages = pages.filter((p) => p.parentId === null);
   const favorites = pages.filter((p) => p.favorite);
   const home = pages.find((p) => p.id === "pg-home") || topPages[0];
@@ -216,6 +281,8 @@ export function Sidebar({
             pages={pages}
             activePageId={activePageId}
             depth={0}
+            collapsed={collapsed}
+            onToggleCollapse={toggleCollapse}
             onSelect={onSelect}
             onDeletePage={onDeletePage}
             onToggleFavorite={onToggleFavorite}
@@ -240,7 +307,7 @@ export function Sidebar({
         <button
           type="button"
           className="sidebar-new"
-          style={{ color: "rgba(55,53,47,0.55)", fontSize: 12 }}
+          style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}
           onClick={onReimport}
         >
           <span>↺</span>
@@ -250,7 +317,7 @@ export function Sidebar({
 
       <div className="sidebar-footer">
         <div className="sidebar-footer-note">
-          Works like Notion · ⌘K search · / blocks · Tab indent
+          ▸ / ▾ on Fitness hides Sleep · Meals · Gym · Body
         </div>
       </div>
     </aside>
