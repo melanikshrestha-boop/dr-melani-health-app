@@ -3,16 +3,42 @@
  * Quote + subnav + sleep/brain fog/weekly chart exactly like the app screenshot.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+// useState used for consume checklist
 import {
   CIRC,
+  DAILY_SUPPLEMENTS,
   GYM_WEEK,
   MACRO_CURRENT,
   MACRO_GOALS,
   MEAL_PRESETS,
   pct,
   PROFILE,
+  todayKey,
+  type ConsumeLog,
 } from "./data";
 import "./fitness-exact.css";
+
+const CONSUME_KEY = "dr-melani-meals-consume";
+
+type DayLog = Record<string, ConsumeLog>;
+
+function loadDayLog(day: string): DayLog {
+  try {
+    const raw = localStorage.getItem(`${CONSUME_KEY}:${day}`);
+    if (raw) return JSON.parse(raw) as DayLog;
+  } catch {
+    /* ignore */
+  }
+  return {};
+}
+
+function saveDayLog(day: string, log: DayLog) {
+  try {
+    localStorage.setItem(`${CONSUME_KEY}:${day}`, JSON.stringify(log));
+  } catch {
+    /* ignore */
+  }
+}
 
 export type FitnessTab = "sleep" | "meals" | "gym" | "body";
 
@@ -207,6 +233,7 @@ function SleepPanel() {
 }
 
 function MealsPanel() {
+  const day = todayKey();
   const g = MACRO_GOALS;
   const c = MACRO_CURRENT;
   const p = {
@@ -219,13 +246,63 @@ function MealsPanel() {
   const off = (circ: number, percent: number) =>
     (circ * (1 - percent / 100)).toFixed(2);
 
+  const [log, setLog] = useState<DayLog>(() => loadDayLog(day));
+
+  function patch(id: string, next: Partial<ConsumeLog>) {
+    setLog((prev) => {
+      const cur = prev[id] || { done: false, time: "" };
+      const merged = { ...cur, ...next };
+      const out = { ...prev, [id]: merged };
+      saveDayLog(day, out);
+      return out;
+    });
+  }
+
+  function row(id: string, label: string, sub: string, defaultTime: string) {
+    const entry = log[id] || { done: false, time: defaultTime };
+    return (
+      <div
+        key={id}
+        className={`consume-row${entry.done ? " is-done" : ""}`}
+      >
+        <button
+          type="button"
+          className={`consume-check${entry.done ? " is-on" : ""}`}
+          aria-label={entry.done ? "Undo" : "Mark done"}
+          onClick={() => {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, "0");
+            const mm = String(now.getMinutes()).padStart(2, "0");
+            patch(id, {
+              done: !entry.done,
+              time: !entry.done
+                ? entry.time || `${hh}:${mm}`
+                : entry.time,
+            });
+          }}
+        >
+          {entry.done ? "✓" : ""}
+        </button>
+        <div className="consume-main">
+          <span className="consume-name">{label}</span>
+          {sub ? <span className="consume-sub">{sub}</span> : null}
+        </div>
+        <input
+          className="consume-time"
+          type="text"
+          placeholder="time"
+          value={entry.time}
+          onChange={(e) => patch(id, { time: e.target.value })}
+          aria-label={`Time for ${label}`}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="fx-section">
         <h2 className="fx-h2">TODAY'S MACROS</h2>
-        <p className="fx-meta">
-          Goal {g.protein_g}g protein · rings fill as you log food
-        </p>
         <div className="macro-ring-wrap">
           <svg className="macro-rings" viewBox="0 0 200 200" aria-hidden>
             <circle className="ring-track" cx="100" cy="100" r="88" />
@@ -307,23 +384,41 @@ function MealsPanel() {
           </li>
         </ul>
       </section>
+
+      {/* Everything you consume today — meals, water, supplements */}
       <section className="fx-section">
-        <h2 className="fx-h2">USUALS</h2>
-        {MEAL_PRESETS.map((m) => (
-          <div key={m.id} className="fx-usual">
-            <p className="fx-usual-title">{m.title}</p>
-            <p className="fx-meta">
-              {m.calories} cal · {m.protein_g}g P · {m.carbs_g}g C · {m.fat_g}g F
-            </p>
-          </div>
-        ))}
+        <h2 className="fx-h2">MEALS</h2>
+        {MEAL_PRESETS.map((m) =>
+          row(
+            `meal-${m.id}`,
+            m.title,
+            `${m.calories} cal · ${m.protein_g}g P`,
+            ""
+          )
+        )}
+        {row("meal-other", "Other meal / snack", "", "")}
       </section>
+
       <section className="fx-section">
         <h2 className="fx-h2">WATER</h2>
-        <p className="fx-line">
-          <span className="fx-key">Goal:</span>
-          <span className="fx-val">{PROFILE.waterGoalMl} ml</span>
-        </p>
+        {row(
+          "water",
+          `Water · ${PROFILE.waterGoalMl} ml goal`,
+          "",
+          ""
+        )}
+      </section>
+
+      <section className="fx-section">
+        <h2 className="fx-h2">SUPPLEMENTS</h2>
+        {DAILY_SUPPLEMENTS.map((s) =>
+          row(
+            `sup-${s.id}`,
+            s.name,
+            s.dose,
+            s.defaultTime
+          )
+        )}
       </section>
     </>
   );

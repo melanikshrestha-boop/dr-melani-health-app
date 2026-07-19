@@ -59,7 +59,6 @@ export function buildDrMelaniWorkspace(): Workspace {
   const WEARABLES = "pg-wearables";
   const ANALYTICS = "pg-analytics";
   const HARD75 = "pg-75hard";
-  const SUPPS = "pg-supplements";
   const GROCERY = "pg-grocery";
   const DOCTOR = "pg-doctor";
   const GOALS = "pg-goals";
@@ -103,7 +102,7 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("heading2", "Health"),
       b("bullet", "Fitness — Sleep · Meals · Gym · Body"),
       b("bullet", "Data — profile, period, labs (one page)"),
-      b("bullet", "75 Hard · Supplements · Grocery"),
+      b("bullet", "75 Hard · Grocery"),
       b("heading2", "Life (from your old Notion)"),
       b("bullet", "Personal Life · Books · Document Hub"),
       b("bullet", "Goals Tracker · To Do · Journal"),
@@ -365,15 +364,6 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("divider"),
       b("paragraph", "Day number: ___ / 75"),
       b("paragraph", "Start date: ___"),
-    ]),
-
-    // ── Supplements ──
-    page(SUPPS, "Supplements", "💊", null, [
-      b("heading1", "Supplements"),
-      b("bullet", "Vitamin D"),
-      b("bullet", "Creatine monohydrate (hydrate)"),
-      b("bullet", "Patanjali / Ayurvedic — brand-check carefully"),
-      b("todo", "Review stack with Dr. Ververis if new"),
     ]),
 
     // ── Grocery ──
@@ -670,8 +660,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     pages,
     activePageId: HOME,
     sidebarOpen: true,
-    exportVersion: 7,
+    exportVersion: 8,
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 7;
+export const DR_MELANI_EXPORT_VERSION = 8;

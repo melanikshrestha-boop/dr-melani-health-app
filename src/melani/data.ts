@@ -61,6 +61,41 @@ export const MEAL_PRESETS = [
   },
 ];
 
+/** Daily stack — everything you take (meals section) */
+export const DAILY_SUPPLEMENTS = [
+  {
+    id: "vit-d",
+    name: "Vitamin D",
+    dose: "",
+    defaultTime: "after breakfast",
+  },
+  {
+    id: "ashwa",
+    name: "Ashwagandha",
+    dose: "Patanjali",
+    defaultTime: "7:00 PM",
+  },
+  {
+    id: "creatine",
+    name: "Creatine",
+    dose: "Monohydrate",
+    defaultTime: "with water",
+  },
+];
+
+export type ConsumeLog = {
+  done: boolean;
+  time: string;
+};
+
+export function todayKey(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export const LAB_STATUS = [
   { short: "LDL", value: "120", unit: "mg/dL", badge: "HIGH", chip: "high" },
   { short: "TC", value: "207", unit: "mg/dL", badge: "HIGH", chip: "high" },
