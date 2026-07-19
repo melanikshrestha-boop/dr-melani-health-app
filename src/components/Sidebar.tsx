@@ -308,13 +308,13 @@ export function Sidebar({
           onClick={onReimport}
         >
           <span>↺</span>
-          <span>Re-import Dr. Melani</span>
+          <span>Restore full workspace</span>
         </button>
       )}
 
       <div className="sidebar-footer">
         <div className="sidebar-footer-note">
-          ▸ / ▾ on Fitness hides Sleep · Meals · Gym · Body
+          Your second brain · health + life · auto-saves · / for blocks
         </div>
       </div>
     </aside>

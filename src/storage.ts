@@ -1,7 +1,7 @@
 import type { Block, Database, Page, Workspace } from "./types";
 import { buildDrMelaniWorkspace, DR_MELANI_EXPORT_VERSION } from "./drMelaniExport";
 
-const KEY = "notion-like-workspace-v3-software";
+const KEY = "notion-like-workspace-v4-full";
 const VERSION_KEY = "notion-like-export-version";
 
 export function uid(): string {

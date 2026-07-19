@@ -376,9 +376,11 @@ export function PageEditor({
             });
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" || e.key === "ArrowDown") {
               e.preventDefault();
-              const first = page.blocks[0];
+              const first = page.blocks.find(
+                (x) => x.type !== "divider" && x.type !== "page_link"
+              );
               if (first) setFocusId(first.id);
             }
           }}

@@ -143,9 +143,15 @@ export function BlockRow({
             ? "Heading 2"
             : block.type === "heading3"
               ? "Heading 3"
-              : empty
-                ? "Type '/' for commands"
-                : ""
+              : block.type === "todo"
+                ? "To-do"
+                : block.type === "bullet"
+                  ? "List"
+                  : block.type === "quote"
+                    ? "Empty quote"
+                    : empty
+                      ? "Type something, or press '/' for commands…"
+                      : ""
       }
       onChange={(e) => {
         onChange(block.id, { text: e.target.value });

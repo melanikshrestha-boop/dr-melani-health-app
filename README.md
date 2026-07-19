@@ -1,41 +1,45 @@
-# Notion-like
+# Dr. Melani — personal workspace
 
-A browser workspace that looks and feels like **Notion** — light gray sidebar, white page canvas, big title, hover block handles, and `/` slash commands.
+**This replaces Notion for you.** One black workspace: health (Dr. Melani systems) + life pages (Books, Goals, Docs, Meetings, …).
 
-Built for Melani as a clean Notion-style notes / pages app.
-
-## Features
-
-- **Sidebar** — workspace name, page list, New page, delete page  
-- **Pages** — emoji icon, large Untitled title, cover/comment chips  
-- **Blocks** — text, H1–H3, bullets, numbered, to-do, toggle, quote, divider, callout, code  
-- **Slash menu** — type `/` on an empty line (arrow keys + Enter)  
-- **Markdown shortcuts** — `# ` `## ` `### ` `- ` `* ` `> ` `[] ` at start of line  
-- **Keyboard** — Enter = new block, Backspace on empty = delete block  
-- **Auto-save** — everything stores in `localStorage` in your browser  
-
-## Run locally
+## Run
 
 ```bash
-cd notion-like
+cd ~/notion-like
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open **http://127.0.0.1:5173/**
 
-## Build for production
+## What’s inside
 
-```bash
-npm run build
-npm run preview
-```
+### Health (live-style pages)
+- **Fitness** — Sleep · Meals · Gym · Body (same UI as the Melani app)
+- **My Data** — Labs neon chips, period tracker, profile
+- **75 Hard**, supplements, grocery, My doctor notes
 
-## Stack
+### Life (migrated from your Notion “Live Longer” structure)
+- Books (+ Innovators, History of Photography)
+- Real Life · Document Hub · Meetings · Agents
+- Goals Tracker · To Do · Journal
+- Classes · Content · Finance · Startups · Reading list
+- OpenNeuro notes · Neurotech · Work · Hygiene
 
-- Vite + React + TypeScript  
-- Pure CSS matched to Notion’s default light theme (no UI kit)
+## Write like Notion
+- Click title → type  
+- **Enter** = new block  
+- **/** = headings, lists, todos, sub-page, database  
+- **Tab / Shift+Tab** = indent  
+- Drag **⋮⋮** = reorder  
+- **⌘K** = search  
+- Everything **auto-saves** in this browser  
 
-## Not a full Notion clone
+## Fitness sub-pages
+Use **▸ / ▾** next to Fitness (and Hygiene / My Data) to hide or show nested pages in the sidebar.
 
-This is a **visual + interaction** clone for pages and blocks. It does not include multiplayer, databases, or cloud sync yet — perfect base to grow.
+## Restore
+Sidebar → **Restore full workspace** reloads the full page tree (keeps your structure if you only edit text inside pages).
+
+## Related
+Live logging still works on the Melani health server: **http://127.0.0.1:8781** (PIN 8299).

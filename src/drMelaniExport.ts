@@ -69,31 +69,50 @@ export function buildDrMelaniWorkspace(): Workspace {
   const TODO = "pg-todo";
   const JOURNAL = "pg-journal";
   const NEURO = "pg-neurotech";
+  // Personal pages (migrated from your old Notion — Live Longer workspace)
+  const BOOKS = "pg-books";
+  const BOOK_INNOVATORS = "pg-book-innovators";
+  const BOOK_PHOTO = "pg-book-photo";
+  const REAL_LIFE = "pg-real-life";
+  const OPENNEURO = "pg-openneuro";
+  const DOC_HUB = "pg-doc-hub";
+  const MEETINGS = "pg-meetings";
+  const AGENTS = "pg-agents";
+  const CLASSES = "pg-classes";
+  const CONTENT = "pg-content";
+  const FINANCE = "pg-finance";
+  const STARTUPS = "pg-startups";
+  const READING = "pg-reading-list";
 
   const pages: Page[] = [
     // ── Home ──
-    page(HOME, "Home", "🏠", null, [
-      b("callout", "Dr. Melani workspace — full health system exported into Notion light mode."),
-      b("heading2", "Jump to"),
-      b("bullet", "→ Fitness (Sleep · Meals · Gym · Body)"),
-      b("bullet", "→ Hygiene (showers · hair · AM/PM skincare)"),
-      b("bullet", "→ My Data (labs · period · wearables)"),
-      b("bullet", "→ Health Analytics (flags + trends)"),
-      b("bullet", "→ 75 Hard (accountability)"),
-      b("bullet", "→ My doctor (chat partner notes)"),
+    page(HOME, "Home", "⌂", null, [
+      b("heading1", "Home"),
+      b(
+        "paragraph",
+        "This is your full workspace now — health + life + work. No more Notion."
+      ),
+      b("heading2", "Health"),
+      b("bullet", "Fitness — Sleep · Meals · Gym · Body"),
+      b("bullet", "My Data — labs, period, profile"),
+      b("bullet", "75 Hard · Supplements · Grocery"),
+      b("heading2", "Life (from your old Notion)"),
+      b("bullet", "Books · Real Life · Document Hub"),
+      b("bullet", "Goals Tracker · To Do · Journal"),
+      b("bullet", "Meetings · Classes · Content · Finance"),
+      b("heading2", "Build"),
+      b("bullet", "Neurotech · Work · OpenNeuro notes"),
       b("divider"),
-      b("heading2", "Who this is for"),
-      b("paragraph", "Melani Shrestha · age 18 · female · 5 ft 0 in"),
-      b("paragraph", "Provider: Dr. Megan Ververis · migraines + lipid/metabolic monitoring"),
-      b("paragraph", "Patient ID: 2581279882"),
+      b("heading2", "How to write here"),
+      b("paragraph", "Click any page → type. Press Enter for a new line."),
+      b("paragraph", "Type / for headings, lists, todos, pages, databases."),
+      b("paragraph", "Tab indents · drag ⋮⋮ to reorder · everything auto-saves."),
       b("divider"),
-      b("heading2", "Today’s priorities"),
-      b("todo", "Log sleep (bedtime + wake)"),
-      b("todo", "Brain fog Yes / No"),
-      b("todo", "Water toward gallon (75 Hard) / 4000 ml goal"),
-      b("todo", "Log meals + protein"),
-      b("todo", "Gym / second outdoor workout"),
-      b("todo", "Read 10 pages + progress photo"),
+      b("heading2", "Today"),
+      b("todo", "Log sleep + brain fog"),
+      b("todo", "Meals + water"),
+      b("todo", "One deep work block"),
+      b("todo", "Read 10 pages (75 Hard)"),
     ]),
 
     // ── Fitness hub ──
@@ -496,7 +515,10 @@ export function buildDrMelaniWorkspace(): Workspace {
 
     page(NEURO, "Neurotech", "🧠", null, [
       b("heading1", "Neurotech"),
-      b("paragraph", "Device goal: catch disease early — wear daily like Oura, but nervous-system focused."),
+      b(
+        "paragraph",
+        "Device goal: catch disease early — wear daily like Oura, but nervous-system focused."
+      ),
       b("heading2", "Research lanes"),
       b("bullet", "Closed-loop neuromodulation"),
       b("bullet", "Vagal / thermal signals"),
@@ -506,6 +528,160 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("bullet", "Doctor-ready data"),
       b("bullet", "Save lives at scale"),
     ]),
+
+    // ══════════════════════════════════════════
+    // From your Notion (Live Longer) — full pages
+    // ══════════════════════════════════════════
+
+    page(BOOKS, "Books", "📚", null, [
+      b("heading1", "Books"),
+      b("paragraph", "Reading log and notes — brought over from Notion."),
+      b("heading2", "Now reading / library"),
+      b("bullet", "Innovators by Walter Isaacson"),
+      b("bullet", "History of Photography"),
+      b("divider"),
+      b("paragraph", "Type notes below or open a sub-page."),
+      b("paragraph", ""),
+    ]),
+
+    page(BOOK_INNOVATORS, "Innovators by Walter Isaacson", "📖", BOOKS, [
+      b("heading1", "Innovators"),
+      b("paragraph", "Walter Isaacson — notes & quotes"),
+      b("heading2", "Why this book"),
+      b("paragraph", "How collaboration built the digital age."),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+      b("heading2", "Quotes"),
+      b("quote", ""),
+      b("heading2", "Action ideas"),
+      b("todo", ""),
+    ]),
+
+    page(BOOK_PHOTO, "History of Photography", "📷", BOOKS, [
+      b("heading1", "History of Photography"),
+      b("paragraph", "Course / book notes"),
+      b("heading2", "Key periods"),
+      b("bullet", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+
+    page(REAL_LIFE, "Real Life", "🧠", null, [
+      b("heading1", "Real Life"),
+      b("paragraph", "People, places, feelings, decisions — your life outside the system."),
+      b("heading2", "This week"),
+      b("paragraph", ""),
+      b("heading2", "Relationships"),
+      b("paragraph", ""),
+      b("heading2", "Decisions"),
+      b("todo", ""),
+    ]),
+
+    page(OPENNEURO, "Downloading OpenNeuro data", "📄", null, [
+      b("heading1", "Downloading OpenNeuro data"),
+      b("paragraph", "Research notes for OpenNeuro datasets."),
+      b("heading2", "Goal"),
+      b("paragraph", "Pull neuroimaging data for analysis / neurotech work."),
+      b("heading2", "Steps"),
+      b("numbered", "Create OpenNeuro account / CLI"),
+      b("numbered", "Pick dataset accession"),
+      b("numbered", "Download subset first"),
+      b("numbered", "Document paths + license"),
+      b("heading2", "Links & commands"),
+      b("code", "# example\n# openneuro download --dataset ds00xxxx"),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+
+    page(DOC_HUB, "Document Hub", "📁", null, [
+      b("heading1", "Document Hub"),
+      b("paragraph", "Central place for docs, PDFs, school files, prototypes."),
+      b("heading2", "School"),
+      b("bullet", ""),
+      b("heading2", "Research papers"),
+      b("bullet", ""),
+      b("heading2", "Personal / admin"),
+      b("bullet", ""),
+      b("heading2", "Inbox (drop notes here)"),
+      b("paragraph", ""),
+    ]),
+
+    page(MEETINGS, "Meetings", "📅", null, [
+      b("heading1", "Meetings"),
+      b("paragraph", "Notes from calls, clinics, founders, school."),
+      b("heading2", "Template"),
+      b("bullet", "Date:"),
+      b("bullet", "Who:"),
+      b("bullet", "Goal:"),
+      b("bullet", "Notes:"),
+      b("bullet", "Next actions:"),
+      b("divider"),
+      b("heading2", "Log"),
+      b("paragraph", ""),
+    ]),
+
+    page(AGENTS, "Agents", "🤖", null, [
+      b("heading1", "Agents"),
+      b("paragraph", "AI agents / automations you run (coding, research, ops)."),
+      b("heading2", "Active"),
+      b("bullet", "Dr. Melani health coach (in-app chat)"),
+      b("bullet", "Grok / build agents"),
+      b("heading2", "Ideas"),
+      b("todo", "Weekly lab + sleep summary agent"),
+      b("todo", "Content draft agent for LinkedIn"),
+    ]),
+
+    page(CLASSES, "Classes", "🎓", null, [
+      b("heading1", "Classes"),
+      b("paragraph", "Med school / undergrad course notes."),
+      b("heading2", "This term"),
+      b("bullet", ""),
+      b("heading2", "Exam prep"),
+      b("todo", ""),
+      b("heading2", "Free notes"),
+      b("paragraph", ""),
+    ]),
+
+    page(CONTENT, "Content", "🎬", null, [
+      b("heading1", "Content"),
+      b("paragraph", "LinkedIn, video, photography — ideas and drafts."),
+      b("heading2", "Ideas queue"),
+      b("bullet", ""),
+      b("heading2", "This week’s posts"),
+      b("todo", ""),
+      b("heading2", "Drafts"),
+      b("paragraph", ""),
+    ]),
+
+    page(FINANCE, "Finance", "💰", null, [
+      b("heading1", "Finance"),
+      b("paragraph", "Personal finance learning + tracking."),
+      b("heading2", "Goals"),
+      b("todo", ""),
+      b("heading2", "Notes"),
+      b("paragraph", ""),
+    ]),
+
+    page(STARTUPS, "Startups / Silicon Valley", "🚀", null, [
+      b("heading1", "Startups / Silicon Valley"),
+      b("paragraph", "What you’re watching: biotech, neurotech, founders."),
+      b("heading2", "This week"),
+      b("bullet", ""),
+      b("heading2", "People / companies"),
+      b("bullet", ""),
+      b("heading2", "Ideas for clinics + device"),
+      b("paragraph", ""),
+    ]),
+
+    page(READING, "Reading list", "🔖", null, [
+      b("heading1", "Reading list"),
+      b("paragraph", "Queue beyond the Books page."),
+      b("todo", "Innovation / neurotech titles"),
+      b("todo", "Healthcare breakthroughs"),
+      b("todo", "Building products that change the world"),
+      b("heading2", "Finished"),
+      b("bullet", ""),
+    ]),
   ];
 
   return {
@@ -513,8 +689,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     pages,
     activePageId: HOME,
     sidebarOpen: true,
-    exportVersion: 2,
+    exportVersion: 4,
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 2;
+export const DR_MELANI_EXPORT_VERSION = 4;
