@@ -18,7 +18,7 @@ import {
 } from "./data";
 import { loadCycle, type CycleStore } from "./cycleEngine";
 import { loadLabs } from "./labEngine";
-import type { LabItem } from "./labData";
+import { labDisplayName, type LabItem } from "./labData";
 
 const LIFE_LOG_KEY = "dr-melani-life-log-v1";
 const GOALS_KEY = "dr-melani-goals-v1";
@@ -325,10 +325,6 @@ function avg(nums: number[]): number {
   return Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
 }
 
-function sum(nums: number[]): number {
-  return nums.reduce((a, b) => a + b, 0);
-}
-
 type WeekRollup = {
   days: string[];
   water_avg_ml: number;
@@ -422,7 +418,7 @@ function labSummary(labs: LabItem[]): string {
   return pick
     .map(
       (l) =>
-        `${l.name || l.id}: ${l.value}${l.unit ? " " + l.unit : ""}${
+        `${labDisplayName(l)}: ${l.value}${l.unit ? " " + l.unit : ""}${
           l.status ? ` [${l.status}]` : ""
         }${l.date ? ` (${l.date})` : ""}`
     )
@@ -496,7 +492,7 @@ function buildRedFlags(input: {
   }
 
   const highLabs = labs.filter((l) => String(l.status).toLowerCase() === "high");
-  if (highLabs.some((l) => /ldl|non-hdl|triglyceride|cholesterol|tg\b/i.test(l.name || l.id))) {
+  if (highLabs.some((l) => /ldl|non-hdl|triglyceride|cholesterol|tg\b/i.test(labDisplayName(l)))) {
     flags.push(
       "Lipid markers flagged HIGH on file. Keep fiber, cut liquid sugar, note for doctor visit."
     );
@@ -601,14 +597,14 @@ function doctorQuestionsPack(labs: LabItem[], lifeLog: LifeLogEntry[], phase: st
 
   for (const l of high.slice(0, 6)) {
     qs.push(
-      `My ${l.name || l.id} was ${l.value}${l.unit ? " " + l.unit : ""} (HIGH${
+      `My ${labDisplayName(l)} was ${l.value}${l.unit ? " " + l.unit : ""} (HIGH${
         l.date ? ", " + l.date : ""
       }). What should we change first: food, meds, or recheck timing?`
     );
   }
   for (const l of low.slice(0, 4)) {
     qs.push(
-      `My ${l.name || l.id} was ${l.value}${l.unit ? " " + l.unit : ""} (LOW). Do I need follow-up labs or symptoms to watch?`
+      `My ${labDisplayName(l)} was ${l.value}${l.unit ? " " + l.unit : ""} (LOW). Do I need follow-up labs or symptoms to watch?`
     );
   }
 
@@ -629,7 +625,7 @@ function doctorQuestionsPack(labs: LabItem[], lifeLog: LifeLogEntry[], phase: st
   }
 
   const lipid = high.some((l) =>
-    /ldl|non-hdl|triglyceride|cholesterol|tg\b/i.test(l.name || l.id)
+    /ldl|non-hdl|triglyceride|cholesterol|tg\b/i.test(labDisplayName(l))
   );
   if (lipid) {
     qs.push(
@@ -721,8 +717,6 @@ export function buildLiveContext(pageId?: string, pageTitle?: string): string {
   const warmupTotal = Object.keys(warmup).length;
 
   const t = meals.totals;
-  const waterPct = Math.round((water / goals.water_ml) * 100);
-
   const symptomToday =
     cycle.symptoms?.[day]?.length
       ? cycle.symptoms[day].join(", ")

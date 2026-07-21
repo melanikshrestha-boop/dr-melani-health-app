@@ -41,7 +41,6 @@ function page(
 
 /** Entire Dr. Melani system as Notion pages */
 export function buildDrMelaniWorkspace(): Workspace {
-  const HOME = "pg-home";
   const FITNESS = "pg-fitness";
   const SLEEP = "pg-sleep";
   const MEALS = "pg-meals";
@@ -54,66 +53,14 @@ export function buildDrMelaniWorkspace(): Workspace {
   const AM_SKIN = "pg-am-skin";
   const PM_SKIN = "pg-pm-skin";
   const DATA = "pg-data";
-  const HARD75 = "pg-75hard";
   const GROCERY = "pg-grocery";
-  const DOCTOR = "pg-doctor";
-  const GOALS = "pg-goals";
-  const TODO = "pg-todo";
-  const JOURNAL = "pg-journal";
-  const NEURO = "pg-neurotech";
   // Life hub + leisure writing
   const LIFE = "pg-life";
   // Personal pages (migrated from your old Notion — Live Longer workspace)
-  const BOOKS = "pg-books";
-  const BOOK_INNOVATORS = "pg-book-innovators";
-  const BOOK_PHOTO = "pg-book-photo";
-  const PERSONAL = "pg-personal-life";
-  const PL_HOUSING = "pg-pl-housing";
-  const PL_CAR = "pg-pl-car";
-  const PL_TRAVEL = "pg-pl-travel";
-  const PL_MORNING = "pg-pl-morning";
-  const PL_NIGHT = "pg-pl-night";
-  const PL_MANIFEST = "pg-pl-manifest";
-  const PL_WHY = "pg-pl-why";
-  const PL_FASHION = "pg-pl-fashion";
-  const PL_BOOKS_RABBIT = "pg-pl-books-rabbit";
-  const PL_FINANCES = "pg-pl-finances";
-  const PL_ART = "pg-pl-art";
-  const OPENNEURO = "pg-openneuro";
-  const DOC_HUB = "pg-doc-hub";
-  const MEETINGS = "pg-meetings";
+  const WARDROBE = "pg-fashion-os";
   const AGENTS = "pg-agents";
-  const CLASSES = "pg-classes";
-  const CONTENT = "pg-content";
-  const FINANCE = "pg-finance";
-  const STARTUPS = "pg-startups";
-  const READING = "pg-reading-list";
 
   const pages: Page[] = [
-    // ── Home ──
-    page(HOME, "Home", "⌂", null, [
-      b("heading1", "Home"),
-      b(
-        "paragraph",
-        "Notion-style pages + Dr. Melani health. Use + New page anytime. Fitness, Gym, Data, and life pages all live in this same sidebar."
-      ),
-      b("heading2", "Health"),
-      b("bullet", "Fitness: Sleep, Meals, Gym (weight under Gym)"),
-      b("bullet", "Data — profile, period, labs (one page)"),
-      b("bullet", "75 Hard · Grocery"),
-      b("heading2", "Life"),
-      b("bullet", "Life → Books (reading log, quotes)"),
-      b("bullet", "Personal Life"),
-      b("heading2", "Build"),
-      b("bullet", "Work"),
-      b("divider"),
-      b("heading2", "Today"),
-      b("todo", "Log sleep + brain fog"),
-      b("todo", "Meals + water"),
-      b("todo", "One deep work block"),
-      b("todo", "Read 10 pages (75 Hard)"),
-    ]),
-
     // ── Fitness hub ──
     page(FITNESS, "Fitness", "💪", null, [
       b("heading1", "Fitness"),
@@ -289,28 +236,6 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("paragraph", ""),
     ]),
 
-    // ── 75 Hard ──
-    page(HARD75, "75 Hard", "🔥", null, [
-      b("heading1", "75 Hard"),
-      b("heading2", "The 5 rules"),
-      b("numbered", "Two 45-min workouts — one outdoors"),
-      b("numbered", "One gallon of water"),
-      b("numbered", "Diet — no cheat meals, no alcohol"),
-      b("numbered", "Read 10 pages (nonfiction / self-improvement)"),
-      b("numbered", "Progress photo"),
-      b("divider"),
-      b("heading2", "Today checklist"),
-      b("todo", "Workout 1"),
-      b("todo", "Workout 2 (outdoor)"),
-      b("todo", "Gallon water"),
-      b("todo", "Diet locked"),
-      b("todo", "10 pages"),
-      b("todo", "Progress photo"),
-      b("divider"),
-      b("paragraph", "Day number: ___ / 75"),
-      b("paragraph", "Start date: ___"),
-    ]),
-
     // ── Grocery ──
     page(GROCERY, "Grocery / Shop", "🛒", null, [
       b("heading1", "Grocery / Shop"),
@@ -334,108 +259,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     ]),
 
     // Real library app (rich page) — shelves, quotes, notes database
-    page(BOOKS, "Books", "📚", LIFE, [
-      b("paragraph", "Library app loads here."),
-    ]),
-
-    // Optional book notes as sub-pages under Books (same editor)
-    page(BOOK_INNOVATORS, "Innovators by Walter Isaacson", "📖", BOOKS, [
-      b("paragraph", ""),
-    ]),
-
-    page(BOOK_PHOTO, "History of Photography", "📷", BOOKS, [
-      b("paragraph", ""),
-    ]),
-
-    // Personal Life — from your Notion (sub-pages + smooth sidebar toggle)
-    page(PERSONAL, "Personal Life", "👑", null, [
-      b("heading1", "Personal Life"),
-      b("paragraph", ""),
-    ]),
-    page(PL_HOUSING, "Housing", "🏠", PERSONAL, [
-      b("heading1", "Housing"),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-      b("heading2", "To-do"),
-      b("todo", ""),
-    ]),
-    page(PL_CAR, "Car Payments", "💳", PERSONAL, [
-      b("heading1", "Car Payments"),
-      b("heading2", "Log"),
-      b("todo", ""),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_TRAVEL, "Travel", "✈️", PERSONAL, [
-      b("heading1", "Travel"),
-      b("heading2", "Wishlist"),
-      b("bullet", ""),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_MORNING, "Morning Routine", "☀️", PERSONAL, [
-      b("heading1", "Morning Routine"),
-      b("todo", "Wake + water"),
-      b("todo", "Move / stretch"),
-      b("todo", "Skincare AM"),
-      b("todo", "Protein breakfast"),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_NIGHT, "Night Routine", "🌙", PERSONAL, [
-      b("heading1", "Night Routine"),
-      b("todo", "Screens down"),
-      b("todo", "Skincare PM"),
-      b("todo", "Journal / wind down"),
-      b("todo", "Bedtime target"),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_MANIFEST, "Manifestation", "✨", PERSONAL, [
-      b("heading1", "Manifestation"),
-      b("heading2", "This season"),
-      b("paragraph", ""),
-      b("heading2", "Daily"),
-      b("paragraph", ""),
-    ]),
-    page(PL_WHY, "My “Why”", "💫", PERSONAL, [
-      b("heading1", "My “Why”"),
-      b(
-        "paragraph",
-        "Why you build — medicine, neurotech, clinics, lives saved."
-      ),
-      b("heading2", "Core why"),
-      b("paragraph", ""),
-      b("heading2", "Reminders"),
-      b("bullet", ""),
-    ]),
-    page(PL_FASHION, "Fashion", "👜", PERSONAL, [
-      b("heading1", "Fashion"),
-      b("heading2", "Want"),
-      b("todo", ""),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_BOOKS_RABBIT, "Books + Rabbit Holes", "📚", PERSONAL, [
-      b("heading1", "Books + Rabbit Holes"),
-      b("heading2", "In progress"),
-      b("bullet", ""),
-      b("heading2", "Queue"),
-      b("todo", ""),
-    ]),
-    page(PL_FINANCES, "Finances", "💵", PERSONAL, [
-      b("heading1", "Finances"),
-      b("heading2", "This month"),
-      b("todo", ""),
-      b("heading2", "Notes"),
-      b("paragraph", ""),
-    ]),
-    page(PL_ART, "Art", "🎨", PERSONAL, [
-      b("heading1", "Art"),
-      b("heading2", "Projects"),
-      b("bullet", ""),
-      b("heading2", "Ideas"),
-      b("paragraph", ""),
+    page(WARDROBE, "Wardrobe", "fashion", AGENTS, [
+      b("paragraph", "Your clothes, extracted and organized."),
     ]),
 
     // Agents hub (hidden from sidebar list — only children show under Agents)
@@ -447,8 +272,8 @@ export function buildDrMelaniWorkspace(): Workspace {
       ),
     ]),
 
-    page("pg-library", "Library", "📚", null, [
-      b("heading1", "Library"),
+    page("pg-library", "Bookshelf", "books", null, [
+      b("heading1", "Bookshelf"),
       b("paragraph", "Books, notes, and saved references."),
     ]),
 
@@ -469,10 +294,10 @@ export function buildDrMelaniWorkspace(): Workspace {
   return {
     name: "Wonder",
     pages,
-    activePageId: HOME,
+    activePageId: FITNESS,
     sidebarOpen: true,
     exportVersion: 8,
   } as Workspace & { exportVersion?: number };
 }
 
-export const DR_MELANI_EXPORT_VERSION = 13;
+export const DR_MELANI_EXPORT_VERSION = 15;

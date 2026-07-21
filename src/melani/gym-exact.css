@@ -614,7 +614,7 @@ img.gx-nav-icon {
   width: min(320px, 100%);
   background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 28px 24px;
   text-align: center;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);

@@ -503,7 +503,3 @@ function extractEmail(from: string): string {
   const m = from.match(/<([^>]+)>/);
   return m ? m[1] : from.trim();
 }
-
-export function isGmailAgentPage(pageId: string): boolean {
-  return pageId === "pg-agent-gmail" || pageId === "pg-gmail";
-}

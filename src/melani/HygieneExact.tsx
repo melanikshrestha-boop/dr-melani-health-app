@@ -16,14 +16,12 @@ import {
   amazonShopUrlForTitle,
   isAmazonReady,
   linkForProduct,
-  openAmazonForProduct,
   openAmazonLogin,
   openAmazonProductsForTitles,
   resolveAmazonAsin,
   resolveBuyLink,
   setAmazonReady,
   storeLabel,
-  type ProductLink,
 } from "./productLinks";
 import { MinimalIcon } from "../components/MinimalIcon";
 import "./hygiene-exact.css";
@@ -747,11 +745,6 @@ function RestockSection() {
       )}
     </section>
   );
-}
-
-function pmPageId(routineId: string): string {
-  // Always stay on PM hub page — routines open inside it
-  return "pg-pm-skin";
 }
 
 function pmRoutineFromPageId(pageId: string): string | null {

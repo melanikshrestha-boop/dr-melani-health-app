@@ -2,7 +2,7 @@
  * Nightly body brief card — shows tonight's report on Fitness.
  * One button rebuilds from live sleep / meals / cycle / gym / notes.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   loadBodyBrief,
   writeTonightBrief,
@@ -23,8 +23,11 @@ export function NightlyBodyBrief({ onGo: _onGo }: Props) {
   );
   // Expanded full text vs short bullets
   const [open, setOpen] = useState(false);
-  // Tiny flash when she copies
-  const [copied, setCopied] = useState(false);
+  // Tiny copy status, including a useful failure state.
+  const [copyStatus, setCopyStatus] = useState<
+    "idle" | "copied" | "failed"
+  >("idle");
+  const copyReset = useRef<number | null>(null);
 
   // Rebuild when the window gets focus (she logged sleep in another tab)
   useEffect(() => {
@@ -33,6 +36,10 @@ export function NightlyBodyBrief({ onGo: _onGo }: Props) {
     }
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
+  }, []);
+
+  useEffect(() => () => {
+    if (copyReset.current !== null) window.clearTimeout(copyReset.current);
   }, []);
 
   // Write or refresh from live localStorage
@@ -47,11 +54,15 @@ export function NightlyBodyBrief({ onGo: _onGo }: Props) {
     if (!brief) return;
     try {
       await navigator.clipboard.writeText(brief.fullText);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      setCopyStatus("copied");
     } catch {
-      /* ignore */
+      setCopyStatus("failed");
     }
+    if (copyReset.current !== null) window.clearTimeout(copyReset.current);
+    copyReset.current = window.setTimeout(() => {
+      setCopyStatus("idle");
+      copyReset.current = null;
+    }, 1600);
   }, [brief]);
 
   return (
@@ -75,7 +86,7 @@ export function NightlyBodyBrief({ onGo: _onGo }: Props) {
 
       {brief && (
         <>
-          <ul className="nbb-list">
+          <ul className="nbb-list" aria-live="polite">
             {brief.summaryLines.map((line, i) => (
               <li key={i} className="nbb-line">
                 {line}
@@ -99,16 +110,26 @@ export function NightlyBodyBrief({ onGo: _onGo }: Props) {
               type="button"
               className="nbb-link"
               onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls="nightly-body-brief-details"
             >
               {open ? "Hide full" : "Full brief"}
             </button>
             <button type="button" className="nbb-link" onClick={copy}>
-              {copied ? "Copied" : "Copy"}
+              {copyStatus === "copied"
+                ? "Copied"
+                : copyStatus === "failed"
+                  ? "Copy unavailable"
+                  : "Copy"}
             </button>
           </div>
 
           {open && (
-            <pre className="nbb-full" tabIndex={0}>
+            <pre
+              id="nightly-body-brief-details"
+              className="nbb-full"
+              tabIndex={0}
+            >
               {brief.fullText}
             </pre>
           )}

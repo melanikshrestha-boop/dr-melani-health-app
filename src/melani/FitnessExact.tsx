@@ -10,12 +10,12 @@ import {
   MACRO_GOALS,
   MEAL_PRESETS,
   pct,
-  PROFILE,
   todayKey,
   type ConsumeLog,
 } from "./data";
 import { GymExact } from "./GymExact";
-import { NightlyBodyBrief } from "./NightlyBodyBrief";
+import { SmartMealCamera, type SmartMealDraft } from "./SmartMealCamera";
+import { MEL_DATA_EVENT } from "./melTools";
 import "./fitness-exact.css";
 import "./gym-exact.css";
 
@@ -148,6 +148,19 @@ function SleepPanel() {
   useEffect(() => {
     saveFogMap(fogMap);
   }, [fogMap]);
+
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const domain = (event as CustomEvent<{ domain?: string }>).detail?.domain;
+      if (domain !== "sleep" && domain !== "brainFog") return;
+      const sleep = loadSleepDay(dayIso);
+      setBedtime(sleep.bedtime);
+      setWake(sleep.wake);
+      setFogMap(loadFogMap());
+    };
+    window.addEventListener(MEL_DATA_EVENT, refresh);
+    return () => window.removeEventListener(MEL_DATA_EVENT, refresh);
+  }, [dayIso]);
 
   // Draw linear weekly sleep chart (hours per day, line + dots)
   useEffect(() => {
@@ -448,6 +461,15 @@ function MealsPanel() {
     };
   }, [day]);
 
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const domain = (event as CustomEvent<{ domain?: string }>).detail?.domain;
+      if (domain === "meals") setUsualDay(loadUsualDay(day));
+    };
+    window.addEventListener(MEL_DATA_EVENT, refresh);
+    return () => window.removeEventListener(MEL_DATA_EVENT, refresh);
+  }, [day]);
+
   const c = usualDay.totals;
   const p = {
     calories: pct(c.calories, g.calories),
@@ -521,6 +543,29 @@ function MealsPanel() {
     patch(`meal-${presetId}`, { done: false });
     setFlash("Undone");
     window.setTimeout(() => setFlash(""), 1400);
+  }
+
+  function logSmartMeal(meal: SmartMealDraft) {
+    const id = `smart-${Date.now()}`;
+    const next: UsualDayLog = {
+      loggedIds: [...usualDay.loggedIds, id],
+      totals: {
+        calories: Math.round(usualDay.totals.calories + meal.totals.calories),
+        protein_g: Math.round(usualDay.totals.protein_g + meal.totals.protein_g),
+        carbs_g: Math.round(usualDay.totals.carbs_g + meal.totals.carbs_g),
+        fat_g: Math.round(usualDay.totals.fat_g + meal.totals.fat_g),
+        fiber_g: Math.round(usualDay.totals.fiber_g + meal.totals.fiber_g),
+      },
+    };
+    setUsualDay(next);
+    saveUsualDay(day, next);
+    try {
+      const key = `dr-melani-smart-meals:${day}`;
+      const prior = JSON.parse(localStorage.getItem(key) || "[]");
+      localStorage.setItem(key, JSON.stringify([...prior, { ...meal, id, loggedAt: new Date().toISOString() }]));
+    } catch { /* the macro record is already saved */ }
+    setFlash(`Logged ${meal.title.toLowerCase()} · verified macros added`);
+    window.setTimeout(() => setFlash(""), 2400);
   }
 
   return (
@@ -608,6 +653,8 @@ function MealsPanel() {
           </li>
         </ul>
       </section>
+
+      <SmartMealCamera onLog={logSmartMeal} />
 
       {/* One-tap meal log — no worthless MY USUALS header */}
       <section className="fx-section usuals-section">
@@ -756,6 +803,17 @@ function WaterTracker({ day }: { day: string }) {
   const goalL = goal / 1000;
   const pctFill = Math.min(100, Math.round((ml / goal) * 100));
 
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const domain = (event as CustomEvent<{ domain?: string }>).detail?.domain;
+      if (domain !== "water") return;
+      setMl(loadWater(day));
+      setHist(loadWaterHist(day));
+    };
+    window.addEventListener(MEL_DATA_EVENT, refresh);
+    return () => window.removeEventListener(MEL_DATA_EVENT, refresh);
+  }, [day]);
+
   function add(amount: number) {
     setMl((prev) => {
       const next = Math.min(goal, prev + amount);
@@ -861,6 +919,15 @@ function saveSupDone(day: string, map: Record<string, boolean>) {
 function SupplementsList({ day }: { day: string }) {
   const [done, setDone] = useState(() => loadSupDone(day));
 
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const domain = (event as CustomEvent<{ domain?: string }>).detail?.domain;
+      if (domain === "supplements") setDone(loadSupDone(day));
+    };
+    window.addEventListener(MEL_DATA_EVENT, refresh);
+    return () => window.removeEventListener(MEL_DATA_EVENT, refresh);
+  }, [day]);
+
   function toggle(id: string) {
     setDone((prev) => {
       const next = { ...prev, [id]: !prev[id] };
@@ -939,9 +1006,6 @@ export function FitnessExact({ pageId, onGo }: Props) {
           <p className="fx-quote-text">“{QUOTE.text}”</p>
           <p className="fx-quote-author">{QUOTE.source}</p>
         </div>
-
-        {/* Nightly body brief — one report of the whole day */}
-        <NightlyBodyBrief onGo={onGo} />
 
         {/* Sleep · Meals · Gym (Body weight is under Gym → Warm-up) */}
         <nav className="fx-subnav" aria-label="Fitness pages">

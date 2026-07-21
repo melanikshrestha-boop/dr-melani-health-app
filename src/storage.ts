@@ -49,7 +49,7 @@ const SIDEBAR_EXTRA_PAGES: {
   },
   {
     id: "pg-library",
-    title: "Library",
+    title: "Bookshelf",
     icon: "📚",
     parentId: null,
   },
@@ -64,6 +64,18 @@ const SIDEBAR_EXTRA_PAGES: {
     title: "Help",
     icon: "❓",
     parentId: null,
+  },
+  {
+    id: "pg-fashion-os",
+    title: "Wardrobe",
+    icon: "fashion",
+    parentId: "pg-agents",
+  },
+  {
+    id: "pg-agent-weather",
+    title: "Weather",
+    icon: "weather",
+    parentId: "pg-agents",
   },
   {
     id: "pg-agent-gmail",
@@ -81,12 +93,18 @@ const SIDEBAR_EXTRA_PAGES: {
 
 /** Pages user asked removed from sidebar permanently */
 const PURGE_PAGE_IDS = new Set([
+  "pg-home",
+  "pg-books",
+  "pg-book-innovators",
+  "pg-book-photo",
   "pg-body", // Body: weight lives under Gym
   "pg-tests", // Upcoming tests
   "pg-doctor", // My doctor
   "pg-goals", // Goals Tracker
   "pg-todo", // To Do List
   "pg-journal", // Journal
+  "pg-75hard", // 75 Hard (not part of the core workspace)
+  "pg-personal-life", // Personal Life (kept out of the main tree)
   "pg-neurotech", // Neurotech
   "pg-openneuro", // Downloading OpenNeuro
   "pg-doc-hub", // Document Hub
@@ -177,8 +195,11 @@ function ensureSidebarPages(ws: Workspace): Workspace {
       cover: null,
     });
   }
-  if (!extra.length) return ws;
-  return { ...ws, pages: [...ws.pages, ...extra] };
+  const pages = [...ws.pages, ...extra].map((page) =>
+    page.id === "pg-library" ? { ...page, title: "Bookshelf", icon: "books" } : page
+  );
+  if (!extra.length && pages.every((page, index) => page === ws.pages[index])) return ws;
+  return { ...ws, pages };
 }
 
 function cleanWorkPageBlocks(blocks: Block[]): Block[] {
@@ -257,6 +278,27 @@ function ensureLifePages(ws: Workspace): Workspace {
     p.id === "pg-life" ? { ...p, parentId: null, title: "Life" } : p
   );
 
+  const wardrobe = pages.find((p) => p.id === "pg-fashion-os");
+  if (!wardrobe) {
+    pages.push({
+      id: "pg-fashion-os",
+      title: "Wardrobe",
+      icon: "fashion",
+      parentId: "pg-agents",
+      createdAt: now,
+      updatedAt: now,
+      blocks: [newBlock("paragraph", "Your clothes, extracted and organized.")],
+      kind: "page",
+      favorite: false,
+      trashedAt: null,
+      cover: null,
+    });
+  } else {
+    pages = pages.map((p) => p.id === "pg-fashion-os"
+      ? { ...p, title: "Wardrobe", icon: "fashion", parentId: "pg-agents", trashedAt: null }
+      : p);
+  }
+
   return { ...ws, pages };
 }
 
@@ -274,7 +316,7 @@ function migrateWorkspace(ws: Workspace): Workspace {
     name,
     recents: ws.recents || [ws.activePageId],
     pages: (ws.pages || []).map((p) => {
-      let blocks = (p.blocks || []).map((b) => ({
+      let blocks: Block[] = (p.blocks || []).map((b) => ({
         ...b,
         indent: b.indent ?? 0,
       }));

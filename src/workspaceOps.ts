@@ -42,6 +42,21 @@ export function updatePageInWs(ws: Workspace, page: Page): Workspace {
   };
 }
 
+export function movePageBefore(ws: Workspace, movingId: string, targetId: string): Workspace {
+  if (movingId === targetId) return ws;
+  const moving = ws.pages.find((page) => page.id === movingId);
+  const target = ws.pages.find((page) => page.id === targetId);
+  if (!moving || !target || moving.id === "pg-agents" || target.id === "pg-agents") return ws;
+  const pages = ws.pages.filter((page) => page.id !== movingId);
+  const targetIndex = pages.findIndex((page) => page.id === targetId);
+  pages.splice(Math.max(0, targetIndex), 0, {
+    ...moving,
+    parentId: target.parentId,
+    updatedAt: Date.now(),
+  });
+  return { ...ws, pages };
+}
+
 export function softDeletePage(ws: Workspace, id: string): Workspace {
   const live = activePages(ws);
   if (live.length <= 1 && live[0]?.id === id) return ws;

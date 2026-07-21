@@ -433,7 +433,7 @@
   overflow: auto;
   background: #0a0f18;
   border: 1px solid rgba(100, 140, 200, 0.35);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 18px 16px 14px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
   color: rgba(255, 255, 255, 0.9);

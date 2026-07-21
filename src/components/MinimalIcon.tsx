@@ -258,6 +258,24 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
           <path {...stroke} d="M12 13c0-3-2.5-5.5-6.5-6 1 4 3 6 6.5 6Z" />
         </svg>
       );
+    case "fashion":
+      return (
+        <svg {...common}>
+          <path {...stroke} d="M9 5.5c.7 1.1 1.7 1.7 3 1.7s2.3-.6 3-1.7l4.5 2.7-2.2 3.5-2-1.1V21H8.7V10.6l-2 1.1-2.2-3.5L9 5.5Z" />
+          <path {...stroke} d="M9 5.5 10 3h4l1 2.5" />
+        </svg>
+      );
+    case "weather":
+      return (
+        <svg {...common}>
+          <circle {...stroke} cx="9" cy="9" r="3" />
+          <path {...stroke} d="M9 3V2" />
+          <path {...stroke} d="M3 9H2" />
+          <path {...stroke} d="m4.7 4.7-.8-.8" />
+          <path {...stroke} d="m13.3 4.7.8-.8" />
+          <path {...stroke} d="M7 17.5h10.5a3.5 3.5 0 0 0 0-7 5.5 5.5 0 0 0-10.4 1.9A2.6 2.6 0 0 0 7 17.5Z" />
+        </svg>
+      );
     case "library":
     case "books":
       // open book
@@ -334,7 +352,6 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id === "pg-data" || id === "pg-my-data" || t === "data" || t === "my data")
     return "data";
   if (id.includes("lab") || t.includes("lab")) return "labs";
-  if (id.includes("75") || t.includes("75 hard")) return "hard";
   if (id === "pg-life" || t === "life") return "life";
   if (id.includes("library") || t.includes("library")) return "library";
   if (id.includes("book") || t.includes("book") || t.includes("reading") || t.includes("innovator") || t.includes("photo"))
@@ -345,7 +362,6 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("trash") || t.includes("trash")) return "trash";
   if (id.includes("goal") || t.includes("goal")) return "goals";
   if (id.includes("journal") || t.includes("journal")) return "journal";
-  if (id.includes("personal") || t.includes("personal life")) return "home";
   if (id.includes("housing") || t.includes("housing")) return "home";
   if (id.includes("car") || t.includes("car payment")) return "finance";
   if (id.includes("travel") || t.includes("travel")) return "meetings";
@@ -353,8 +369,11 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("night") || t.includes("night")) return "sleep";
   if (id.includes("manifest") || t.includes("manifest") || t.includes("why"))
     return "goals";
-  if (id.includes("fashion") || t.includes("fashion") || t.includes("art"))
-    return "page";
+  if (id.includes("fashion") || t.includes("fashion") || t.includes("wardrobe"))
+    return "fashion";
+  if (id.includes("weather") || t.includes("weather") || t.includes("forecast"))
+    return "weather";
+  if (t.includes("art")) return "page";
   if (id.includes("neuro") || t.includes("neuro") || t.includes("openneuro"))
     return "brain";
   if (id.includes("doctor") || t.includes("doctor")) return "doctor";

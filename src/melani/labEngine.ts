@@ -16,8 +16,6 @@ import {
 } from "./labData";
 
 const STORE_KEY = "dr-melani-labs-v1";
-const SECTIONS_KEY = "dr-melani-lab-sections-v1";
-
 export type BuiltSection = LabSectionDef & {
   items: LabItem[];
   status: LabStatus;
@@ -1010,7 +1008,7 @@ function parseTextLabs(text: string): LabItem[] {
 
     // Name .... 120.5 mg/dL High
     const m = line.match(
-      /^(.+?)\s+([<>]?-?\d+\.?\d*)\s*([a-zA-Z%µuU/^0-9·.\-]+)?\s*(high|low|normal|ok|elevated|above|below|h|l)?\s*$/i
+      /^(.+?)\s+([<>]?-?\d+\.?\d*)\s*([a-zA-Z%µuU/^0-9·.-]+)?\s*(high|low|normal|ok|elevated|above|below|h|l)?\s*$/i
     );
     if (m) {
       const name = m[1].replace(/[,:]+$/, "").trim();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Workspace } from "./types";
 import { forceImportDrMelani, loadWorkspace, saveWorkspace } from "./storage";
 import {
@@ -14,13 +14,22 @@ import {
   softDeletePage,
   toggleFavorite,
   updatePageInWs,
+  movePageBefore,
 } from "./workspaceOps";
 import { Sidebar } from "./components/Sidebar";
 import { PageEditor } from "./components/PageEditor";
 import { SearchModal } from "./components/SearchModal";
 import { iconForPage, MinimalIcon } from "./components/MinimalIcon";
 import { isMelaniRichPage, MelaniRichPage } from "./melani/MelaniViews";
+import { isWardrobePage } from "./melani/wardrobe/route";
 import { MelaniAI } from "./melani/MelaniAI";
+import { FocusOverlay } from "./melani/FocusOverlay";
+import {
+  MEL_NAVIGATE_EVENT,
+  MEL_WORKSPACE_ACTION_EVENT,
+  type MelWorkspaceActionRequest,
+} from "./melani/melActions";
+import { applyMelWorkspaceAction } from "./melani/melWorkspace";
 import "./notion.css";
 
 /**
@@ -46,8 +55,11 @@ export default function App() {
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const workspaceRef = useRef(ws);
+  const melUndoRef = useRef<Workspace[]>([]);
 
   useEffect(() => {
+    workspaceRef.current = ws;
     saveWorkspace(ws);
   }, [ws]);
 
@@ -82,6 +94,17 @@ export default function App() {
     [ws, live]
   );
 
+  useEffect(() => {
+    if (!activePage || typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", activePage.id);
+      window.history.replaceState(window.history.state, "", url);
+    } catch {
+      /* The workspace still navigates if URL history is unavailable. */
+    }
+  }, [activePage]);
+
   const childPages = useMemo(
     () =>
       activePage
@@ -99,6 +122,55 @@ export default function App() {
     setWs((prev) => setActivePage(prev, id));
     setMoreOpen(false);
   }
+
+  useEffect(() => {
+    const navigate = (event: Event) => {
+      const pageId = (event as CustomEvent<{ pageId: string }>).detail?.pageId;
+      if (pageId) setWs((prev) => setActivePage(prev, pageId));
+    };
+    window.addEventListener(MEL_NAVIGATE_EVENT, navigate);
+    return () => window.removeEventListener(MEL_NAVIGATE_EVENT, navigate);
+  }, []);
+
+  useEffect(() => {
+    const runWorkspaceAction = (event: Event) => {
+      const request = (event as CustomEvent<MelWorkspaceActionRequest>).detail;
+      if (!request?.action) return;
+
+      if (request.action.kind === "undo-workspace") {
+        const previous = melUndoRef.current.pop();
+        if (!previous) {
+          request.result = { ok: false, summary: "There is no Mel workspace action to undo." };
+          return;
+        }
+        workspaceRef.current = previous;
+        saveWorkspace(previous);
+        setWs(previous);
+        const restored = previous.pages.find((page) => page.id === previous.activePageId);
+        request.result = {
+          ok: true,
+          summary: "Undid the last workspace change.",
+          pageId: restored?.id,
+          pageTitle: restored?.title,
+        };
+        return;
+      }
+
+      const before = workspaceRef.current;
+      const applied = applyMelWorkspaceAction(before, request.action);
+      request.result = applied.result;
+      if (!applied.changed) return;
+
+      melUndoRef.current = [...melUndoRef.current.slice(-19), before];
+      workspaceRef.current = applied.workspace;
+      saveWorkspace(applied.workspace);
+      setWs(applied.workspace);
+      setMoreOpen(false);
+    };
+
+    window.addEventListener(MEL_WORKSPACE_ACTION_EVENT, runWorkspaceAction);
+    return () => window.removeEventListener(MEL_WORKSPACE_ACTION_EVENT, runWorkspaceAction);
+  }, []);
 
   if (!activePage) return null;
 
@@ -128,6 +200,18 @@ export default function App() {
         onNewAgent={() => setWs((p) => addAgentPage(p))}
         onDeletePage={(id) => setWs((p) => softDeletePage(p, id))}
         onToggleFavorite={(id) => setWs((p) => toggleFavorite(p, id))}
+        onMovePage={(movingId, targetId, position = "before") =>
+          setWs((current) => {
+            if (position === "before") return movePageBefore(current, movingId, targetId);
+            const applied = applyMelWorkspaceAction(current, {
+              kind: "move-page",
+              target: { id: movingId },
+              destination: { id: targetId },
+              position: "inside",
+            });
+            return applied.changed ? applied.workspace : current;
+          })
+        }
         onOpenSearch={() => setSearchOpen(true)}
         onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
         onRestorePage={(id) => setWs((p) => restorePage(p, id))}
@@ -144,7 +228,9 @@ export default function App() {
       />
 
       {/* Always Notion main: topbar + breadcrumbs + page body */}
-      <main className={`main${melaniMode ? " is-melani" : ""}`}>
+      <main className={`main${melaniMode ? " is-melani" : ""}${
+        isWardrobePage(activePage.id) ? " is-wardrobe" : ""
+      }`}>
         <header className="topbar">
           <button
             type="button"
@@ -258,7 +344,11 @@ export default function App() {
             /* Sleep / Meals / Gym live in the SIDEBAR only */
             <div className="notion-melani-page">
               <div className="notion-melani-body">
-                <MelaniRichPage pageId={activePage.id} onGo={openPage} />
+                <MelaniRichPage
+                  pageId={activePage.id}
+                  onGo={openPage}
+                  pages={live}
+                />
               </div>
             </div>
           ) : (
@@ -293,6 +383,7 @@ export default function App() {
 
       {/* Mel — floating chat on every page */}
       <MelaniAI pageId={activePage.id} pageTitle={activePage.title} />
+      <FocusOverlay />
     </div>
   );
 }

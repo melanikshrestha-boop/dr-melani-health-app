@@ -1,16 +1,8 @@
-/**
- * Mel: local coach. Tier 1+2. No API key.
- * UI: minimal, black, quiet. No fluff. No em dashes.
- */
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  appendLifeLog,
-  applyGoalCommand,
-  applyPinCommand,
-} from "./melContext";
-import { writeTonightBrief, isBriefHour, loadBodyBrief } from "./bodyBrief";
-import { melLocalReply } from "./melLocal";
+import { isBriefHour, loadBodyBrief } from "./bodyBrief";
 import { todayKey } from "./data";
+import { checkMelCloud, checkMelLocalModel, runMelAgent } from "./melAgent";
+import { MelOverview } from "./MelOverview";
 import "./melani-ai.css";
 
 type Role = "user" | "assistant";
@@ -83,7 +75,10 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   });
   const [msgs, setMsgs] = useState<Msg[]>(() => loadMsgs());
   const [input, setInput] = useState("");
+  const [view, setView] = useState<"chat" | "overview">("chat");
   const [busy, setBusy] = useState(false);
+  const [cloudConnected, setCloudConnected] = useState(false);
+  const [localModelConnected, setLocalModelConnected] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -97,37 +92,61 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   }, [open]);
 
   useEffect(() => {
+    if (!open) return;
+    let active = true;
+    const refresh = () => {
+      void Promise.all([checkMelCloud(), checkMelLocalModel()]).then(
+        ([cloud, local]) => {
+          if (!active) return;
+          setCloudConnected(cloud);
+          setLocalModelConnected(local);
+        }
+      );
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [open]);
+
+  useEffect(() => {
     saveMsgs(msgs);
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
 
   const send = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || busy) return;
-
-      if (/^log\s*:?\s+/i.test(trimmed)) {
-        const body = trimmed.replace(/^log\s*:?\s+/i, "");
-        if (body) appendLifeLog(body);
-      }
-      applyGoalCommand(trimmed);
-      applyPinCommand(trimmed);
 
       const userMsg: Msg = { id: uid(), role: "user", content: trimmed };
       setMsgs((prev) => [...prev, userMsg]);
       setInput("");
       setBusy(true);
 
-      window.setTimeout(() => {
-        const reply = noEmDash(melLocalReply(trimmed, pageId, pageTitle));
-        setMsgs((prev) => [
-          ...prev,
-          { id: uid(), role: "assistant", content: reply },
-        ]);
+      try {
+        const result = await runMelAgent({
+          text: trimmed,
+          pageId,
+          pageTitle,
+          history: msgs.slice(-18).map(({ role, content }) => ({ role, content })),
+          cloudAvailable: cloudConnected,
+          localModelAvailable: localModelConnected,
+        });
+        setMsgs((prev) => [...prev, { id: uid(), role: "assistant", content: noEmDash(result.reply) }]);
+      } catch {
+        setMsgs((prev) => [...prev, {
+          id: uid(),
+          role: "assistant",
+          content: "I hit a local save error. Nothing else was changed.",
+        }]);
+      } finally {
         setBusy(false);
-      }, 30);
+      }
     },
-    [busy, pageId, pageTitle]
+    [busy, cloudConnected, localModelConnected, msgs, pageId, pageTitle]
   );
 
   function clearChat() {
@@ -137,19 +156,6 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
     } catch {
       /* ignore */
     }
-  }
-
-  // One-tap: write tonight's body brief into the chat
-  function writeBrief() {
-    if (busy) return;
-    const brief = writeTonightBrief(todayKey());
-    const userMsg: Msg = { id: uid(), role: "user", content: "brief" };
-    const aiMsg: Msg = {
-      id: uid(),
-      role: "assistant",
-      content: noEmDash(brief.fullText),
-    };
-    setMsgs((prev) => [...prev, userMsg, aiMsg]);
   }
 
   // Evening nudge: first open after 8pm with no brief yet
@@ -181,11 +187,13 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   return (
     <div className="mai-root">
       {open && (
-        <div className="mai-panel" role="dialog" aria-label="Mel">
+        <div className={`mai-panel${view === "overview" ? " is-overview" : ""}`} role="dialog" aria-label="Mel">
           <header className="mai-head">
-            <p className="mai-title">Mel</p>
-            <button type="button" className="mai-head-btn" onClick={writeBrief}>
-              Brief
+            <p className="mai-title">
+              Mel
+            </p>
+            <button type="button" className={`mai-head-btn${view === "overview" ? " is-active" : ""}`} onClick={() => setView((current) => current === "overview" ? "chat" : "overview")}>
+              Overview
             </button>
             <button type="button" className="mai-head-btn" onClick={clearChat}>
               Clear
@@ -200,10 +208,22 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             </button>
           </header>
 
+          {view === "overview" ? <MelOverview onClose={() => setView("chat")} /> : <>
+          <nav className="mai-quick" aria-label="Mel quick actions">
+            {[
+              ["Brief", "brief"],
+              ["Food", "food"],
+              ["Status", "status"],
+            ].map(([label, command]) => (
+              <button key={command} type="button" onClick={() => void send(command)} disabled={busy}>
+                {label}
+              </button>
+            ))}
+          </nav>
           <div className="mai-msgs">
             {msgs.length === 0 && (
               <p className="mai-welcome">
-                Let&apos;s get to work. Try: brief
+                Tell me what you need done.
               </p>
             )}
             {msgs.map((m) => (
@@ -243,7 +263,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             >
               →
             </button>
-          </form>
+          </form></>}
         </div>
       )}
 

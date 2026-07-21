@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Page } from "../types";
 import { iconForPage, MinimalIcon } from "./MinimalIcon";
+import {
+  MEL_SIDEBAR_ACTION_EVENT,
+  type MelSidebarActionRequest,
+} from "../melani/melActions";
 
 type Props = {
   workspaceName: string;
@@ -17,6 +21,11 @@ type Props = {
   onNewAgent: () => void;
   onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onMovePage: (
+    movingId: string,
+    targetId: string,
+    position?: "before" | "inside"
+  ) => void;
   onOpenSearch: () => void;
   onClose: () => void;
   onRestorePage?: (id: string) => void;
@@ -25,32 +34,34 @@ type Props = {
 };
 
 const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
-const RECENTS_KEY = "dr-melani-show-recents";
+const COLLAPSE_VERSION_KEY = "dr-melani-sidebar-collapse-version";
 const TRASH_KEY = "dr-melani-show-trash";
 
 // Pages that live in other sidebar sections (not under Private tree)
 const SIDEBAR_UTILITY_IDS = new Set([
-  "pg-home",
   "pg-agents",
-  "pg-library",
-  "pg-my-tasks",
   "pg-help",
 ]);
 
 function loadCollapsed(): Record<string, boolean> {
+  const defaults = {
+    "pg-fitness": true,
+    "pg-hygiene": true,
+    "pg-life": true,
+    "pg-books": true,
+  };
   try {
+    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "2") {
+      localStorage.setItem(COLLAPSE_VERSION_KEY, "2");
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify(defaults));
+      return defaults;
+    }
     const raw = localStorage.getItem(COLLAPSE_KEY);
-    if (raw) return JSON.parse(raw) as Record<string, boolean>;
+    if (raw) return { ...defaults, ...JSON.parse(raw) as Record<string, boolean> };
   } catch {
     /* ignore */
   }
-  return {
-    "pg-fitness": true,
-    "pg-hygiene": true,
-    "pg-life": false, // open so Books is visible under Life
-    "pg-books": true,
-    "pg-personal-life": true,
-  };
+  return defaults;
 }
 
 function saveCollapsed(map: Record<string, boolean>) {
@@ -99,6 +110,7 @@ function PageTreeItem({
   onSelect,
   onDeletePage,
   onToggleFavorite,
+  onMovePage,
 }: {
   page: Page;
   pages: Page[];
@@ -109,20 +121,76 @@ function PageTreeItem({
   onSelect: (id: string) => void;
   onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string) => void;
+  onMovePage: (
+    movingId: string,
+    targetId: string,
+    position?: "before" | "inside"
+  ) => void;
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
   const hasKids = kids.length > 0;
-  const isCollapsed = hasKids && !!collapsed[page.id];
+  const isCollapsed = hasKids && collapsed[page.id] !== false;
+  const lastTapAt = useRef(0);
+  const nestTimer = useRef<number | null>(null);
+  const dropIntent = useRef<"before" | "inside">("before");
+  const [dropState, setDropState] = useState<"before" | "inside" | null>(null);
+
+  function clearDropState() {
+    if (nestTimer.current !== null) window.clearTimeout(nestTimer.current);
+    nestTimer.current = null;
+    dropIntent.current = "before";
+    setDropState(null);
+  }
+
+  function beginDropState() {
+    if (nestTimer.current !== null || dropState) return;
+    dropIntent.current = "before";
+    setDropState("before");
+    nestTimer.current = window.setTimeout(() => {
+      dropIntent.current = "inside";
+      setDropState("inside");
+      nestTimer.current = null;
+    }, 650);
+  }
 
   return (
     <div className="page-tree-node">
       <div
         className={`page-row${page.id === activePageId ? " is-active" : ""}${
           hasKids ? " has-kids" : ""
-        }${hasKids && !isCollapsed ? " is-open" : ""}`}
+        }${hasKids && !isCollapsed ? " is-open" : ""}${
+          dropState === "inside" ? " is-nest-target" : ""
+        }${dropState === "before" ? " is-reorder-target" : ""}`}
         style={{ paddingLeft: depth * 12 }}
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/wonder-page", page.id);
+        }}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          beginDropState();
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          beginDropState();
+        }}
+        onDragLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+          if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+          clearDropState();
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          const movingId = event.dataTransfer.getData("text/wonder-page");
+          const position = dropIntent.current;
+          clearDropState();
+          if (movingId && movingId !== page.id) onMovePage(movingId, page.id, position);
+        }}
+        onDragEnd={clearDropState}
       >
-        {/* No visible ▸ toggle — click the page row to open + expand/collapse */}
+        {/* No visible toggle. Single tap opens; double tap expands/collapses. */}
         <span className="page-collapse-spacer" aria-hidden />
         <button
           type="button"
@@ -130,19 +198,15 @@ function PageTreeItem({
           aria-expanded={hasKids ? !isCollapsed : undefined}
           title={
             hasKids
-              ? isCollapsed
-                ? "Open and show sub-pages"
-                : "Open (click again to hide sub-pages)"
+              ? "Open page. Double-tap to show or hide sub-pages."
               : undefined
           }
           onClick={() => {
-            // Invisible toggle (no ▸ button):
-            // collapsed → expand + open · already open here → collapse · else just open
-            if (hasKids) {
-              if (isCollapsed) onToggleCollapse(page.id);
-              else if (page.id === activePageId) onToggleCollapse(page.id);
-            }
+            const now = Date.now();
+            const doubleTap = now - lastTapAt.current <= 360;
+            lastTapAt.current = doubleTap ? 0 : now;
             onSelect(page.id);
+            if (hasKids && doubleTap) onToggleCollapse(page.id);
           }}
         >
           <PageIcon page={page} />
@@ -194,6 +258,7 @@ function PageTreeItem({
                 onSelect={onSelect}
                 onDeletePage={onDeletePage}
                 onToggleFavorite={onToggleFavorite}
+                onMovePage={onMovePage}
               />
             ))}
           </div>
@@ -207,15 +272,14 @@ export function Sidebar({
   workspaceName,
   pages,
   allPages,
-  recents,
   activePageId,
   open,
   onSelect,
   onNewPage,
-  onNewTopPage,
   onNewAgent,
   onDeletePage,
   onToggleFavorite,
+  onMovePage,
   onOpenSearch,
   onClose,
   onRestorePage,
@@ -225,26 +289,73 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(
     loadCollapsed
   );
-  const [showRecents, setShowRecents] = useState(() =>
-    loadFlag(RECENTS_KEY, false)
-  );
   const [showTrash, setShowTrash] = useState(() => loadFlag(TRASH_KEY, false));
 
   function toggleCollapse(id: string) {
     setCollapsed((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
+      const next = { ...prev, [id]: prev[id] === false };
       saveCollapsed(next);
       return next;
     });
   }
 
-  function toggleRecents() {
-    setShowRecents((prev) => {
-      const next = !prev;
-      saveFlag(RECENTS_KEY, next);
-      return next;
-    });
-  }
+  useEffect(() => {
+    const controlSidebar = (event: Event) => {
+      const request = (event as CustomEvent<MelSidebarActionRequest>).detail;
+      if (!request?.action) return;
+
+      const parentPages = pages.filter((page) =>
+        pages.some((candidate) => candidate.parentId === page.id)
+      );
+
+      if (request.action.kind === "collapse-all") {
+        const next = Object.fromEntries(parentPages.map((page) => [page.id, true]));
+        setCollapsed(next);
+        saveCollapsed(next);
+        setShowTrash(false);
+        saveFlag(TRASH_KEY, false);
+        request.result = {
+          ok: true,
+          summary: `Closed all ${parentPages.length} sidebar sections. They will stay closed until you double-tap one.`,
+          data: { count: parentPages.length },
+        };
+        return;
+      }
+
+      const query = request.action.target.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const target = parentPages
+        .map((page) => {
+          const title = page.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+          const score = title === query ? 100 : title.includes(query) || query.includes(title) ? 70 : 0;
+          return { page, score };
+        })
+        .sort((a, b) => b.score - a.score)[0];
+      if (!target?.score) {
+        request.result = {
+          ok: false,
+          summary: `I could not find a sidebar section matching ${request.action.target}.`,
+        };
+        return;
+      }
+
+      const shouldCollapse = request.action.collapsed;
+      setCollapsed((previous) => {
+        const next = { ...previous, [target.page.id]: shouldCollapse };
+        saveCollapsed(next);
+        return next;
+      });
+      request.result = {
+        ok: true,
+        summary: `${shouldCollapse ? "Closed" : "Opened"} the ${target.page.title} sidebar section.`,
+        pageId: target.page.id,
+        pageTitle: target.page.title,
+      };
+    };
+
+    window.addEventListener(MEL_SIDEBAR_ACTION_EVENT, controlSidebar);
+    return () => window.removeEventListener(MEL_SIDEBAR_ACTION_EVENT, controlSidebar);
+  }, [pages]);
+
 
   function toggleTrash() {
     setShowTrash((prev) => {
@@ -254,13 +365,6 @@ export function Sidebar({
     });
   }
 
-  const home = pages.find((p) => p.id === "pg-home");
-  const favorites = pages.filter((p) => p.favorite);
-  const recentPages = recents
-    .map((id) => pages.find((p) => p.id === id))
-    .filter(Boolean)
-    .slice(0, 5) as Page[];
-
   // Only child agents under the hidden hub (pg-agents itself is never listed)
   const agentPages = pages.filter((p) => p.parentId === "pg-agents");
 
@@ -269,8 +373,6 @@ export function Sidebar({
     (p) => p.parentId === null && !SIDEBAR_UTILITY_IDS.has(p.id)
   );
 
-  const library = pages.find((p) => p.id === "pg-library");
-  const myTasks = pages.find((p) => p.id === "pg-my-tasks");
   const help = pages.find((p) => p.id === "pg-help");
   const trash = allPages.filter((p) => !!p.trashedAt);
 
@@ -289,20 +391,8 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Home + quick tools (left → right icons) */}
+      {/* Search is the only control above Agents. */}
       <div className="sidebar-home-row">
-        {home && (
-          <button
-            type="button"
-            className={`sidebar-home-pill${
-              activePageId === home.id ? " is-active" : ""
-            }`}
-            onClick={() => onSelect(home.id)}
-          >
-            <MinimalIcon name="home" size={15} />
-            <span>Home</span>
-          </button>
-        )}
         <button
           type="button"
           className="sidebar-tool-btn"
@@ -313,79 +403,6 @@ export function Sidebar({
         </button>
       </div>
 
-      <button type="button" className="sidebar-new-soft" onClick={onNewTopPage}>
-        <span>+</span>
-        <span>New page</span>
-      </button>
-
-      {/* Recents */}
-      <button
-        type="button"
-        className="sidebar-section-toggle"
-        onClick={toggleRecents}
-        aria-expanded={showRecents}
-      >
-        <span
-          className={`sidebar-section-chev${showRecents ? " is-open" : ""}`}
-          aria-hidden
-        >
-          ▸
-        </span>
-        <span className="sidebar-section-text">Recents</span>
-      </button>
-      {showRecents && recentPages.length > 0 && (
-        <div className="sidebar-block">
-          {recentPages.map((p) => (
-            <div
-              key={p.id}
-              className={`page-row${p.id === activePageId ? " is-active" : ""}`}
-            >
-              <span className="page-collapse-spacer" aria-hidden />
-              <button
-                type="button"
-                className="page-row-main"
-                onClick={() => onSelect(p.id)}
-              >
-                <PageIcon page={p} />
-                <span className="page-title-side">
-                  {p.title.trim() || "Untitled"}
-                </span>
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      {showRecents && recentPages.length === 0 && (
-        <p className="sidebar-empty-hint">No recent pages yet</p>
-      )}
-
-      {/* Favorites — only if you pinned something (no empty “star pages…” fluff) */}
-      {favorites.length > 0 ? (
-        <>
-          <div className="sidebar-section-label">Favorites</div>
-          <div className="sidebar-block">
-            {favorites.map((p) => (
-              <div
-                key={p.id}
-                className={`page-row${p.id === activePageId ? " is-active" : ""}`}
-              >
-                <span className="page-collapse-spacer" aria-hidden />
-                <button
-                  type="button"
-                  className="page-row-main"
-                  onClick={() => onSelect(p.id)}
-                >
-                  <PageIcon page={p} />
-                  <span className="page-title-side">
-                    {p.title.trim() || "Untitled"}
-                  </span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : null}
-
       {/* ── Agents — only real agents (no “Agents” hub page in the list) ── */}
       <div className="sidebar-section-label">Agents</div>
       <div className="sidebar-block">
@@ -395,6 +412,14 @@ export function Sidebar({
             className={`page-row page-row-agent${
               p.id === activePageId ? " is-active" : ""
             }`}
+            draggable
+            onDragStart={(event) => event.dataTransfer.setData("text/wonder-page", p.id)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const movingId = event.dataTransfer.getData("text/wonder-page");
+              if (movingId) onMovePage(movingId, p.id);
+            }}
           >
             {/* spacer so icon lines up with Private pages (chevron column) */}
             <span className="page-collapse-spacer" aria-hidden />
@@ -443,6 +468,7 @@ export function Sidebar({
             onSelect={onSelect}
             onDeletePage={onDeletePage}
             onToggleFavorite={onToggleFavorite}
+            onMovePage={onMovePage}
           />
         ))}
         <button type="button" className="sidebar-new" onClick={onNewPage}>
@@ -453,34 +479,6 @@ export function Sidebar({
 
       {/* Bottom utility links — like Notion */}
       <div className="sidebar-bottom">
-        {library && (
-          <button
-            type="button"
-            className={`sidebar-bottom-link${
-              activePageId === library.id ? " is-active" : ""
-            }`}
-            onClick={() => onSelect(library.id)}
-          >
-            <span className="side-icon" aria-hidden>
-              <MinimalIcon name={iconForPage(library)} size={16} />
-            </span>
-            <span>Library</span>
-          </button>
-        )}
-        {myTasks && (
-          <button
-            type="button"
-            className={`sidebar-bottom-link${
-              activePageId === myTasks.id ? " is-active" : ""
-            }`}
-            onClick={() => onSelect(myTasks.id)}
-          >
-            <span className="side-icon" aria-hidden>
-              <MinimalIcon name={iconForPage(myTasks)} size={16} />
-            </span>
-            <span>My Tasks</span>
-          </button>
-        )}
         {help && (
           <button
             type="button"

@@ -1,0 +1,352 @@
+.twin {
+  margin: 0 0 18px;
+  padding: 14px 16px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font-family: inherit;
+}
+
+.twin-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.twin-kicker,
+.twin-lever-label {
+  margin: 0 0 3px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.twin-title {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.twin-phase {
+  margin: 5px 0 0;
+  color: #9ecbff;
+  font-size: 13px;
+}
+
+.twin-overall {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.twin-overall strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.twin-overall span {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.twin-empty,
+.twin-clear {
+  margin: 0 0 16px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.twin-scores {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.twin-score {
+  min-width: 0;
+}
+
+.twin-score-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.twin-score-line strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+}
+
+.twin-score-track {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.twin-score-track > span {
+  display: block;
+  height: 100%;
+  background: #4da3ff;
+  transition: width 0.2s ease;
+}
+
+.twin-section {
+  margin-top: 16px;
+}
+
+.twin-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.twin-section-head h3,
+.twin-lever h3 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.twin-section-head span {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11px;
+}
+
+.twin-radar-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.twin-radar {
+  min-width: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.twin-radar-title {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.twin-radar-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #4da3ff;
+}
+
+.twin-radar.is-med .twin-radar-dot {
+  background: #facc15;
+}
+
+.twin-radar.is-high .twin-radar-dot {
+  background: #fb7185;
+}
+
+.twin-radar p,
+.twin-lever p {
+  margin: 5px 0 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.twin-lever {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid rgba(77, 163, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(77, 163, 255, 0.08);
+}
+
+.twin-lever > div {
+  min-width: 0;
+}
+
+.twin-lever button,
+.twin-actions button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.twin-lever button:hover,
+.twin-actions button:hover {
+  border-color: rgba(255, 255, 255, 0.34);
+  color: #fff;
+}
+
+.twin-lever button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.twin-forecast {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.twin-day {
+  min-width: 0;
+  min-height: 64px;
+  padding: 7px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: inherit;
+  cursor: help;
+}
+
+.twin-day.is-high {
+  border-color: rgba(46, 234, 127, 0.3);
+  background: rgba(46, 234, 127, 0.06);
+}
+
+.twin-day.is-mid {
+  border-color: rgba(250, 204, 21, 0.25);
+  background: rgba(250, 204, 21, 0.05);
+}
+
+.twin-day.is-low {
+  border-color: rgba(251, 113, 133, 0.28);
+  background: rgba(251, 113, 133, 0.06);
+}
+
+.twin-day[aria-pressed="true"] {
+  outline: 1px solid rgba(255, 255, 255, 0.72);
+  outline-offset: 2px;
+}
+
+.twin-day span,
+.twin-day small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.twin-day span {
+  font-size: 10px;
+}
+
+.twin-day strong {
+  display: block;
+  margin: 4px 0 2px;
+  color: #fff;
+  font-size: 15px;
+}
+
+.twin-day small {
+  font-size: 10px;
+}
+
+.twin-forecast-note {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 10px;
+}
+
+.twin-forecast-detail {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.twin-forecast-detail strong {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+}
+
+.twin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.twin-full {
+  max-height: 320px;
+  margin: 14px 0 0;
+  padding: 14px;
+  overflow: auto;
+  border-radius: 6px;
+  background: #111;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 640px) {
+  .twin {
+    padding: 12px;
+  }
+
+  .twin-scores {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twin-radar-list {
+    grid-template-columns: 1fr;
+  }
+
+  .twin-forecast {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .twin-head,
+  .twin-lever {
+    align-items: flex-start;
+  }
+
+  .twin-lever {
+    flex-direction: column;
+  }
+
+  .twin-forecast {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -27,8 +27,10 @@ from pydantic import BaseModel, Field
 HOME = Path.home()
 KEY_FILE = HOME / ".melani_assistant" / "xai_api_key"
 XAI_URL = "https://api.x.ai/v1/chat/completions"
-# Prefer fast chat model; override with XAI_MODEL if needed
-DEFAULT_MODEL = os.environ.get("XAI_MODEL", "grok-3-mini")
+XAI_RESPONSES_URL = "https://api.x.ai/v1/responses"
+DEFAULT_MODEL = os.environ.get("XAI_MODEL", "grok-4.5")
+RESEARCH_MODEL = os.environ.get("XAI_RESEARCH_MODEL", "grok-4.5")
+VISION_MODEL = os.environ.get("XAI_VISION_MODEL", "grok-4.5")
 PORT = int(os.environ.get("MELANI_AI_PORT", "8791"))
 
 app = FastAPI(title="Melani AI Bridge")
@@ -46,57 +48,33 @@ app.add_middleware(
 
 # No em dashes anywhere in this prompt (user preference).
 SYSTEM_PROMPT = """
-You are Mel, Melani Shrestha's personal assistant living inside her private health + life workspace (a Notion-like app).
+You are Mel, Melani's operating agent inside Wonder.
 
 WHO MELANI IS
-- Medical student training to become a doctor AND inventor
-- Building a neurotech wearable for early disease detection (like Oura, but deeper)
-- Plans clinics in San Francisco, New York, and Los Angeles
-- Loves neuroscience, biotech, Silicon Valley startups
-- Keeps life simple and easy to use. No jargon unless you explain it in plain English
+- Melani is an engineer, inventor, influencer, and streamer.
+- She is building health software and neurotechnology.
+- She wants decisions and execution, not clinic cosplay or generic motivation.
 
-PROFILE (baseline)
-- Name: Melani Shrestha · age display 18 · female · 5 ft 0 in
-- Provider: Ververis, Megan · patient id 2581279882
-- Context: migraine/chronic pain; cardio/metabolic monitoring
-- Default goals often: 2000 cal · 125g protein · 200g carbs · 65g fat · 30g fiber · 4000 ml water
-- Live goals and live numbers arrive in the LIVE BUILD SNAPSHOT every message. Prefer the snapshot.
+HOW YOU OPERATE
+- Extreme competence. Short, warm, direct, and not corporate.
+- Mel does not chat about Melani's life. Mel runs it.
+- App tools execute before you answer. TOOL RESULTS are already completed facts.
+- Never claim you logged, changed, opened, searched, or saved anything unless a tool result says it happened.
+- Use the LIVE BUILD SNAPSHOT for every personal number. Never invent lab values, sleep hours, macros, dates, or completion state.
+- Reduce decision fatigue. When relevant, end with exactly one next action.
+- Understand three life modes: stream, build, and content.
+- Remember pinned facts and corrections included in context.
 
-SUPPLEMENTS (daily)
-1. Vitamin D - right after breakfast
-2. Ashwagandha · Patanjali - evening · with dinner
-3. Creatine · Monohydrate - any time · with water
+HEALTH BOUNDARY
+- Give soft coaching and plain-English education, never a diagnosis.
+- For severe, urgent, or concerning symptoms, tell her to contact her provider or emergency services as appropriate.
+- Do not turn ordinary questions into medical lectures.
 
-MEALS
-- Usual breakfast: Fage 0% yogurt + kefir, chia, flax, pumpkin seeds, blueberries, strawberries, makhana, light TJ raw honey, 1 whole egg + 1 white (~715 cal, 49g protein)
-
-HYGIENE (exact product URLs when she asks to buy, never brand homepage only)
-Body: LRP Lipikar cleansing oil, PanOxyl 10% underarms, Soft Services Comfort Cleanse, Soft Services Buffing Bar, L'Occitane Almond Shower Oil, Necessaire Body Serum, LRP Lipikar AP+M cream, TO Glycolic 7%
-Face: LRP Toleriane cleanser, Anua rice toner / azelaic / oil cleanser / foam / niacinamide+TXA, SKIN1004 centella, Ole Henriksen Banana Bright eye, LRP SPF, Tatcha lip + eye, LRP Double Repair, CeraVe retinol teal, medicube Zero Pore Pad 2.0
-Hair: Fable & Mane HoliRoots pre-wash (https://fableandmane.com/products/holiroots-hair-oil · Sephora P456953 · Amazon B09CMX7X8H), MahaMane Smooth & Shine (https://fableandmane.com/products/mahamane-smooth-shine · Sephora P504117), TO NMF scalp, Kerastase Bain Divalent, Redken Frizz Dismiss, Redken ABC leave-in, Kerastase Genesis serum, Elixir Ultime
-
-TIER 1 COACH BRAIN (always on)
-1) WEEKLY ROLLUP: use 7-day water/protein/gym/migraine trends when coaching, not only today.
-2) GOALS: compare her numbers to GOALS MEL TRACKS. She can set: goal protein 130, goal water 4000, goal sleep 8, goal migraine 2, goal note ...
-3) RED FLAGS: if the snapshot lists red flags, weave the important ones in early when relevant. Stay calm, actionable, not dramatic.
-4) PAGE MODE: follow PAGE MODE in the snapshot (Meals vs Gym vs Labs vs Cycle vs Hygiene).
-5) DOCTOR QUESTIONS PACK: when she asks what to ask her doctor, visit prep, or "questions for Ververis", use and lightly polish the pack. Do not invent lab values.
-
-HOW YOU ACT
-- Private coach: nutritionist + trainer + study-MD style. Educate. Prioritize. Next action.
-- Training rules: lower not consecutive, cardio max 2/week, rest max 1/week.
-- Labs/symptoms: plain English. Never invent a diagnosis. Serious or red-flag issues: ask Dr. Ververis or ER as appropriate.
-- Free log: she types "log ..." and it lands in LIFE LOG.
-- Missing data: one short line + where to log.
-
-HOW YOU TALK
-- Plain English. Short. Warm, sharp, useful.
-- She made you. Never explain your rules or capabilities list.
-- Do not open with "I'm Mel and I can help with..."
-- NEVER use em dashes (the long dash character). Use commas, periods, colons, or regular hyphens only.
-- Never use the Unicode em dash or en dash. This is a hard rule.
-
-You are Mel, floating in her page, synced to the build. Be useful, not explanatory.
+VOICE
+- Human, sharp, useful.
+- No command menu unless she explicitly asks for help.
+- Do not introduce yourself or explain your architecture.
+- Never use an em dash or en dash. Use commas, periods, colons, or a regular hyphen.
 """.strip()
 
 
@@ -133,6 +111,7 @@ class ChatRequest(BaseModel):
     page_title: Optional[str] = None
     page_id: Optional[str] = None
     live_context: Optional[str] = None
+    system_context: Optional[str] = None
     model: Optional[str] = None
 
 
@@ -185,8 +164,110 @@ def call_xai(messages: List[Dict[str, str]], model: str) -> str:
         ) from e
 
 
+def call_xai_responses(
+    input_items: List[Dict[str, Any]],
+    model: str,
+    tools: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    key = load_api_key()
+    if not key:
+        raise HTTPException(status_code=503, detail="no_key")
+
+    body: Dict[str, Any] = {
+        "model": model,
+        "input": input_items,
+        "store": False,
+    }
+    if tools:
+        body["tools"] = tools
+    req = urllib.request.Request(
+        XAI_RESPONSES_URL,
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=180) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        raise HTTPException(
+            status_code=502,
+            detail=f"xAI error {e.code}: {err_body[:400]}",
+        ) from e
+    except urllib.error.URLError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not reach xAI: {e.reason}",
+        ) from e
+
+
+def response_output_text(payload: Dict[str, Any]) -> str:
+    direct = payload.get("output_text")
+    if isinstance(direct, str) and direct.strip():
+        return direct.strip()
+    chunks: List[str] = []
+    for item in payload.get("output", []):
+        if not isinstance(item, dict):
+            continue
+        for content in item.get("content", []):
+            if isinstance(content, dict) and content.get("type") == "output_text":
+                text = content.get("text")
+                if isinstance(text, str) and text.strip():
+                    chunks.append(text.strip())
+    if not chunks:
+        raise HTTPException(status_code=502, detail="Unexpected xAI response")
+    return "\n".join(chunks)
+
+
+def response_urls(value: Any) -> List[str]:
+    urls: List[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key == "url" and isinstance(child, str) and child.startswith("http"):
+                urls.append(child)
+            else:
+                urls.extend(response_urls(child))
+    elif isinstance(value, list):
+        for child in value:
+            urls.extend(response_urls(child))
+    return list(dict.fromkeys(urls))
+
+
+def parse_json_object(text: str) -> Dict[str, Any]:
+    clean = text.strip()
+    clean = re.sub(r"^```(?:json)?\s*", "", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"\s*```$", "", clean)
+    try:
+        value = json.loads(clean)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=502, detail="xAI returned invalid meal JSON") from exc
+    if not isinstance(value, dict):
+        raise HTTPException(status_code=502, detail="xAI returned invalid meal data")
+    return value
+
+
+def nonnegative_number(value: Any) -> float:
+    try:
+        return max(0, float(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 class SetKeyRequest(BaseModel):
     key: str
+
+
+class ResearchRequest(BaseModel):
+    question: str
+    live_context: Optional[str] = None
+
+
+class MealRequest(BaseModel):
+    image: str
 
 
 @app.get("/api/melani-ai/health")
@@ -197,7 +278,9 @@ def health() -> Dict[str, Any]:
         "has_key": bool(key),
         "model": DEFAULT_MODEL,
         "service": "melani-ai",
-        "tier": 1,
+        "tier": "life-os",
+        "research": bool(key),
+        "vision": bool(key),
     }
 
 
@@ -232,6 +315,11 @@ def chat(req: ChatRequest) -> Dict[str, Any]:
         if len(snap) > 14000:
             snap = snap[:14000] + "\n...(truncated)"
         system += "\n\n" + snap
+    if req.system_context and req.system_context.strip():
+        extra = req.system_context.strip()
+        if len(extra) > 8000:
+            extra = extra[:8000] + "\n...(truncated)"
+        system += "\n\nACTION CONTEXT\n" + extra
 
     history = [
         {"role": m.role, "content": m.content}
@@ -245,7 +333,87 @@ def chat(req: ChatRequest) -> Dict[str, Any]:
     return {"ok": True, "reply": reply, "model": model}
 
 
+@app.post("/api/melani-ai/research")
+def research(req: ResearchRequest) -> Dict[str, Any]:
+    question = (req.question or "").strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="question required")
+    context = (req.live_context or "").strip()[:7000]
+    prompt = (
+        "Research this for Melani. Answer directly, distinguish verified facts from "
+        "inference, include useful action criteria, and cite primary sources when possible. "
+        "Do not diagnose. Do not claim you changed her app.\n\n"
+        f"Question: {question}\n\nWonder context, use only when relevant:\n{context}"
+    )
+    payload = call_xai_responses(
+        [{"role": "user", "content": prompt}],
+        RESEARCH_MODEL,
+        tools=[{"type": "web_search"}],
+    )
+    answer = strip_em_dashes(response_output_text(payload))
+    urls = response_urls(payload)
+    missing = [url for url in urls if url not in answer][:5]
+    if missing:
+        answer += "\n\nSources\n" + "\n".join(missing)
+    return {"ok": True, "answer": answer, "model": RESEARCH_MODEL, "sources": urls[:12]}
+
+
+@app.post("/api/melani-ai/meal")
+def meal(req: MealRequest) -> Dict[str, Any]:
+    image = (req.image or "").strip()
+    if not re.match(r"^data:image/(?:png|jpeg|jpg);base64,", image, flags=re.IGNORECASE):
+        raise HTTPException(status_code=400, detail="meal image required")
+    if len(image) > 28_000_000:
+        raise HTTPException(status_code=413, detail="image too large")
+    prompt = (
+        "Analyze this meal for a private food log. Identify only foods reasonably visible. "
+        "Estimate portions and macros conservatively. Never claim image precision. "
+        "Return only one JSON object with title, confidence (low, medium, or high), caveat, "
+        "items, and totals. Each item must have name, portion, calories, protein_g, carbs_g, "
+        "fat_g, and fiber_g. Totals must contain the same five numeric macro fields."
+    )
+    payload = call_xai_responses(
+        [{
+            "role": "user",
+            "content": [
+                {"type": "input_image", "image_url": image, "detail": "high"},
+                {"type": "input_text", "text": prompt},
+            ],
+        }],
+        VISION_MODEL,
+    )
+    data = parse_json_object(response_output_text(payload))
+    raw_items = data.get("items") if isinstance(data.get("items"), list) else []
+    items = []
+    for raw in raw_items[:12]:
+        if not isinstance(raw, dict):
+            continue
+        items.append({
+            "name": str(raw.get("name") or "Food"),
+            "portion": str(raw.get("portion") or "verify portion"),
+            "calories": nonnegative_number(raw.get("calories")),
+            "protein_g": nonnegative_number(raw.get("protein_g")),
+            "carbs_g": nonnegative_number(raw.get("carbs_g")),
+            "fat_g": nonnegative_number(raw.get("fat_g")),
+            "fiber_g": nonnegative_number(raw.get("fiber_g")),
+        })
+    totals = data.get("totals") if isinstance(data.get("totals"), dict) else {}
+    return {
+        "title": str(data.get("title") or "Meal"),
+        "confidence": data.get("confidence") if data.get("confidence") in ("low", "medium", "high") else "low",
+        "caveat": str(data.get("caveat") or "Verify portions before logging."),
+        "items": items,
+        "totals": {
+            "calories": nonnegative_number(totals.get("calories")),
+            "protein_g": nonnegative_number(totals.get("protein_g")),
+            "carbs_g": nonnegative_number(totals.get("carbs_g")),
+            "fat_g": nonnegative_number(totals.get("fat_g")),
+            "fiber_g": nonnegative_number(totals.get("fiber_g")),
+        },
+    }
+
+
 if __name__ == "__main__":
     print(f"Melani AI bridge on http://127.0.0.1:{PORT}")
-    print(f"Key loaded: {bool(load_api_key())} · model: {DEFAULT_MODEL} · tier 1")
+    print(f"Key loaded: {bool(load_api_key())} | model: {DEFAULT_MODEL} | life OS")
     uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="info")

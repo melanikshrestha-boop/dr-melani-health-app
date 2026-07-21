@@ -2,7 +2,8 @@
  * Rich Melani pages inside workspace shell.
  * Fitness = FitnessExact. Data = profile + cycle + smart labs.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Page } from "../types";
 import {
   footerForLab,
   formatLabDate,
@@ -15,16 +16,29 @@ import {
   buildSections,
   importLabPayload,
   loadLabs,
-  saveLabs,
   type BuiltSection,
 } from "./labEngine";
 import { FitnessExact, isFitnessPage } from "./FitnessExact";
 import { HygieneExact, isHygienePage } from "./HygieneExact";
 import { BooksLibrary, isBooksPage } from "./BooksLibrary";
-import { GmailConnector, isGmailAgentPage } from "./GmailConnector";
+import { isGmailAgentPage } from "./gmailRoute";
 import { CycleTracker } from "./CycleTracker";
 import { ExpandableText } from "./ExpandableText";
+import { isWardrobePage } from "./wardrobe/route";
+import { isShoppingAgentPage, ShoppingAgent } from "./ShoppingAgent";
+import { isMyTasksPage, MyTasks } from "./MyTasks";
+import { isWeatherAgentPage, WeatherAgent } from "./weather/WeatherAgent";
 import "./melani.css";
+
+const WardrobeFrame = lazy(async () => {
+  const module = await import("./wardrobe/WardrobeFrame");
+  return { default: module.WardrobeFrame };
+});
+
+const GmailConnector = lazy(async () => {
+  const module = await import("./GmailConnector");
+  return { default: module.GmailConnector };
+});
 
 /** One page: Profile → Period → Labs (status cards + tables + smart import) */
 export function MelaniData() {
@@ -328,6 +342,10 @@ export function isMelaniRichPage(pageId: string): boolean {
     isHygienePage(pageId) ||
     isGmailAgentPage(pageId) ||
     isBooksPage(pageId) ||
+    isWardrobePage(pageId) ||
+    isWeatherAgentPage(pageId) ||
+    isShoppingAgentPage(pageId) ||
+    isMyTasksPage(pageId) ||
     pageId === "pg-life" ||
     pageId === "pg-data" ||
     pageId === "pg-my-data"
@@ -337,9 +355,11 @@ export function isMelaniRichPage(pageId: string): boolean {
 export function MelaniRichPage({
   pageId,
   onGo,
+  pages,
 }: {
   pageId: string;
   onGo: (id: string) => void;
+  pages: Page[];
 }) {
   if (isFitnessPage(pageId)) {
     return <FitnessExact pageId={pageId} onGo={onGo} />;
@@ -350,12 +370,36 @@ export function MelaniRichPage({
   }
 
   if (isGmailAgentPage(pageId)) {
-    return <GmailConnector onGo={onGo} />;
+    return (
+      <Suspense fallback={<div className="melani-page-loading is-dark">Loading Gmail</div>}>
+        <GmailConnector onGo={onGo} />
+      </Suspense>
+    );
+  }
+
+  if (isWardrobePage(pageId)) {
+    return (
+      <Suspense fallback={<div className="melani-page-loading">Loading Wardrobe</div>}>
+        <WardrobeFrame />
+      </Suspense>
+    );
+  }
+
+  if (isWeatherAgentPage(pageId)) {
+    return <WeatherAgent onGo={onGo} />;
+  }
+
+  if (isShoppingAgentPage(pageId)) {
+    return <ShoppingAgent />;
+  }
+
+  if (isMyTasksPage(pageId)) {
+    return <MyTasks />;
   }
 
   // Life + Books both open the real library (not a blank Notion page)
   if (pageId === "pg-life" || isBooksPage(pageId)) {
-    return <BooksLibrary onGo={onGo} />;
+    return <BooksLibrary onGo={onGo} workspacePages={pages} />;
   }
 
   if (pageId === "pg-data" || pageId === "pg-my-data") {

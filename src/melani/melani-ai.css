@@ -46,9 +46,14 @@
   flex-direction: column;
   background: #000;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   overflow: hidden;
+}
+
+.mai-panel.is-overview {
+  width: min(430px, calc(100vw - 28px));
+  height: min(680px, calc(100vh - 72px));
 }
 
 .mai-head {
@@ -68,6 +73,7 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.92);
 }
+.mai-title span { margin-left: 7px; color: #61b5ff; font-size: 8px; letter-spacing: .08em; }
 
 .mai-head-btn {
   border: none;
@@ -81,6 +87,62 @@
 
 .mai-head-btn:hover {
   color: rgba(255, 255, 255, 0.85);
+}
+
+.mai-head-btn.is-active { color: #fff; }
+
+.mai-quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mai-quick button {
+  min-height: 28px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.mai-quick button:last-child {
+  border-right: 0;
+}
+
+.mai-quick button:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.mai-quick button:disabled {
+  opacity: 0.25;
+}
+
+.mai-overview { flex: 1; overflow-y: auto; padding: 16px 14px 20px; }
+.mai-overview-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 14px; }
+.mai-overview-top p, .mai-overview-label, .mai-score-why p { margin: 0 0 4px; color: #69b6ff; font-size: 8px; letter-spacing: .13em; text-transform: uppercase; }
+.mai-overview-top h2 { margin: 0; color: #fff; font-size: 19px; font-weight: 500; }
+.mai-overview-top button, .mai-overview-refresh { border: 0; background: transparent; color: rgba(255,255,255,.38); font: inherit; font-size: 10px; cursor: pointer; }
+.mai-overview-scores { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid rgba(255,255,255,.08); border-bottom: 1px solid rgba(255,255,255,.08); }
+.mai-overview-scores button { display: grid; gap: 5px; padding: 10px 4px; border: 0; border-right: 1px solid rgba(255,255,255,.06); background: transparent; color: rgba(255,255,255,.4); font: inherit; cursor: pointer; }
+.mai-overview-scores button:last-child { border-right: 0; }.mai-overview-scores button.is-selected { background: rgba(105,182,255,.08); color: white; }
+.mai-overview-scores span { font-size: 8px; }.mai-overview-scores strong { font-size: 19px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mai-score-why { margin: 12px 0 15px; padding: 11px; border: 1px solid rgba(105,182,255,.16); border-radius: 5px; background: rgba(105,182,255,.035); }
+.mai-score-why span { display: block; color: rgba(255,255,255,.68); font-size: 11px; line-height: 1.5; }
+.mai-overview-inputs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
+.mai-overview-inputs p { display: grid; gap: 2px; margin: 0; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.mai-overview-inputs p:nth-child(odd) { padding-right: 10px; }.mai-overview-inputs span { color: rgba(255,255,255,.35); font-size: 9px; }.mai-overview-inputs strong { color: rgba(255,255,255,.82); font-size: 11px; font-weight: 500; }
+.mai-overview section { margin-top: 14px; }.mai-overview article, .mai-overview-lever { display: grid; gap: 4px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.mai-overview article strong, .mai-overview-lever strong { color: rgba(255,255,255,.86); font-size: 11px; font-weight: 500; }.mai-overview article span, .mai-overview-lever span { color: rgba(255,255,255,.43); font-size: 10px; line-height: 1.45; }
+.mai-overview-refresh { margin-top: 18px; padding: 0; color: #69b6ff; }
+
+@media (max-width: 520px) {
+  .mai-panel.is-overview { width: calc(100vw - 20px); height: calc(100vh - 66px); right: -6px; }
+  .mai-overview-scores span { font-size: 7px; }
 }
 
 .mai-msgs {

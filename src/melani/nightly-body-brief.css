@@ -1,19 +1,20 @@
-/* Nightly body brief — simple card, black/white, easy to scan */
+/* Nightly body brief — uses the same quiet editorial system as Fitness. */
 
 .nbb-card {
-  margin: 0 0 28px;
-  padding: 18px 18px 16px;
+  margin: 0 0 24px;
+  padding: 16px 18px;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fafafa;
+  overflow: hidden;
 }
 
 .nbb-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .nbb-kicker {
@@ -28,7 +29,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: #111;
 }
 
@@ -37,8 +38,9 @@
   border: 1px solid #111;
   background: #111;
   color: #fff;
-  border-radius: 999px;
-  padding: 7px 14px;
+  border-radius: 6px;
+  min-height: 34px;
+  padding: 6px 13px;
   font-size: 12px;
   font-family: inherit;
   cursor: pointer;
@@ -50,24 +52,29 @@
 
 .nbb-empty {
   margin: 0;
+  max-width: 42rem;
   font-size: 13px;
   line-height: 1.45;
   color: rgba(0, 0, 0, 0.55);
 }
 
 .nbb-list {
-  margin: 0;
+  margin: 2px 0 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
 }
 
 .nbb-line {
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 13px;
   line-height: 1.4;
   color: #222;
+  overflow-wrap: anywhere;
 }
 
 .nbb-flags {
@@ -92,8 +99,8 @@
 
 .nbb-actions {
   display: flex;
-  gap: 14px;
-  margin-top: 12px;
+  gap: 16px;
+  margin-top: 10px;
 }
 
 .nbb-link {
@@ -114,14 +121,15 @@
 
 .nbb-full {
   margin: 12px 0 0;
-  padding: 12px;
+  padding: 14px 0 0;
   max-height: 280px;
   overflow: auto;
-  border-radius: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0;
   background: #111;
   color: rgba(255, 255, 255, 0.88);
-  font-size: 11px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.55;
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
@@ -163,4 +171,23 @@
 
 .fx-page .nbb-flags {
   border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.fx-page .nbb-line,
+.fx-page .nbb-full {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 560px) {
+  .nbb-card {
+    padding: 14px;
+  }
+
+  .nbb-list {
+    grid-template-columns: 1fr;
+  }
+
+  .nbb-head {
+    align-items: flex-start;
+  }
 }

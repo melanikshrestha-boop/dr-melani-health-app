@@ -59,6 +59,8 @@ export function PageEditor({
   const allSelectedRef = useRef(false);
   const dragFrom = useRef<number | null>(null);
   const blocksWrapRef = useRef<HTMLDivElement | null>(null);
+  const pageRef = useRef(page);
+  pageRef.current = page;
   // Never leave a page with zero editable lines (Books / empty hubs felt dead)
   const blocks: Block[] =
     page.blocks && page.blocks.length > 0
@@ -79,11 +81,12 @@ export function PageEditor({
         updatedAt: Date.now(),
       });
     }
-  }, [page.id, page.blocks?.length]);
+  }, [page, onUpdatePage]);
 
   // Land on page → focus first typing line so you can start immediately
   useEffect(() => {
-    const first = (page.blocks || []).find(
+    setAllSelectedSync(false);
+    const first = (pageRef.current.blocks || []).find(
       (x) => x.type !== "divider" && x.type !== "page_link"
     );
     if (first) setFocusId(first.id);
@@ -185,6 +188,14 @@ export function PageEditor({
     // Highlight every block at once (works across multi-line pages)
     setAllSelectedSync(true);
     setSlash(null);
+  }
+
+  function toggleSelectAllPage() {
+    if (allSelectedRef.current) {
+      setAllSelectedSync(false);
+      return;
+    }
+    selectAllPage();
   }
 
   function onKeyDown(
@@ -530,6 +541,22 @@ export function PageEditor({
               </div>
             )}
           </div>
+          <button
+            type="button"
+            className={`page-control-chip${allSelected ? " is-active" : ""}`}
+            onClick={toggleSelectAllPage}
+          >
+            {allSelected ? "Page selected" : "Select page"}
+          </button>
+          {allSelected && (
+            <button
+              type="button"
+              className="page-control-chip is-destructive"
+              onClick={clearAllBlocks}
+            >
+              Delete selected
+            </button>
+          )}
           <button
             type="button"
             className="page-control-chip"

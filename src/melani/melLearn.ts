@@ -179,7 +179,7 @@ export function polishReply(draft: string): string {
     out = out.replace(re, "").replace(/\s{2,}/g, " ").trim();
   }
   // clean empty leftovers
-  out = out.replace(/\.\s*\./g, ".").replace(/^\s*[\.\,]\s*/g, "").trim();
+  out = out.replace(/\.\s*\./g, ".").replace(/^\s*[.,]\s*/g, "").trim();
   return out || "Yeah.";
 }
 

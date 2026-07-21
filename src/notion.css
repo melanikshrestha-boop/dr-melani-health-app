@@ -432,6 +432,23 @@ textarea {
   text-align: left;
 }
 
+.page-row[draggable="true"] { cursor: grab; }
+.page-row[draggable="true"]:active { cursor: grabbing; opacity: .72; }
+
+.page-row.is-reorder-target::before {
+  position: absolute;
+  z-index: 2;
+  inset: -1px 4px auto 20px;
+  height: 1px;
+  background: rgba(88, 166, 255, 0.82);
+  content: "";
+}
+
+.page-row.is-nest-target {
+  background: rgba(88, 166, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(88, 166, 255, 0.5);
+}
+
 .page-row:hover {
   background: var(--sidebar-hover);
 }
@@ -771,15 +788,35 @@ textarea {
   .page-inner {
     padding: 0 24px 30vh;
   }
-  /* Keep sidebar in document flow (not overlay) so main always reflows */
+  /* On phones the sidebar overlays the page instead of crushing its width. */
   .sidebar {
-    position: relative;
+    position: absolute;
+    inset: 0 auto 0 0;
     z-index: 20;
     height: 100%;
+    width: min(84vw, 280px);
+    min-width: min(84vw, 280px);
+    max-width: min(84vw, 280px);
+    box-shadow: var(--shadow-menu);
+  }
+
+  .sidebar.is-closed {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
     box-shadow: none;
   }
-  .sidebar:not(.is-closed) {
-    box-shadow: var(--shadow-menu);
+
+  .topbar {
+    padding: 0 8px;
+  }
+
+  .topbar-meta {
+    display: none;
+  }
+
+  .breadcrumb-title {
+    max-width: 42vw;
   }
 }
 
@@ -856,6 +893,20 @@ textarea {
 .page-control-chip:hover {
   background: rgba(55, 53, 47, 0.08);
   color: var(--text-muted);
+}
+
+.page-control-chip.is-active {
+  background: var(--blue-soft);
+  color: var(--text);
+}
+
+.page-control-chip.is-destructive {
+  color: #ffb4b4;
+}
+
+.page-control-chip.is-destructive:hover {
+  background: rgba(255, 120, 120, 0.08);
+  color: #ffd3d3;
 }
 
 /* ── Blocks ── */
@@ -995,10 +1046,15 @@ textarea {
 .blocks.is-all-selected .block-row .block-input,
 .blocks.is-all-selected .block-row .block-page-link {
   background: var(--selection);
-  border-radius: 2px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(35, 131, 226, 0.28);
 }
 .blocks.is-all-selected .block-row {
   border-radius: 3px;
+}
+
+.blocks.is-all-selected .block-row .block-input::selection {
+  background: rgba(35, 131, 226, 0.5);
 }
 
 .block-input.type-code {
@@ -1663,7 +1719,7 @@ textarea {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 16px 20px 64px;
+  padding: 12px 16px 64px;
   box-sizing: border-box;
   overflow-x: hidden;
 }
@@ -1746,6 +1802,21 @@ textarea {
 .main.is-melani .main-scroll {
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* The upstream Wardrobe app owns its canvas; Wonder only supplies the shell. */
+.main.is-wardrobe .main-scroll {
+  overflow: hidden;
+}
+
+.main.is-wardrobe .notion-melani-page,
+.main.is-wardrobe .notion-melani-body {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 /* ── Notion-style sidebar extras (Agents, bottom links) ── */
@@ -1904,4 +1975,3 @@ textarea {
   margin: 0 auto;
   padding: 0 96px 48px;
 }
-

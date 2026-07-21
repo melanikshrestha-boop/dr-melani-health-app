@@ -4,7 +4,9 @@
   color: #fff;
   font-family: "Times New Roman", Times, serif;
   padding: 0 0 40px;
-  max-width: 520px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .gc-h2 {
@@ -195,7 +197,7 @@
   grid-template-columns: minmax(220px, 34%) 1fr;
   gap: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   min-height: 480px;
   flex: 1;
@@ -323,7 +325,7 @@
   width: min(480px, 100%);
   background: #0c0c0c;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 18px;
 }
 

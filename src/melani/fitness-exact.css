@@ -15,9 +15,9 @@
 
 .fx-inner {
   width: 100%;
-  max-width: min(480px, 100%);
+  max-width: min(720px, 100%);
   margin: 0 auto;
-  padding: 12px 16px 48px;
+  padding: 16px 20px 48px;
   text-align: left;
   box-sizing: border-box;
   min-width: 0;
@@ -96,10 +96,56 @@
 
 /* Sections */
 .fx-section {
-  margin: 0 0 28px;
+  margin: 0 0 26px;
   padding: 0;
   border: none;
   background: transparent;
+}
+
+.smart-meal {
+  margin: 0 0 30px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: #050505;
+}
+
+.smart-meal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.smart-meal-head h2, .smart-meal-sheet h2 { margin: 2px 0 5px; font-size: 20px; font-weight: 500; }
+.smart-meal-head p { margin: 0; color: rgba(255,255,255,.56); font-size: 13px; line-height: 1.45; }
+.smart-meal-kicker { margin: 0 !important; color: #8fc5ff !important; font-size: 10px !important; text-transform: uppercase; letter-spacing: .14em; }
+.smart-meal-camera, .smart-meal-upload, .smart-meal-confirm { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font: inherit; cursor: pointer; }
+.smart-meal-camera { flex: none; border: 1px solid rgba(255,255,255,.22); border-radius: 999px; background: #fff; color: #000; padding: 8px 13px; font-size: 13px; }
+.smart-meal-upload { margin-top: 15px; padding: 0; border: 0; background: transparent; color: rgba(255,255,255,.68); font-size: 12px; }
+.smart-meal-upload:hover { color: #fff; }
+
+.smart-meal-modal { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.76); backdrop-filter: blur(8px); }
+.smart-meal-sheet { width: min(520px, 100%); max-height: min(760px, 92vh); overflow: auto; padding: 18px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: #070707; box-shadow: 0 30px 100px #000; }
+.smart-meal-sheet header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.smart-meal-sheet header button { border: 0; background: transparent; color: #aaa; cursor: pointer; }
+.smart-meal-sheet > img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 6px; background: #111; }
+.smart-meal-thinking { display: flex; align-items: center; gap: 8px; margin: 18px 0 4px; color: #a7d2ff; }
+.smart-meal-error { color: #ffb4b4; font-size: 12px; line-height: 1.4; }
+.smart-meal-title { display: grid; gap: 5px; margin: 14px 0; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+.smart-meal-title input { border: 0; border-bottom: 1px solid #282828; background: transparent; color: white; padding: 7px 0; font: inherit; font-size: 18px; text-transform: none; letter-spacing: 0; outline: none; }
+.smart-meal-items { border-top: 1px solid #202020; border-bottom: 1px solid #202020; padding: 5px 0; }
+.smart-meal-items p { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 7px 0; color: #ddd; font-size: 13px; }
+.smart-meal-items span { color: #777; }
+.smart-meal-confidence { display: inline-block; margin: 12px 0 6px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.smart-meal-confidence.is-high { color: #42d58b; } .smart-meal-confidence.is-medium { color: #f3c85b; } .smart-meal-confidence.is-low { color: #ff8e8e; }
+.smart-meal-caveat { margin: 0 0 12px; color: #8a8a8a; font-size: 12px; line-height: 1.45; }
+.smart-meal-macros { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+.smart-meal-macros label { display: grid; gap: 4px; color: #777; font-size: 10px; text-transform: uppercase; }
+.smart-meal-macros input { width: 100%; box-sizing: border-box; border: 1px solid #242424; border-radius: 5px; background: #0c0c0c; color: #fff; padding: 8px 5px; font: inherit; font-size: 13px; }
+.smart-meal-confirm { width: 100%; margin-top: 14px; border: 0; border-radius: 6px; background: #fff; color: #000; padding: 11px 14px; }
+
+@media (max-width: 520px) {
+  .smart-meal { padding: 15px; }
+  .smart-meal-head { align-items: center; }
+  .smart-meal-head h2 { font-size: 17px; }
+  .smart-meal-head > div > p:last-child { display: none; }
+  .smart-meal-camera { padding: 7px 10px; }
+  .smart-meal-macros { grid-template-columns: repeat(3, 1fr); }
 }
 
 .fx-h2 {
@@ -245,7 +291,7 @@
 .fx-chart-wrap {
   margin-top: 12px;
   padding: 12px 8px 8px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(
     180deg,
@@ -259,6 +305,28 @@
   display: block;
   width: 100%;
   height: 180px;
+}
+
+@media (max-width: 560px) {
+  .fx-inner {
+    padding: 12px 16px 40px;
+  }
+
+  .fx-quote {
+    margin-bottom: 18px;
+  }
+
+  .fx-subnav {
+    margin-bottom: 20px;
+  }
+
+  .consume-row {
+    align-items: flex-start;
+  }
+
+  .consume-time {
+    width: 6.25em;
+  }
 }
 
 /* Macro rings (meals tab — same as Melani) */
