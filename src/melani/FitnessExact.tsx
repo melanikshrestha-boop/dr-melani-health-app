@@ -15,6 +15,7 @@ import {
   type ConsumeLog,
 } from "./data";
 import { GymExact } from "./GymExact";
+import { NightlyBodyBrief } from "./NightlyBodyBrief";
 import "./fitness-exact.css";
 import "./gym-exact.css";
 
@@ -938,6 +939,9 @@ export function FitnessExact({ pageId, onGo }: Props) {
           <p className="fx-quote-text">“{QUOTE.text}”</p>
           <p className="fx-quote-author">{QUOTE.source}</p>
         </div>
+
+        {/* Nightly body brief — one report of the whole day */}
+        <NightlyBodyBrief onGo={onGo} />
 
         {/* Sleep · Meals · Gym (Body weight is under Gym → Warm-up) */}
         <nav className="fx-subnav" aria-label="Fitness pages">

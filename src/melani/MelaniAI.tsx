@@ -8,7 +8,9 @@ import {
   applyGoalCommand,
   applyPinCommand,
 } from "./melContext";
+import { writeTonightBrief, isBriefHour, loadBodyBrief } from "./bodyBrief";
 import { melLocalReply } from "./melLocal";
+import { todayKey } from "./data";
 import "./melani-ai.css";
 
 type Role = "user" | "assistant";
@@ -137,6 +139,38 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
     }
   }
 
+  // One-tap: write tonight's body brief into the chat
+  function writeBrief() {
+    if (busy) return;
+    const brief = writeTonightBrief(todayKey());
+    const userMsg: Msg = { id: uid(), role: "user", content: "brief" };
+    const aiMsg: Msg = {
+      id: uid(),
+      role: "assistant",
+      content: noEmDash(brief.fullText),
+    };
+    setMsgs((prev) => [...prev, userMsg, aiMsg]);
+  }
+
+  // Evening nudge: first open after 8pm with no brief yet
+  useEffect(() => {
+    if (!open) return;
+    if (!isBriefHour()) return;
+    if (loadBodyBrief(todayKey())) return;
+    // Soft welcome line only when chat is empty
+    setMsgs((prev) => {
+      if (prev.length > 0) return prev;
+      return [
+        {
+          id: uid(),
+          role: "assistant",
+          content:
+            "Evening. Tap Brief for your nightly body report, or type brief.",
+        },
+      ];
+    });
+  }, [open]);
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -150,6 +184,9 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
         <div className="mai-panel" role="dialog" aria-label="Mel">
           <header className="mai-head">
             <p className="mai-title">Mel</p>
+            <button type="button" className="mai-head-btn" onClick={writeBrief}>
+              Brief
+            </button>
             <button type="button" className="mai-head-btn" onClick={clearChat}>
               Clear
             </button>
@@ -165,7 +202,9 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
 
           <div className="mai-msgs">
             {msgs.length === 0 && (
-              <p className="mai-welcome">Let&apos;s get to work.</p>
+              <p className="mai-welcome">
+                Let&apos;s get to work. Try: brief
+              </p>
             )}
             {msgs.map((m) => (
               <div

@@ -1,0 +1,166 @@
+/* Nightly body brief — simple card, black/white, easy to scan */
+
+.nbb-card {
+  margin: 0 0 28px;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.nbb-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.nbb-kicker {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.nbb-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #111;
+}
+
+.nbb-write {
+  flex-shrink: 0;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.nbb-write:hover {
+  background: #000;
+}
+
+.nbb-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.nbb-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nbb-line {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #222;
+}
+
+.nbb-flags {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.nbb-flags-label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.nbb-flag {
+  margin: 0 0 3px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.nbb-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.nbb-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  font-family: inherit;
+  color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.nbb-link:hover {
+  color: #000;
+}
+
+.nbb-full {
+  margin: 12px 0 0;
+  padding: 12px;
+  max-height: 280px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #111;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Dark pages (if Fitness uses dark) — keep readable */
+.fx-page .nbb-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fx-page .nbb-kicker {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.fx-page .nbb-title {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.fx-page .nbb-empty,
+.fx-page .nbb-line,
+.fx-page .nbb-flag {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.fx-page .nbb-flags-label,
+.fx-page .nbb-link {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.fx-page .nbb-link:hover {
+  color: #fff;
+}
+
+.fx-page .nbb-write {
+  border-color: rgba(255, 255, 255, 0.85);
+  background: #fff;
+  color: #111;
+}
+
+.fx-page .nbb-flags {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}

@@ -17,6 +17,7 @@ import {
   wantsPureSmalltalk,
 } from "./melLearn";
 import { MEAL_PRESETS } from "./data";
+import { writeTonightBrief } from "./bodyBrief";
 
 function noEm(s: string): string {
   return s
@@ -82,6 +83,15 @@ export function melLocalReply(
   // Tier 2 pin commands
   const pinOut = applyPinCommand(q);
   if (pinOut) return finish(q, pinOut);
+
+  // Nightly body brief — rebuild from live data and paste full report
+  if (
+    pick(low, /^(brief|body brief|nightly|nightly brief|tonight)\b/) ||
+    pick(low, /\b(write|show|give me|open)\s+(my\s+)?(body\s+)?brief\b/)
+  ) {
+    const brief = writeTonightBrief();
+    return finish(q, brief.fullText);
+  }
 
   if (pick(low, /^log\s*:?\s+/)) {
     return finish(q, "Logged.");
@@ -480,7 +490,7 @@ export function melLocalReply(
   if (pick(low, /\b(help|commands)\b/)) {
     return finish(
       q,
-      "status · protein · water · gym · sleep · labs · week · log · pin · find · fix: ..."
+      "status · brief · protein · water · gym · sleep · labs · week · log · pin · find · fix: ..."
     );
   }
 
