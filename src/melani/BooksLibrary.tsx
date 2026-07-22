@@ -154,6 +154,9 @@ export function BooksLibrary({
   const [finderState, setFinderState] = useState<FinderState>("idle");
   const [finderMessage, setFinderMessage] = useState("");
   const [finderResults, setFinderResults] = useState<BookDiscoveryResult[]>([]);
+  /** Short popup: "Saved to Want → Business & Money" */
+  const [toast, setToast] = useState<string | null>(null);
+  const [wantBusy, setWantBusy] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
   const [draftAuthor, setDraftAuthor] = useState("");
   const [draftCategory, setDraftCategory] = useState<BookCategory>("Unsorted");
@@ -166,6 +169,13 @@ export function BooksLibrary({
     state: "idle",
     message: "Apple Books",
   });
+
+  // Auto-hide placement toast after a few seconds
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 4200);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     saveBooks(books);
@@ -363,17 +373,32 @@ export function BooksLibrary({
     setOpenId(book.id);
   }
 
-  function addDiscoveredBook(found: BookDiscoveryResult) {
+  /**
+   * Add a found book to Want, auto-pick folder, show toast where it went.
+   * Legal catalogs only (Open Library / Internet Archive) — not pirate sites.
+   */
+  function addDiscoveredBook(
+    found: BookDiscoveryResult,
+    options?: { silent?: boolean; openAfter?: boolean }
+  ): { book: Book; folderLabel: string; alreadyHad: boolean } {
     const normalizedTitle = found.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const existing = books.find(
       (book) =>
         book.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === normalizedTitle
     );
     if (existing) {
-      setOpenId(existing.id);
-      return;
+      if (options?.openAfter !== false) setOpenId(existing.id);
+      const folderLabel =
+        folders.find((f) => f.id === existing.category)?.label || existing.category;
+      if (!options?.silent) {
+        setToast(`Already on your shelf · ${folderLabel}`);
+      }
+      return { book: existing, folderLabel, alreadyHad: true };
     }
+    // Auto-organize into the right subject folder
     const category = categorizeBook(found.title, found.author);
+    const folderLabel =
+      folders.find((f) => f.id === category)?.label || String(category);
     const book = newBook({
       title: found.title,
       author: found.author,
@@ -382,11 +407,90 @@ export function BooksLibrary({
       status: "want",
       statusOverride: true,
       coverUrl: found.coverUrl || undefined,
-      externalUrl: found.catalogUrl,
+      externalUrl: found.getCopyUrl || found.catalogUrl,
       source: "manual",
+      format: found.access === "public" ? "archive" : "manual",
+      description:
+        found.access === "public"
+          ? "Free public / library copy linked from Open Library or Internet Archive."
+          : found.access === "borrow"
+            ? "Borrowing or library listing linked from Open Library."
+            : "Catalog listing from Open Library.",
     });
     setBooks((current) => [book, ...current]);
     setOpenFolders((current) => ({ ...current, [category]: true }));
+    setGroupMode("subjects");
+    setFilter("want");
+    if (options?.openAfter) setOpenId(book.id);
+    if (!options?.silent) {
+      const freeNote =
+        found.access === "public"
+          ? " · free copy linked"
+          : found.access === "borrow"
+            ? " · borrow link saved"
+            : " · catalog link saved";
+      setToast(`Want list · filed in “${folderLabel}”${freeNote}`);
+    }
+    return { book, folderLabel, alreadyHad: false };
+  }
+
+  /**
+   * Want tab magic: type a title in search → find legal source → auto-file into a folder.
+   * Picks free public copy first when available.
+   */
+  async function findWantAndFile(query: string) {
+    const cleaned = query.trim();
+    if (!cleaned || wantBusy) return;
+    setWantBusy(true);
+    setFinderOpen(true);
+    setFinderQuery(cleaned);
+    setFinderState("searching");
+    setFinderMessage("Looking up legal catalogs…");
+    try {
+      const results = await searchLegalBooks(cleaned);
+      setFinderResults(results);
+      if (!results.length) {
+        setFinderState("done");
+        setFinderMessage("No legal catalog match. Try a clearer title or author.");
+        setToast("No legal free/catalog match for that title");
+        return;
+      }
+      // Prefer free public scan, then borrow, then any catalog hit
+      const best =
+        results.find((r) => r.access === "public") ||
+        results.find((r) => r.access === "borrow") ||
+        results[0];
+      const { folderLabel, alreadyHad } = addDiscoveredBook(best, {
+        silent: true,
+        openAfter: false,
+      });
+      setFinderState("done");
+      setFinderMessage(
+        alreadyHad
+          ? `Already had “${best.title}”`
+          : `Saved “${best.title}” to Want → ${folderLabel}`
+      );
+      setToast(
+        alreadyHad
+          ? `Already on shelf · ${folderLabel}`
+          : `Want · “${best.title}” → ${folderLabel}${
+              best.access === "public" ? " · free copy linked" : ""
+            }`
+      );
+      // Open free public copy in a new tab when we can (legal only)
+      if (!alreadyHad && best.access === "public" && best.getCopyUrl) {
+        window.open(best.getCopyUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      setFinderResults([]);
+      setFinderState("error");
+      const msg =
+        error instanceof Error ? error.message : "Book search is unavailable.";
+      setFinderMessage(msg);
+      setToast(msg);
+    } finally {
+      setWantBusy(false);
+    }
   }
 
   function addFolder() {
@@ -887,15 +991,43 @@ export function BooksLibrary({
       </header>
 
       <div className="bl-toolbar">
-        <label className="bl-search-wrap">
+        <form
+          className="bl-search-wrap"
+          onSubmit={(event) => {
+            event.preventDefault();
+            // Want tab: search finds a book + auto-files it (legal catalogs only)
+            if (filter === "want") {
+              void findWantAndFile(q || finderQuery);
+              return;
+            }
+            // Other tabs: filter your shelf as you type (no submit needed)
+          }}
+        >
           <MagnifyingGlass size={15} aria-hidden />
           <input
             className="bl-search"
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="Search titles, authors, notes, or quotes"
+            value={filter === "want" ? q : q}
+            onChange={(event) => {
+              setQ(event.target.value);
+              if (filter === "want") setFinderQuery(event.target.value);
+            }}
+            placeholder={
+              filter === "want"
+                ? "Want a book? Type the title + Enter (legal free/catalog search)"
+                : "Search titles, authors, notes, or quotes"
+            }
           />
-        </label>
+          {filter === "want" ? (
+            <button
+              type="submit"
+              className="bl-want-go"
+              disabled={wantBusy || !q.trim()}
+              title="Find and file into Want"
+            >
+              {wantBusy ? "…" : "Get"}
+            </button>
+          ) : null}
+        </form>
         <div className="bl-view-tabs" aria-label="Library arrangement">
           <button
             type="button"
@@ -1060,10 +1192,12 @@ export function BooksLibrary({
                     <button
                       type="button"
                       className="bl-btn"
-                      onClick={() => addDiscoveredBook(found)}
+                      onClick={() => {
+                        addDiscoveredBook(found);
+                      }}
                     >
                       <Plus size={14} aria-hidden />
-                      Add
+                      Add to Want
                     </button>
                     <a
                       className="bl-btn bl-btn-primary"
@@ -1104,12 +1238,29 @@ export function BooksLibrary({
             key={id}
             type="button"
             className={`bl-chip${filter === id ? " is-on" : ""}`}
-            onClick={() => setFilter(id)}
+            onClick={() => {
+              setFilter(id);
+              // Switching to Want: focus the “get this book” flow
+              if (id === "want") {
+                setFinderOpen(true);
+                setFinderMessage(
+                  "Type a title above and press Enter / Get. Legal catalogs only (Open Library). Auto-files into a folder."
+                );
+              }
+            }}
           >
             {label}
           </button>
         ))}
       </div>
+
+      {filter === "want" ? (
+        <p className="bl-want-hint">
+          <strong>Want</strong> = books you don’t have yet. Search above → we look up{" "}
+          <em>legal</em> free/public or catalog copies, file them into a folder for you, and show
+          a short toast of where they went. Pirate sites are not used.
+        </p>
+      ) : null}
 
       {adding ? (
         <div className="bl-add-panel">
@@ -1255,6 +1406,13 @@ export function BooksLibrary({
           </section>;
         })
       )}
+
+      {/* Short placement popup after Want auto-file */}
+      {toast ? (
+        <div className="bl-toast" role="status" aria-live="polite">
+          {toast}
+        </div>
+      ) : null}
     </div>
   );
 }

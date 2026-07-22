@@ -3,6 +3,7 @@ import { isBriefHour, loadBodyBrief } from "./bodyBrief";
 import { todayKey } from "./data";
 import { checkMelCloud, checkMelLocalModel, runMelAgent } from "./melAgent";
 import { MelOverview } from "./MelOverview";
+import { ensureDefaultWeatherLocation } from "./weather/weatherCore";
 import "./melani-ai.css";
 
 type Role = "user" | "assistant";
@@ -51,9 +52,44 @@ function noEmDash(text: string): string {
     .replace(/–/g, "-");
 }
 
-function linkify(text: string) {
+/** Render chat text in scannable chunks (paragraphs + links). Humans skim; walls fail. */
+function renderMessage(text: string) {
   const clean = noEmDash(text);
-  const parts = clean.split(/(https?:\/\/[^\s)]+)/g);
+  // Split on blank lines first (sections), then keep single newlines inside a chunk
+  const blocks = clean.split(/\n{2,}/).filter((b) => b.trim().length > 0);
+  if (blocks.length <= 1 && !clean.includes("\n")) {
+    return linkifyInline(clean);
+  }
+  return blocks.map((block, bi) => {
+    const lines = block.split("\n");
+    return (
+      <div key={bi} className="mai-chunk">
+        {lines.map((line, li) => {
+          const isHeader =
+            /^—\s+.+?\s+—$/.test(line.trim())
+            || /^(Nightly body brief|Today,|Today:|SLEEP|MEALS|WATER|CYCLE|GYM)/i.test(line.trim());
+          return (
+            <p
+              key={li}
+              className={
+                isHeader
+                  ? "mai-line mai-line-head"
+                  : line.trim() === ""
+                    ? "mai-line mai-line-gap"
+                    : "mai-line"
+              }
+            >
+              {linkifyInline(line || "\u00a0")}
+            </p>
+          );
+        })}
+      </div>
+    );
+  });
+}
+
+function linkifyInline(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
   return parts.map((part, i) =>
     part.startsWith("http") ? (
       <a key={i} href={part} target="_blank" rel="noopener noreferrer">
@@ -93,8 +129,15 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    // Weather is Mel-only — default city NYC, no Weather page
+    try {
+      ensureDefaultWeatherLocation();
+    } catch {
+      /* ignore */
+    }
     let active = true;
     const refresh = () => {
+      // Health checks are short; failures must not block chat
       void Promise.all([checkMelCloud(), checkMelLocalModel()]).then(
         ([cloud, local]) => {
           if (!active) return;
@@ -104,7 +147,7 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
       );
     };
     refresh();
-    const timer = window.setInterval(refresh, 30_000);
+    const timer = window.setInterval(refresh, 60_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -214,8 +257,16 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
               ["Brief", "brief"],
               ["Food", "food"],
               ["Status", "status"],
+              // One tap undoes last page move / Mel action / trash
+              ["Undo", "undo that"],
             ].map(([label, command]) => (
-              <button key={command} type="button" onClick={() => void send(command)} disabled={busy}>
+              <button
+                key={command}
+                type="button"
+                title={command === "undo that" ? "Undo last change (also ⌘Z)" : undefined}
+                onClick={() => void send(command)}
+                disabled={busy}
+              >
                 {label}
               </button>
             ))}
@@ -229,9 +280,11 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
             {msgs.map((m) => (
               <div
                 key={m.id}
-                className={`mai-msg ${m.role === "user" ? "is-user" : "is-ai"}`}
+                className={`mai-msg ${m.role === "user" ? "is-user" : "is-ai"}${
+                  m.content.includes("\n") || m.content.length > 120 ? " is-long" : ""
+                }`}
               >
-                {linkify(m.content)}
+                {renderMessage(m.content)}
               </div>
             ))}
             {busy && <p className="mai-typing">…</p>}

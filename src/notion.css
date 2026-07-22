@@ -1,38 +1,38 @@
 /* ═══════════════════════════════════════════
-   Notion-like design system
-   Closely mirrors Notion’s default light UI
+   Wonder design system
+   Calm black canvas · serif everywhere · soft motion
    ═══════════════════════════════════════════ */
 
 :root {
-  /* Sidebar / chrome — same black as page (no two-tone) */
-  --notion-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji",
-    "Segoe UI Symbol";
-  --notion-serif: Lyon-Text, Georgia, "Times New Roman", ui-serif, serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  /* Serif stack EVERYWHERE (no sans chrome) */
+  --notion-serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype",
+    Palatino, Georgia, "Times New Roman", ui-serif, serif;
+  --notion-ui: var(--notion-serif);
   --notion-font: var(--notion-serif);
-  --notion-mono: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono",
-    Courier, monospace;
+  /* Still serif for “code-ish” numbers — user wants serif only */
+  --notion-mono: var(--notion-serif);
 
-  /* One canvas — sidebar = page = pure black */
-  --bg: #000000;
-  --sidebar-bg: #000000;
-  --sidebar-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-active: rgba(255, 255, 255, 0.12);
-  --text: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.65);
-  --text-faint: rgba(255, 255, 255, 0.4);
-  --text-placeholder: rgba(255, 255, 255, 0.35);
-  --border: rgba(255, 255, 255, 0.1);
-  --blue: #2383e2;
-  --blue-soft: rgba(35, 131, 226, 0.14);
-  --selection: rgba(35, 131, 226, 0.35);
-  --callout-bg: rgba(255, 255, 255, 0.06);
-  --code-bg: rgba(255, 255, 255, 0.05);
-  --shadow-menu: rgba(0, 0, 0, 0.5) 0px 0px 0px 1px,
-    rgba(0, 0, 0, 0.45) 0px 8px 24px;
-  --sidebar-w: 240px;
-  --page-max: 900px;
+  /* One soft black canvas */
+  --bg: #050505;
+  --sidebar-bg: #050505;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(255, 255, 255, 0.1);
+  --text: rgba(255, 255, 255, 0.94);
+  --text-muted: rgba(255, 255, 255, 0.58);
+  --text-faint: rgba(255, 255, 255, 0.38);
+  --text-placeholder: rgba(255, 255, 255, 0.32);
+  --border: rgba(255, 255, 255, 0.08);
+  --blue: #8eb6ff;
+  --blue-soft: rgba(142, 182, 255, 0.12);
+  --selection: rgba(142, 182, 255, 0.28);
+  --callout-bg: rgba(255, 255, 255, 0.04);
+  --code-bg: rgba(255, 255, 255, 0.04);
+  --shadow-menu: 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.55);
+  --sidebar-w: 252px;
+  --page-max: 920px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.18s;
 }
 
 * {
@@ -46,25 +46,30 @@ body,
   margin: 0;
 }
 
+html {
+  /* Smoother scroll in main panes */
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: var(--notion-serif);
+  font-size: 15px;
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Chrome stays sans; writing surface is serif — like Notion Serif style */
+/* Force serif on every surface: chrome, menus, page, Mel, markets */
 .sidebar,
 .topbar,
 .search-modal,
 .slash-menu,
 .emoji-picker,
 .more-menu,
-.cover-picker {
-  font-family: var(--notion-ui);
-}
-
+.cover-picker,
 .page-inner,
 .page-title-input,
 .block-input,
@@ -73,21 +78,30 @@ body {
 .db-view,
 .db-cell-input,
 .db-col-name,
-.db-cell-select {
+.db-cell-select,
+.mai-root,
+.wm-page,
+button,
+input,
+textarea,
+select {
   font-family: var(--notion-serif) !important;
 }
 
 .page-title-input {
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
+  font-weight: 600;
 }
 
 .block-input {
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
+  line-height: 1.65;
 }
 
 .block-input.type-code {
-  font-family: var(--notion-mono) !important;
-  letter-spacing: 0;
+  font-family: var(--notion-serif) !important;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 ::selection {
@@ -98,6 +112,33 @@ button,
 input,
 textarea {
   font-family: inherit;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease), opacity var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+/* Soft scrollbars (less choppy feel) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ── App shell ── */
@@ -110,7 +151,7 @@ textarea {
 
 /* ── Sidebar ── */
 .sidebar {
-  --sb-inset: 12px; /* one left edge for everything LTR */
+  --sb-inset: 14px; /* one left edge for everything LTR */
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
   max-width: var(--sidebar-w);
@@ -122,18 +163,19 @@ textarea {
   padding: 0;
   user-select: none;
   flex-shrink: 0;
-  /* When open/closed, width changes so .main reflows (content not cut off) */
+  /* Soft open/close so the shell doesn’t feel choppy */
   transition:
-    width 0.18s ease,
-    min-width 0.18s ease,
-    max-width 0.18s ease,
-    opacity 0.15s ease,
-    border-color 0.15s ease;
+    width 0.28s var(--ease),
+    min-width 0.28s var(--ease),
+    max-width 0.28s var(--ease),
+    opacity 0.22s var(--ease),
+    border-color 0.22s var(--ease);
   color: var(--text);
   text-align: left;
   direction: ltr;
   overflow: hidden;
   box-sizing: border-box;
+  font-family: var(--notion-serif);
 }
 
 /* Closed = take no horizontal space → main expands to full width */
@@ -199,7 +241,7 @@ textarea {
 .page-tree-kids {
   display: grid;
   grid-template-rows: 1fr;
-  transition: grid-template-rows 0.22s ease;
+  transition: grid-template-rows 0.32s var(--ease);
 }
 
 .page-tree-kids.is-collapsed {
@@ -390,12 +432,13 @@ textarea {
   font-weight: 500;
 }
 
-/* Section labels (Private, Favorites) — same left edge as every row */
+/* Section labels (Health / Learn / Work) — same left edge as every row */
 .sidebar-section-label {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
+  gap: 6px;
   width: 100%;
   box-sizing: border-box;
   padding: 10px var(--sb-inset) 4px;
@@ -404,6 +447,58 @@ textarea {
   font-weight: 500;
   color: var(--text-faint);
   text-align: left;
+  user-select: none;
+}
+
+/* Double-tap these to close / open the whole section */
+.sidebar-section-label.is-tappable {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.sidebar-section-label.is-tappable:hover {
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-section-label.is-tappable:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.2);
+  outline-offset: 1px;
+}
+
+.sidebar-section-label .sidebar-section-chev {
+  display: inline-flex;
+  width: 10px;
+  font-size: 11px;
+  opacity: 0.5;
+  transform: rotate(0deg);
+  transition: transform 0.28s var(--ease);
+}
+
+.sidebar-section-label .sidebar-section-chev.is-open {
+  transform: rotate(90deg);
+}
+
+.sidebar-section-hint {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.sidebar-section-label.is-tappable:hover .sidebar-section-hint {
+  opacity: 0.45;
+}
+
+.sidebar-empty-hint {
+  margin: 2px var(--sb-inset) 8px;
+  padding: 0 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-faint);
+  opacity: 0.75;
 }
 
 .sidebar-scroll {
@@ -419,21 +514,22 @@ textarea {
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  border-radius: 4px;
-  min-height: 30px;
-  height: 30px;
-  padding: 0 2px 0 0;
-  margin: 0;
+  border-radius: 6px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 4px 0 0;
+  margin: 1px 0;
   cursor: pointer;
   color: var(--text);
   position: relative;
   box-sizing: border-box;
   width: 100%;
   text-align: left;
+  transition: background var(--dur) var(--ease);
 }
 
 .page-row[draggable="true"] { cursor: grab; }
-.page-row[draggable="true"]:active { cursor: grabbing; opacity: .72; }
+.page-row[draggable="true"]:active { cursor: grabbing; opacity: 0.78; }
 
 .page-row.is-reorder-target::before {
   position: absolute;
@@ -1966,12 +2062,47 @@ textarea {
   display: flex;
   flex-direction: column;
 }
-/* page notes under normal pages */
+
 /* Page notes removed — keep rule inert so old CSS does not break layout */
 .page-notes-wrap {
   display: none;
+}
 
-  max-width: var(--page-max, 900px);
-  margin: 0 auto;
-  padding: 0 96px 48px;
+/* ── Final polish: serif lock + calmer shell ── */
+html body,
+html body button,
+html body input,
+html body textarea,
+html body select {
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif !important;
+}
+
+.main {
+  background: var(--bg);
+}
+
+.main-scroll {
+  scroll-behavior: smooth;
+}
+
+.topbar {
+  border-bottom-color: var(--border);
+  backdrop-filter: blur(8px);
+  background: rgba(5, 5, 5, 0.92);
+}
+
+.topbar-btn {
+  border-radius: 8px;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+
+.page-title-side {
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.workspace-name {
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }

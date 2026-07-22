@@ -56,6 +56,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const workspaceRef = useRef(ws);
+  /** Snapshots of the workspace before your last moves / Mel actions (for Undo) */
   const melUndoRef = useRef<Workspace[]>([]);
 
   useEffect(() => {
@@ -63,8 +64,38 @@ export default function App() {
     saveWorkspace(ws);
   }, [ws]);
 
+  /** Save a restore point, then apply a change (drag, delete, Mel, etc.) */
+  function commitWorkspace(mutator: (current: Workspace) => Workspace) {
+    setWs((current) => {
+      const next = mutator(current);
+      if (next === current) return current;
+      // Keep last ~30 steps so Undo can walk back several moves
+      melUndoRef.current = [...melUndoRef.current.slice(-29), current];
+      workspaceRef.current = next;
+      return next;
+    });
+  }
+
+  /** Undo the last workspace change (sidebar move, Mel move, trash, …) */
+  function undoWorkspaceChange(): boolean {
+    const previous = melUndoRef.current.pop();
+    if (!previous) return false;
+    workspaceRef.current = previous;
+    saveWorkspace(previous);
+    setWs(previous);
+    return true;
+  }
+
   // Global shortcuts — like Notion
   useEffect(() => {
+    function isTypingTarget(target: EventTarget | null): boolean {
+      const el = target instanceof HTMLElement ? target : null;
+      if (!el) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      return el.isContentEditable || Boolean(el.closest("[contenteditable='true']"));
+    }
+
     function onKey(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === "k") {
@@ -77,11 +108,18 @@ export default function App() {
       }
       if (meta && e.key.toLowerCase() === "n" && !e.shiftKey) {
         e.preventDefault();
-        setWs((prev) => addChildPage(prev, prev.activePageId));
+        commitWorkspace((prev) => addChildPage(prev, prev.activePageId));
       }
       if (meta && e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        setWs((prev) => addChildPage(prev, null));
+        commitWorkspace((prev) => addChildPage(prev, null));
+      }
+      // ⌘Z / Ctrl+Z — undo last sidebar / Mel workspace action (not text typing)
+      if (meta && !e.shiftKey && e.key.toLowerCase() === "z") {
+        if (isTypingTarget(e.target)) return; // let the browser undo text in fields
+        if (melUndoRef.current.length === 0) return;
+        e.preventDefault();
+        undoWorkspaceChange();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -138,18 +176,22 @@ export default function App() {
       if (!request?.action) return;
 
       if (request.action.kind === "undo-workspace") {
-        const previous = melUndoRef.current.pop();
+        const previous = melUndoRef.current[melUndoRef.current.length - 1];
         if (!previous) {
-          request.result = { ok: false, summary: "There is no Mel workspace action to undo." };
+          request.result = { ok: false, summary: "Nothing to undo yet. Move a page or ask Mel to change something first." };
           return;
         }
-        workspaceRef.current = previous;
-        saveWorkspace(previous);
-        setWs(previous);
-        const restored = previous.pages.find((page) => page.id === previous.activePageId);
+        const ok = undoWorkspaceChange();
+        if (!ok) {
+          request.result = { ok: false, summary: "Nothing to undo yet." };
+          return;
+        }
+        const restored = workspaceRef.current.pages.find(
+          (page) => page.id === workspaceRef.current.activePageId
+        );
         request.result = {
           ok: true,
-          summary: "Undid the last workspace change.",
+          summary: "Undid the last change (page move, nest, trash, or Mel action).",
           pageId: restored?.id,
           pageTitle: restored?.title,
         };
@@ -161,7 +203,8 @@ export default function App() {
       request.result = applied.result;
       if (!applied.changed) return;
 
-      melUndoRef.current = [...melUndoRef.current.slice(-19), before];
+      // Same undo stack as drag-and-drop so one Undo button reverses Mel OR your hands
+      melUndoRef.current = [...melUndoRef.current.slice(-29), before];
       workspaceRef.current = applied.workspace;
       saveWorkspace(applied.workspace);
       setWs(applied.workspace);
@@ -195,13 +238,14 @@ export default function App() {
         activePageId={activePage.id}
         open={ws.sidebarOpen}
         onSelect={openPage}
-        onNewPage={() => setWs((p) => addChildPage(p, p.activePageId))}
-        onNewTopPage={() => setWs((p) => addChildPage(p, null))}
-        onNewAgent={() => setWs((p) => addAgentPage(p))}
-        onDeletePage={(id) => setWs((p) => softDeletePage(p, id))}
-        onToggleFavorite={(id) => setWs((p) => toggleFavorite(p, id))}
+        onNewPage={() => commitWorkspace((p) => addChildPage(p, p.activePageId))}
+        onNewTopPage={() => commitWorkspace((p) => addChildPage(p, null))}
+        onNewAgent={() => commitWorkspace((p) => addAgentPage(p))}
+        onDeletePage={(id) => commitWorkspace((p) => softDeletePage(p, id))}
+        onToggleFavorite={(id) => commitWorkspace((p) => toggleFavorite(p, id))}
         onMovePage={(movingId, targetId, position = "before") =>
-          setWs((current) => {
+          commitWorkspace((current) => {
+            // Drag reorder or nest — always leave an undo point
             if (position === "before") return movePageBefore(current, movingId, targetId);
             const applied = applyMelWorkspaceAction(current, {
               kind: "move-page",
@@ -214,15 +258,15 @@ export default function App() {
         }
         onOpenSearch={() => setSearchOpen(true)}
         onClose={() => setWs((p) => ({ ...p, sidebarOpen: false }))}
-        onRestorePage={(id) => setWs((p) => restorePage(p, id))}
-        onEmptyTrash={() => setWs((p) => emptyTrash(p))}
+        onRestorePage={(id) => commitWorkspace((p) => restorePage(p, id))}
+        onEmptyTrash={() => commitWorkspace((p) => emptyTrash(p))}
         onReimport={() => {
           if (
             window.confirm(
               "Re-import full Wonder export? Local edits to the tree may be replaced."
             )
           ) {
-            setWs(forceImportDrMelani());
+            commitWorkspace(() => forceImportDrMelani());
           }
         }}
       />
@@ -300,7 +344,19 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setWs((p) => duplicatePage(p, activePage.id));
+                    // Same undo stack as Mel’s Undo button and ⌘Z
+                    if (!undoWorkspaceChange()) {
+                      window.alert("Nothing to undo yet.");
+                    }
+                    setMoreOpen(false);
+                  }}
+                >
+                  Undo last change
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    commitWorkspace((p) => duplicatePage(p, activePage.id));
                     setMoreOpen(false);
                   }}
                 >
@@ -309,7 +365,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setWs((p) => softDeletePage(p, activePage.id));
+                    commitWorkspace((p) => softDeletePage(p, activePage.id));
                     setMoreOpen(false);
                   }}
                 >
@@ -318,7 +374,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setWs((p) => addChildPage(p, p.activePageId));
+                    commitWorkspace((p) => addChildPage(p, p.activePageId));
                     setMoreOpen(false);
                   }}
                 >

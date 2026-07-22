@@ -169,17 +169,23 @@ export function applyLearnCommand(raw: string): string | null {
   return null;
 }
 
-/** Strip banned phrases from a draft reply */
+/** Strip banned phrases from a draft reply — keep line breaks (scanning needs chunks) */
 export function polishReply(draft: string): string {
   const L = loadLearn();
   let out = draft;
   for (const n of L.never) {
     if (!n) continue;
     const re = new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
-    out = out.replace(re, "").replace(/\s{2,}/g, " ").trim();
+    out = out.replace(re, "");
   }
-  // clean empty leftovers
-  out = out.replace(/\.\s*\./g, ".").replace(/^\s*[.,]\s*/g, "").trim();
+  // Collapse only horizontal spaces/tabs on a line — NEVER squash newlines into one wall of text
+  out = out
+    .replace(/[^\S\n]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\.\s*\./g, ".")
+    .replace(/^\s*[.,]\s*/gm, "")
+    .trim();
   return out || "Yeah.";
 }
 

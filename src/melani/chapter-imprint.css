@@ -1,0 +1,320 @@
+/* Chapter Imprint — card deck + quiz */
+
+.imp-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  background: #060607;
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.imp-head {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: max(12px, env(safe-area-inset-top)) 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.imp-x,
+.imp-ghost {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font: inherit;
+  cursor: pointer;
+}
+
+.imp-x {
+  width: 36px;
+  height: 36px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.imp-ghost {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.imp-ghost:hover,
+.imp-x:hover {
+  color: #fff;
+}
+
+.imp-kicker {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f9a8d4;
+}
+
+.imp-title {
+  margin: 2px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.imp-meta {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.imp-progress {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.imp-progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #f9a8d4, #c4b5fd);
+  transition: width 0.25s ease;
+}
+
+.imp-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px max(20px, env(safe-area-inset-bottom));
+  gap: 18px;
+  overflow: auto;
+}
+
+.imp-card {
+  width: min(420px, 100%);
+  min-height: 320px;
+  padding: 28px 24px 32px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(120% 80% at 20% 0%, rgba(249, 168, 212, 0.12), transparent 50%),
+    #101012;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.imp-card-hook {
+  background:
+    radial-gradient(100% 80% at 80% 0%, rgba(110, 180, 255, 0.14), transparent 55%),
+    #101012;
+}
+
+.imp-card-idea {
+  background:
+    radial-gradient(100% 80% at 10% 100%, rgba(196, 181, 253, 0.16), transparent 50%),
+    #101012;
+}
+
+.imp-card-quiz {
+  min-height: 360px;
+}
+
+.imp-card-results h3 {
+  font-size: 42px;
+  letter-spacing: -0.03em;
+}
+
+.imp-kind {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(249, 168, 212, 0.9);
+}
+
+.imp-card h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.imp-card p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.imp-quiz-prompt {
+  white-space: pre-wrap;
+  font-size: 15px !important;
+}
+
+/* Card enter / exit */
+.imp-card.is-in {
+  animation: imp-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.imp-card.is-out-left {
+  animation: imp-out-left 0.22s ease forwards;
+}
+
+.imp-card.is-out-right {
+  animation: imp-out-right 0.22s ease forwards;
+}
+
+@keyframes imp-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes imp-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.96);
+  }
+}
+
+@keyframes imp-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(40px) scale(0.96);
+  }
+}
+
+.imp-choices {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.imp-choice {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.imp-choice:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.imp-choice.is-sel {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.imp-choice.is-correct {
+  border-color: rgba(61, 214, 140, 0.55);
+  background: rgba(61, 214, 140, 0.12);
+  color: #c6f6d5;
+}
+
+.imp-choice.is-wrong {
+  border-color: rgba(240, 113, 120, 0.5);
+  background: rgba(240, 113, 120, 0.1);
+  color: #fecaca;
+}
+
+.imp-choice:disabled {
+  cursor: default;
+}
+
+.imp-explain {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.imp-explain p {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.imp-explain p:first-child {
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-weight: 500;
+  margin-bottom: 6px !important;
+}
+
+.imp-result-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.imp-result-list .ok {
+  color: #86efac;
+}
+
+.imp-result-list .no {
+  color: #fca5a5;
+}
+
+.imp-nav {
+  display: flex;
+  gap: 10px;
+  width: min(420px, 100%);
+}
+
+.imp-btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.imp-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.imp-btn-primary {
+  border-color: #fff;
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+}
+
+.imp-btn-primary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.imp-hint {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.32);
+}

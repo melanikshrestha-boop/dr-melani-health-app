@@ -383,55 +383,62 @@ export function buildBodyBrief(day: string = todayKey()): BodyBrief {
   }
   summaryLines.push(`Tomorrow: ${tomorrowMove.replace(/^Tomorrow:\s*/i, "")}`);
 
-  // Full plain-text brief (for Mel chat + copy)
+  // Full plain-text brief — chunked for human scanning (short blocks, blank lines)
   const pct = (have: number, want: number) =>
     want ? Math.round((have / want) * 100) : 0;
 
-  const fullText = [
-    `NIGHTLY BODY BRIEF · ${day}`,
-    `${PROFILE.name.split(" ")[0]} · written from your live logs`,
-    ``,
-    `SLEEP`,
+  const sleepBlock =
     sleep.hours != null
-      ? `  ${sleep.hours}h  (bed ${sleep.bedtime || "?"} → wake ${sleep.wake || "?"}) · goal ${sleepGoal}h (${pct(sleep.hours, sleepGoal)}%)`
-      : `  not logged yet · goal ${sleepGoal}h`,
-    brainFog ? `  brain fog: yes` : `  brain fog: no`,
+      ? `${sleep.hours}h · bed ${sleep.bedtime || "?"} → wake ${sleep.wake || "?"}\nGoal ${sleepGoal}h (${pct(sleep.hours, sleepGoal)}%) · fog ${brainFog ? "yes" : "no"}`
+      : `Not logged yet\nGoal ${sleepGoal}h · fog ${brainFog ? "yes" : "no"}`;
+
+  const mealBlock = [
+    mealTitles.length ? mealTitles.join(", ") : "None logged yet",
+    `Protein ${Math.round(meals.totals.protein_g)} / ${proteinGoal}g (${pct(meals.totals.protein_g, proteinGoal)}%)`,
+    `Calories ${Math.round(meals.totals.calories)} / ${calGoal} (${pct(meals.totals.calories, calGoal)}%)`,
+  ].join("\n");
+
+  const gapBlock = flags.length
+    ? flags.map((f, i) => `${i + 1}. ${f}`).join("\n")
+    : "Nothing big enough to name.";
+
+  const moodBlock = moodNotes.length
+    ? moodNotes.map((n) => `· ${n}`).join("\n")
+    : "No mood notes yet.\n(type: log felt calm after gym)";
+
+  const fullText = [
+    `Nightly body brief`,
+    day,
     ``,
-    `MEALS & MACROS`,
-    `  logged: ${mealTitles.length ? mealTitles.join(", ") : "none yet"}`,
-    `  protein ${Math.round(meals.totals.protein_g)}/${proteinGoal}g (${pct(meals.totals.protein_g, proteinGoal)}%)`,
-    `  calories ${Math.round(meals.totals.calories)}/${calGoal} (${pct(meals.totals.calories, calGoal)}%)`,
+    `— Sleep —`,
+    sleepBlock,
     ``,
-    `WATER`,
-    `  ${water}/${waterGoal} ml (${pct(water, waterGoal)}%)`,
+    `— Meals —`,
+    mealBlock,
     ``,
-    `CYCLE`,
-    `  ${phaseLabel} · day ${derived.currentDay || "?"}`,
-    `  flow: ${cycle.flow?.[day] || "none"}`,
-    `  symptoms: ${(cycle.symptoms?.[day] || []).join(", ") || "none logged"}`,
+    `— Water —`,
+    `${water} / ${waterGoal} ml (${pct(water, waterGoal)}%)`,
     ``,
-    `GYM`,
-    `  today plan: ${gymToday}`,
-    `  week: ${gymWeekLine}`,
-    warmupTotal
-      ? `  warm-up checks: ${warmupDone}/${warmupTotal}`
-      : `  warm-up: not started`,
+    `— Cycle —`,
+    `${phaseLabel} · day ${derived.currentDay || "?"}`,
+    `Flow: ${cycle.flow?.[day] || "none"}`,
+    `Symptoms: ${(cycle.symptoms?.[day] || []).join(", ") || "none logged"}`,
     ``,
-    `SUPPLEMENTS`,
-    `  ${supsDone}/${supsTotal} done`,
+    `— Gym —`,
+    gymToday && gymToday !== "-" ? `Today: ${gymToday}` : "Today: rest / unplanned",
+    warmupTotal ? `Warm-up ${warmupDone}/${warmupTotal}` : "Warm-up not started",
     ``,
-    `HOW YOU SOUNDED TODAY`,
-    moodNotes.length
-      ? moodNotes.map((n) => `  · ${n}`).join("\n")
-      : `  (no mood notes · type: log felt calm after gym)`,
+    `— Supplements —`,
+    `${supsDone} of ${supsTotal} done`,
     ``,
-    `GAPS`,
-    flags.length
-      ? flags.map((f, i) => `  ${i + 1}. ${f}`).join("\n")
-      : `  none big enough to name`,
+    `— How you sounded —`,
+    moodBlock,
     ``,
-    `ONE MOVE FOR TOMORROW`,
-    `  ${tomorrowMove}`,
+    `— Gaps —`,
+    gapBlock,
+    ``,
+    `— One move tomorrow —`,
+    tomorrowMove.replace(/^Tomorrow:\s*/i, ""),
     ``,
     `Not a diagnosis. Just your day, written back clearly.`,
   ].join("\n");

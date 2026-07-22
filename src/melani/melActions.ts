@@ -34,6 +34,15 @@ export type MelWorkspaceAction =
       destination: MelPageReference;
       position: "inside" | "before" | "after";
     }
+  /**
+   * Put a page at the top of a sidebar section (parent = null),
+   * e.g. Bookshelf back under Learn when it got nested under Work.
+   */
+  | {
+      kind: "make-section-root";
+      target: MelPageReference;
+      section: "health" | "learn" | "work";
+    }
   | {
       kind: "write-page";
       target: MelPageReference;

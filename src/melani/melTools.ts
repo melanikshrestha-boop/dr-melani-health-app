@@ -32,6 +32,11 @@ import {
 import { applyShoppingCommand } from "./shoppingStore";
 import { loadFogMap, loadSleepDay, saveFogMap, saveSleepDay } from "./sleepStore";
 import { applyTaskCommand } from "./taskStore";
+import {
+  formatQuarterlyForMel,
+  MEL_TRADING_KNOWLEDGE,
+  offlineTradingBrief,
+} from "./melTrading";
 
 export const MEL_DATA_EVENT = "dr-melani-data-update";
 
@@ -64,9 +69,8 @@ const EMPTY_MACROS: MacroBag = {
 };
 
 const PAGE_ALIASES: Array<{ pattern: RegExp; pageId: string; title: string }> = [
-  { pattern: /\b(my\s+)?tasks?|to[ -]?do(?: list)?\b/i, pageId: "pg-my-tasks", title: "My Tasks" },
-  { pattern: /\bbookshelf|library|books?\b/i, pageId: "pg-life", title: "Bookshelf" },
-  { pattern: /\bweather|forecast|outside\b/i, pageId: "pg-agent-weather", title: "Weather" },
+  { pattern: /\bbookshelf|library|books?\b/i, pageId: "pg-library", title: "Bookshelf" },
+  // Weather is Mel-only (no page) — do not navigate to a Weather page
   { pattern: /\bwardrobe|closet|clothes\b/i, pageId: "pg-fashion-os", title: "Wardrobe" },
   { pattern: /\bshopping|grocer(?:y|ies)|inventory|restock\b/i, pageId: "pg-agent-shopping", title: "Shopping" },
   { pattern: /\bgmail|email|inbox\b/i, pageId: "pg-agent-gmail", title: "Gmail" },
@@ -80,8 +84,15 @@ const PAGE_ALIASES: Array<{ pattern: RegExp; pageId: string; title: string }> = 
   { pattern: /\bam skincare|morning skincare\b/i, pageId: "pg-am-skin", title: "AM skincare" },
   { pattern: /\bpm skincare|night skincare\b/i, pageId: "pg-pm-skin", title: "PM skincare" },
   { pattern: /\bhygiene|shower|skincare\b/i, pageId: "pg-hygiene", title: "Hygiene" },
-  { pattern: /\bwork\b/i, pageId: "pg-work", title: "Work" },
-  { pattern: /\blife\b/i, pageId: "pg-life", title: "Life" },
+  // Work section is gone — "work" / stocks / markets open World Monitor under Learn
+  {
+    pattern:
+      /\bworld\s*monitor|tech\s*news|markets?|stocks?|options?|trades?|trading|startups?|silicon\s*valley|finance\s*radar|\bwork\b/i,
+    pageId: "pg-world-monitor",
+    title: "World Monitor",
+  },
+  { pattern: /\blearn\b/i, pageId: "pg-library", title: "Bookshelf" },
+  { pattern: /\bhealth\b/i, pageId: "pg-fitness", title: "Fitness" },
 ];
 
 function result<T>(tool: string, summary: string, data?: T): string {
@@ -92,12 +103,28 @@ function failure(tool: string, summary: string): string {
   return JSON.stringify({ ok: false, tool, summary } satisfies MelToolResult);
 }
 
+/**
+ * Turn what Melani said ("bookshelf", "learn", "work") into a real page ref.
+ * Uses aliases so "learn" and "bookshelf" hit the right page ids, not a vague title search.
+ */
 function pageReference(target?: string, currentPageId?: string): MelPageReference {
-  const cleaned = (target || "").trim().replace(/^(?:the\s+)?page\s+/i, "");
+  let cleaned = (target || "")
+    .trim()
+    .replace(/^(?:the\s+)?page\s+/i, "")
+    .replace(/\s+page$/i, "") // "bookshelf page" → "bookshelf"
+    .replace(/^(?:the\s+)?(?:section|folder|toggle)\s+/i, "")
+    .replace(/\s+(?:section|folder|toggle)$/i, "")
+    .replace(/^["'`]+|["'`.,!?]+$/g, "")
+    .trim();
   if (!cleaned || /^(?:this|current|here|it)(?:\s+page)?$/i.test(cleaned)) {
     return currentPageId ? { id: currentPageId } : { current: true };
   }
-  return { title: cleaned.replace(/^["'`]+|["'`.,!?]+$/g, "").trim() };
+  // Prefer known aliases (bookshelf, learn, work, hygiene…) so moves never hang on fuzzy titles
+  const alias = PAGE_ALIASES.find((entry) => entry.pattern.test(cleaned));
+  if (alias) {
+    return { id: alias.pageId, title: alias.title };
+  }
+  return { title: cleaned };
 }
 
 function workspaceTool(tool: string, action: MelWorkspaceAction): string {
@@ -175,6 +202,11 @@ export function get_live_snapshot(pageId?: string, pageTitle?: string): string {
   const food = buildFoodOsPlan(day);
   const waterMl = Math.max(0, Number(localStorage.getItem(`dr-melani-water-ml:${day}`)) || 0);
   const loggedMeals = meals.loggedIds.map((id) => MEAL_PRESETS.find((meal) => meal.id === id)?.title || id);
+  // Always inject advanced stock/trading knowledge so Mel acts like a serious desk
+  const marketsBoost =
+    pageId === "pg-world-monitor" || /world monitor|stock|market/i.test(pageTitle || "")
+      ? `\n\n${MEL_TRADING_KNOWLEDGE}`
+      : `\n\n${MEL_TRADING_KNOWLEDGE.slice(0, 2400)}`;
   const data = {
     day,
     page: { id: pageId || "", title: pageTitle || "" },
@@ -187,9 +219,46 @@ export function get_live_snapshot(pageId?: string, pageTitle?: string): string {
     food,
     pins: loadPins(),
     recentLogs: loadLifeLog().slice(-8),
-    liveContext: buildLiveContext(pageId, pageTitle),
+    liveContext: buildLiveContext(pageId, pageTitle) + marketsBoost,
   };
   return result("get_live_snapshot", "Read the live Wonder snapshot.", data);
+}
+
+const DEFAULT_WATCH = "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD";
+
+/** Live quarterly packs for Mel (same free Yahoo data as World Monitor → Reports) */
+export async function fetch_stock_quarterly(symbolsCsv?: string): Promise<string> {
+  const symbols = (symbolsCsv || DEFAULT_WATCH).trim() || DEFAULT_WATCH;
+  try {
+    const res = await fetch(
+      `/api/intel/quarterly?symbols=${encodeURIComponent(symbols)}`
+    );
+    if (!res.ok) throw new Error(`quarterly ${res.status}`);
+    const data = (await res.json()) as {
+      reports?: Array<Record<string, unknown>>;
+    };
+    const reports = Array.isArray(data.reports) ? data.reports : [];
+    const text = reports
+      .map((r) => formatQuarterlyForMel(r as Parameters<typeof formatQuarterlyForMel>[0]))
+      .join("\n\n");
+    return result(
+      "stock_quarterly",
+      text || "No quarterly packs returned.",
+      { reports, symbols }
+    );
+  } catch (e) {
+    return failure(
+      "stock_quarterly",
+      e instanceof Error ? e.message : "Could not load quarterly reports."
+    );
+  }
+}
+
+/** Offline trading framework (no network) */
+export function trading_knowledge_brief(topic?: string): string {
+  return result("trading_knowledge", offlineTradingBrief(topic), {
+    topic: topic || "general",
+  });
 }
 
 export function write_body_brief(): string {
@@ -446,6 +515,22 @@ export function move_workspace_page(
   });
 }
 
+/**
+ * Put a page at the TOP of a sidebar section (parent cleared).
+ * This is how Mel un-nests Bookshelf from under Work back into Learn.
+ */
+export function make_section_root(
+  target: string | undefined,
+  section: "health" | "learn" | "work",
+  currentPageId?: string
+): string {
+  return workspaceTool("make_section_root", {
+    kind: "make-section-root",
+    target: pageReference(target, currentPageId),
+    section,
+  });
+}
+
 export function write_workspace_page(
   target: string | undefined,
   content: string,
@@ -527,7 +612,7 @@ export function open_book(query: string): string {
   if (!book) return failure("open_book", `I could not find ${query} in your Bookshelf.`);
 
   const request = requestBookOpen(book);
-  window.dispatchEvent(new CustomEvent(MEL_NAVIGATE_EVENT, { detail: { pageId: "pg-life" } }));
+  window.dispatchEvent(new CustomEvent(MEL_NAVIGATE_EVENT, { detail: { pageId: "pg-library" } }));
   const progress = Math.max(book.readerProgress || 0, book.localReaderProgress || 0, book.appleProgress || 0);
   const percent = Math.round(progress * 100);
   const place = request.startCfi ? (percent > 0 ? ` at ${percent}%` : " at your saved place") : " from the beginning";
@@ -548,11 +633,11 @@ export function find_book_source(query: string): string {
   const cleaned = query.trim();
   if (!cleaned) return failure("find_book_source", "Tell me which book to find.");
   requestBookDiscovery(cleaned);
-  window.dispatchEvent(new CustomEvent(MEL_NAVIGATE_EVENT, { detail: { pageId: "pg-life" } }));
+  window.dispatchEvent(new CustomEvent(MEL_NAVIGATE_EVENT, { detail: { pageId: "pg-library" } }));
   return result(
     "find_book_source",
     `Searching legal book catalogs for ${cleaned}. I opened the results in Bookshelf.`,
-    { query: cleaned, destination: "pg-life" }
+    { query: cleaned, destination: "pg-library" }
   );
 }
 

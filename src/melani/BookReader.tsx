@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft,
   CaretRight,
@@ -16,10 +16,57 @@ import ePub, {
   type Rendition,
 } from "epubjs";
 import { newQuote, type Book, type BookQuote } from "./booksStore";
+import {
+  buildChapterImprint,
+  extractChapterText,
+  htmlToPlainText,
+  loadImprint,
+  saveImprint,
+  type ChapterImprint,
+} from "./chapterImprint";
+import { ChapterImprintView } from "./ChapterImprintView";
+
+/** Soft light-pink default for highlights (clean, not muddy yellow) */
+const HIGHLIGHT_PINK = {
+  fill: "#ffb6c8",
+  "fill-opacity": "0.42",
+  "mix-blend-mode": "normal",
+} as const;
+
+const HIGHLIGHT_CLASS = "reader-quote-highlight";
 
 type ReaderContents = {
   document: Document;
   window: Window;
+};
+
+type FlipDir = "next" | "prev";
+
+/**
+ * Free page pose — the leaf can move any direction, not only left/right.
+ * x/y = position on screen, rotZ = spin (circles), rotX/rotY = 3D tilt.
+ */
+type LeafPose = {
+  active: boolean;
+  x: number;
+  y: number;
+  rotZ: number;
+  rotY: number;
+  rotX: number;
+  scale: number;
+  opacity: number;
+};
+
+/** Flat page resting on the book (nothing moving yet) */
+const IDLE_LEAF: LeafPose = {
+  active: false,
+  x: 0,
+  y: 0,
+  rotZ: 0,
+  rotY: 0,
+  rotX: 0,
+  scale: 1,
+  opacity: 0,
 };
 
 type ReaderProps = {
@@ -72,6 +119,25 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
   const lastProgress = useRef(book.readerProgress || 0);
   const lastCfi = useRef(startCfi || book.smartBookmark?.cfi || book.readerCfi || "");
   const wheelState = useRef({ amount: 0, lastDirection: 0, lastTurnAt: 0 });
+  const flipBusy = useRef(false);
+  /**
+   * Free drag tracker — page can move left/right/up/down and spin in circles.
+   * pathLen + angleAccum make circular swipes feel real (not only sideways).
+   */
+  const freeDrag = useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    width: number;
+    height: number;
+    pathLen: number;
+    angleAccum: number;
+    lastSegAngle: number | null;
+  } | null>(null);
+  /** Live leaf pose while dragging / flying (ref stays fresh mid-gesture) */
+  const leafRef = useRef<LeafPose>(IDLE_LEAF);
   const [isNarrow, setIsNarrow] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(max-width: 760px)").matches
   );
@@ -88,13 +154,365 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
   const [thoughtDraft, setThoughtDraft] = useState("");
   const [closePrompt, setClosePrompt] = useState(false);
   const [bookmark, setBookmark] = useState(book.smartBookmark);
+  /**
+   * Free page leaf: move anywhere (x/y), spin (rotZ for circles), tilt (rotX/rotY).
+   * Not locked to right-to-left — you steer it.
+   */
+  const [leaf, setLeaf] = useState<LeafPose>(IDLE_LEAF);
+  const [imprint, setImprint] = useState<ChapterImprint | null>(null);
+  const [imprintBusy, setImprintBusy] = useState(false);
+  const [imprintError, setImprintError] = useState("");
+  const locationHrefRef = useRef("");
 
-  function turnPage(direction: "next" | "prev", throttle = false) {
+  function easeOutCubic(t: number): number {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  /** Push leaf pose to React state + ref together (ref used mid-gesture) */
+  function applyLeaf(next: LeafPose) {
+    leafRef.current = next;
+    setLeaf(next);
+  }
+
+  /**
+   * Build a free pose from how far/where the finger moved.
+   * - x/y follow the finger (any direction)
+   * - rotZ grows when you arc (circles) and gets a little spin from diagonal pulls
+   * - rotX/rotY tilt so it feels like a real sheet of paper in 3D space
+   */
+  function poseFromDrag(
+    dx: number,
+    dy: number,
+    angleAccum: number,
+    pathLen: number
+  ): LeafPose {
+    const dist = Math.hypot(dx, dy); // straight-line distance from grab start
+    // Spin from curved path (main "circle" feel) + soft spin from direction
+    const rotZ =
+      angleAccum * (180 / Math.PI) * 0.62 + // path curvature → degrees
+      dx * -0.045 + // pull left → slight counter-clockwise
+      dy * 0.035; // pull down → slight clock-ish tilt
+    // 3D paper tilt: pull left peels Y, pull up/down peels X
+    const rotY = Math.max(-70, Math.min(70, -dx * 0.14));
+    const rotX = Math.max(-55, Math.min(55, dy * 0.1));
+    // How "lifted" the page feels (mix of straight pull + looping path)
+    const lift = Math.min(1, (dist + pathLen * 0.18) / 160);
+    return {
+      active: true,
+      x: dx,
+      y: dy,
+      rotZ,
+      rotY,
+      rotX,
+      scale: 1 - lift * 0.08, // shrink a bit as it lifts off the stack
+      opacity: Math.min(1, 0.28 + lift * 0.85),
+    };
+  }
+
+  /** Decide next vs previous from final drag direction + path (works for circles too) */
+  function directionFromGesture(
+    dx: number,
+    dy: number,
+    pathLen: number,
+    angleAccum: number
+  ): FlipDir | null {
+    const dist = Math.hypot(dx, dy);
+    // Need a real swipe OR a long looping path before we commit a turn
+    const spunEnough = Math.abs(angleAccum) > 1.15 || pathLen > 170;
+    const pulledEnough = dist > 72;
+    if (!spunEnough && !pulledEnough) return null;
+
+    // Pure-ish spin / circle → still counts as "next" if you circled a lot
+    if (spunEnough && dist < 48) {
+      return angleAccum < 0 ? "next" : "prev";
+    }
+
+    // Prefer the stronger axis so up/down turns work, not only sideways
+    if (Math.abs(dx) >= Math.abs(dy) * 0.85) {
+      return dx < 0 ? "next" : "prev"; // left = next (natural book), right = back
+    }
+    return dy < 0 ? "next" : "prev"; // up = next, down = previous
+  }
+
+  /** Fly the leaf off-screen in a free path, then change the real EPUB page */
+  async function completeFreeTurn(from: LeafPose, direction: FlipDir) {
+    if (readingModeRef.current !== "pages" || !renditionRef.current || flipBusy.current) return;
+    flipBusy.current = true;
+    const duration = 520;
+    const start = performance.now();
+    let navigated = false;
+
+    // End pose: keep going the way you were dragging, with extra spin (feels free, not a slide)
+    const endX =
+      direction === "next"
+        ? (from.x <= 0 ? from.x - 520 : -480) - Math.abs(from.y) * 0.15
+        : (from.x >= 0 ? from.x + 520 : 480) + Math.abs(from.y) * 0.15;
+    const endY =
+      from.y +
+      (Math.abs(from.y) > 20 ? from.y * 0.55 : direction === "next" ? -140 : 140);
+    const endRotZ = from.rotZ + (direction === "next" ? -150 : 150);
+    const endRotY = direction === "next" ? -95 : 95;
+    const endRotX = from.rotX + (direction === "next" ? -18 : 18);
+
+    await new Promise<void>((resolve) => {
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        const e = easeInOutCubic(t);
+        applyLeaf({
+          active: true,
+          x: from.x + (endX - from.x) * e,
+          y: from.y + (endY - from.y) * e,
+          rotZ: from.rotZ + (endRotZ - from.rotZ) * e,
+          rotY: from.rotY + (endRotY - from.rotY) * e,
+          rotX: from.rotX + (endRotX - from.rotX) * e,
+          scale: from.scale * (1 - e * 0.12),
+          opacity: from.opacity * (1 - e * 0.92),
+        });
+        // Swap the real page once the leaf is mostly out of the way
+        if (!navigated && t >= 0.38) {
+          navigated = true;
+          if (direction === "next") void renditionRef.current?.next();
+          else void renditionRef.current?.prev();
+        }
+        if (t < 1) window.requestAnimationFrame(frame);
+        else resolve();
+      };
+      window.requestAnimationFrame(frame);
+    });
+
+    applyLeaf(IDLE_LEAF);
+    flipBusy.current = false;
+  }
+
+  /** Soft snap back when the gesture was too small (page returns home) */
+  async function snapLeafBack(from: LeafPose) {
+    const duration = 260;
+    const start = performance.now();
+    await new Promise<void>((resolve) => {
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        const e = easeOutCubic(t);
+        const live = 1 - e;
+        applyLeaf({
+          active: live > 0.02,
+          x: from.x * live,
+          y: from.y * live,
+          rotZ: from.rotZ * live,
+          rotY: from.rotY * live,
+          rotX: from.rotX * live,
+          scale: 1 - (1 - from.scale) * live,
+          opacity: from.opacity * live,
+        });
+        if (t < 1) window.requestAnimationFrame(frame);
+        else resolve();
+      };
+      window.requestAnimationFrame(frame);
+    });
+    applyLeaf(IDLE_LEAF);
+  }
+
+  /**
+   * Keyboard / wheel preset: free arc + spin (not a boring left-right slide).
+   * Next flies up-left while spinning; prev flies down-right while spinning the other way.
+   */
+  async function animatePresetTurn(direction: FlipDir) {
+    if (readingModeRef.current !== "pages" || !renditionRef.current || flipBusy.current) return;
+    flipBusy.current = true;
+    const duration = 560;
+    const start = performance.now();
+    let navigated = false;
+    const sign = direction === "next" ? -1 : 1;
+
+    await new Promise<void>((resolve) => {
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - start) / duration);
+        const e = easeInOutCubic(t);
+        // Parametric free path: diagonal + sine wave so it can feel like a curve/loop
+        const wave = Math.sin(e * Math.PI); // 0 → 1 → 0 bump for arc
+        const loop = Math.sin(e * Math.PI * 2) * 0.35; // small circle-ish wiggle
+        applyLeaf({
+          active: true,
+          x: sign * e * 540 + loop * 90 * sign,
+          y: sign * e * 90 - wave * 160 * (direction === "next" ? 1 : -0.6) + loop * 70,
+          rotZ: sign * e * 170 + loop * 40,
+          rotY: sign * e * 80,
+          rotX: -wave * 28 * (direction === "next" ? 1 : -1),
+          scale: 1 - e * 0.1,
+          opacity: Math.min(1, 0.4 + e * 0.7) * (1 - Math.max(0, e - 0.7) / 0.3),
+        });
+        if (!navigated && t >= 0.4) {
+          navigated = true;
+          if (direction === "next") void renditionRef.current?.next();
+          else void renditionRef.current?.prev();
+        }
+        if (t < 1) window.requestAnimationFrame(frame);
+        else resolve();
+      };
+      window.requestAnimationFrame(frame);
+    });
+
+    applyLeaf(IDLE_LEAF);
+    flipBusy.current = false;
+  }
+
+  /** Turn page with free motion (keyboard, wheel, buttons all use this) */
+  function turnPage(direction: FlipDir, throttle = false) {
     if (readingModeRef.current !== "pages") return;
     const now = Date.now();
-    if (throttle && now - wheelState.current.lastTurnAt < 360) return;
+    if (throttle && now - wheelState.current.lastTurnAt < 420) return;
     wheelState.current.lastTurnAt = now;
-    void renditionRef.current?.[direction]();
+    void animatePresetTurn(direction);
+  }
+
+  /**
+   * Start free drag from any edge (top/right/bottom/left) — not right-corner only.
+   * Center stays free so you can still select text.
+   */
+  function isFreeGrabZone(
+    clientX: number,
+    clientY: number,
+    width: number,
+    height: number,
+    rectLeft: number,
+    rectTop: number
+  ): boolean {
+    const x = clientX - rectLeft;
+    const y = clientY - rectTop;
+    const edgeX = Math.max(48, width * 0.14); // how thick the left/right grab strip is
+    const edgeY = Math.max(44, height * 0.12); // how thick the top/bottom grab strip is
+    const onLeft = x <= edgeX;
+    const onRight = x >= width - edgeX;
+    const onTop = y <= edgeY;
+    const onBottom = y >= height - edgeY;
+    return onLeft || onRight || onTop || onBottom;
+  }
+
+  /** Shared: begin free page drag from a pointer/touch point */
+  function beginFreeDrag(clientX: number, clientY: number): boolean {
+    if (readingModeRef.current !== "pages" || flipBusy.current) return false;
+    const host = stageRef.current;
+    const rect = host?.getBoundingClientRect();
+    const width = rect?.width || window.innerWidth;
+    const height = rect?.height || window.innerHeight;
+    const left = rect?.left || 0;
+    const top = rect?.top || 0;
+    if (!isFreeGrabZone(clientX, clientY, width, height, left, top)) {
+      freeDrag.current = null;
+      return false;
+    }
+    freeDrag.current = {
+      active: true,
+      startX: clientX,
+      startY: clientY,
+      lastX: clientX,
+      lastY: clientY,
+      width,
+      height,
+      pathLen: 0,
+      angleAccum: 0,
+      lastSegAngle: null,
+    };
+    // Tiny lift so the leaf appears the moment you grab an edge
+    applyLeaf({
+      active: true,
+      x: 0,
+      y: 0,
+      rotZ: 0,
+      rotY: 0,
+      rotX: 0,
+      scale: 0.995,
+      opacity: 0.35,
+    });
+    return true;
+  }
+
+  /** Shared: move free leaf — tracks arcs for circle spin */
+  function moveFreeDrag(clientX: number, clientY: number, preventable?: Event) {
+    const drag = freeDrag.current;
+    if (!drag?.active || flipBusy.current) return;
+    const dx = clientX - drag.startX;
+    const dy = clientY - drag.startY;
+    const segX = clientX - drag.lastX;
+    const segY = clientY - drag.lastY;
+    const segLen = Math.hypot(segX, segY);
+    if (segLen < 0.5 && Math.hypot(dx, dy) < 4) return;
+
+    // Path length = how far the finger traveled (circles add up even if you end near start)
+    drag.pathLen += segLen;
+
+    // Angle delta between segments → spinning the page when you go in circles
+    if (segLen > 1.2) {
+      const segAngle = Math.atan2(segY, segX);
+      if (drag.lastSegAngle != null) {
+        let delta = segAngle - drag.lastSegAngle;
+        // Keep delta in (-π, π] so full loops don't jump
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        drag.angleAccum += delta;
+      }
+      drag.lastSegAngle = segAngle;
+    }
+    drag.lastX = clientX;
+    drag.lastY = clientY;
+
+    preventable?.preventDefault?.();
+    applyLeaf(poseFromDrag(dx, dy, drag.angleAccum, drag.pathLen));
+  }
+
+  /** Shared: release free drag — complete turn or snap home */
+  function endFreeDrag(clientX: number, clientY: number) {
+    const drag = freeDrag.current;
+    freeDrag.current = null;
+    if (!drag?.active) return;
+    const dx = clientX - drag.startX;
+    const dy = clientY - drag.startY;
+    const from = leafRef.current;
+    const dir = directionFromGesture(dx, dy, drag.pathLen, drag.angleAccum);
+    if (dir) void completeFreeTurn(from.active ? from : poseFromDrag(dx, dy, drag.angleAccum, drag.pathLen), dir);
+    else void snapLeafBack(from.active ? from : poseFromDrag(dx, dy, drag.angleAccum, drag.pathLen));
+  }
+
+  function injectHighlightStyles(doc: Document) {
+    if (doc.getElementById("wonder-reader-highlight-css")) return;
+    const style = doc.createElement("style");
+    style.id = "wonder-reader-highlight-css";
+    style.textContent = `
+      ::selection {
+        background: rgba(255, 182, 200, 0.48) !important;
+        color: inherit !important;
+      }
+      ::-moz-selection {
+        background: rgba(255, 182, 200, 0.48) !important;
+        color: inherit !important;
+      }
+      /* epub.js highlight rects — clean light pink, no muddy blend */
+      svg.epubjs-hl,
+      .epubjs-hl,
+      g[class*="epubjs-hl"] rect,
+      .${HIGHLIGHT_CLASS},
+      rect.${HIGHLIGHT_CLASS} {
+        fill: #ffb6c8 !important;
+        fill-opacity: 0.42 !important;
+        mix-blend-mode: normal !important;
+        stroke: none !important;
+      }
+    `;
+    (doc.head || doc.documentElement).appendChild(style);
+  }
+
+  function addPinkHighlight(cfi: string, quoteId?: string) {
+    renditionRef.current?.annotations.add(
+      "highlight",
+      cfi,
+      quoteId ? { quoteId } : {},
+      undefined,
+      HIGHLIGHT_CLASS,
+      { ...HIGHLIGHT_PINK }
+    );
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {
@@ -207,31 +625,37 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
       const readerDocument = contents.document;
       if (!readerDocument || attachedDocuments.has(readerDocument)) return;
       attachedDocuments.add(readerDocument);
-      let touchStart: { x: number; y: number } | null = null;
+      injectHighlightStyles(readerDocument);
+
+      // Free page drag from any edge — finger can then go anywhere (up/down/circles)
       const touchStarted = (event: TouchEvent) => {
-        const touch = event.touches[0];
-        if (touch) touchStart = { x: touch.clientX, y: touch.clientY };
+        const t = event.touches[0];
+        if (t) beginFreeDrag(t.clientX, t.clientY);
+      };
+      const touchMoved = (event: TouchEvent) => {
+        const t = event.touches[0];
+        if (t && freeDrag.current?.active) moveFreeDrag(t.clientX, t.clientY, event);
       };
       const touchEnded = (event: TouchEvent) => {
-        if (readingModeRef.current !== "pages" || !touchStart) return;
-        const touch = event.changedTouches[0];
-        if (!touch) return;
-        const horizontal = touch.clientX - touchStart.x;
-        const vertical = touch.clientY - touchStart.y;
-        touchStart = null;
-        if (Math.abs(horizontal) < 52 || Math.abs(horizontal) < Math.abs(vertical) * 1.2) return;
-        event.preventDefault();
-        turnPage(horizontal < 0 ? "next" : "prev", true);
+        const t = event.changedTouches[0];
+        const fallbackX = freeDrag.current?.lastX ?? freeDrag.current?.startX ?? 0;
+        const fallbackY = freeDrag.current?.lastY ?? freeDrag.current?.startY ?? 0;
+        endFreeDrag(t?.clientX ?? fallbackX, t?.clientY ?? fallbackY);
       };
+
       readerDocument.addEventListener("wheel", handleReaderWheel, { passive: false });
       readerDocument.addEventListener("keydown", handleReaderKey);
       readerDocument.addEventListener("touchstart", touchStarted, { passive: true });
+      readerDocument.addEventListener("touchmove", touchMoved, { passive: false });
       readerDocument.addEventListener("touchend", touchEnded, { passive: false });
+      readerDocument.addEventListener("touchcancel", touchEnded, { passive: false });
       contentCleanups.push(() => {
         readerDocument.removeEventListener("wheel", handleReaderWheel);
         readerDocument.removeEventListener("keydown", handleReaderKey);
         readerDocument.removeEventListener("touchstart", touchStarted);
+        readerDocument.removeEventListener("touchmove", touchMoved);
         readerDocument.removeEventListener("touchend", touchEnded);
+        readerDocument.removeEventListener("touchcancel", touchEnded);
       });
     };
     rendition.hooks.content.register(attachReaderInput);
@@ -245,7 +669,8 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
       const activeChapter = chaptersRef.current.find((chapter) =>
         sameDocument(chapter.href, location.start.href || "")
       );
-      setChapterHref(activeChapter?.href || "");
+      locationHrefRef.current = location.start.href || activeChapter?.href || "";
+      setChapterHref(activeChapter?.href || location.start.href || "");
       lastCfi.current = location.start.cfi;
       progressCallback.current(location.start.cfi, nextProgress);
       const saved = bookmarkRef.current;
@@ -306,14 +731,11 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
         setMessage("");
         for (const quote of initialQuotes.current) {
           if (!quote.location) continue;
-          rendition.annotations.add(
-            "highlight",
-            quote.location,
-            { quoteId: quote.id },
-            undefined,
-            "reader-quote-highlight",
-            { fill: "#f2c94c", "fill-opacity": "0.34", "mix-blend-mode": "screen" }
-          );
+          try {
+            addPinkHighlight(quote.location, quote.id);
+          } catch {
+            /* bad CFI — skip */
+          }
         }
         if (bookmarkRef.current?.cfi) {
           rendition.annotations.add(
@@ -390,15 +812,29 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
   function saveHighlight(note = "") {
     if (!selection) return;
     const quote = newQuote(selection.text, undefined, note, selection.cfi);
-    renditionRef.current?.annotations.add(
-      "highlight",
-      selection.cfi,
-      { quoteId: quote.id },
-      undefined,
-      "reader-quote-highlight",
-      { fill: "#f2c94c", "fill-opacity": "0.34", "mix-blend-mode": "screen" }
-    );
+    try {
+      // Remove any sloppy partial mark at this CFI first
+      renditionRef.current?.annotations.remove(selection.cfi, "highlight");
+    } catch {
+      /* none yet */
+    }
+    try {
+      addPinkHighlight(selection.cfi, quote.id);
+    } catch {
+      /* CFI may fail on some EPUBs — still save the quote */
+    }
     quoteCallback.current(quote);
+    // Clear native selection so UI feels clean
+    try {
+      const contents = renditionRef.current?.getContents?.() as
+        | Array<{ window?: Window }>
+        | { window?: Window }
+        | undefined;
+      const list = Array.isArray(contents) ? contents : contents ? [contents] : [];
+      list.forEach((c) => c.window?.getSelection?.()?.removeAllRanges());
+    } catch {
+      /* ignore */
+    }
     setSelection(null);
     setAddingThought(false);
     setThoughtDraft("");
@@ -406,6 +842,77 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
 
   function requestClose() {
     setClosePrompt(true);
+  }
+
+  async function openChapterImprint(forceRebuild = false) {
+    const href = chapterHref || locationHrefRef.current;
+    if (!href || !epubRef.current) {
+      setImprintError("Open a chapter first (leave the table of contents).");
+      return;
+    }
+    const label =
+      chapters.find((c) => sameDocument(c.href, href))?.label?.trim() ||
+      "Current chapter";
+
+    if (!forceRebuild) {
+      const cached = loadImprint(book.id, href);
+      if (cached?.cards?.length) {
+        setImprint(cached);
+        setImprintError("");
+        return;
+      }
+    }
+
+    setImprintBusy(true);
+    setImprintError("");
+    try {
+      let plain = await extractChapterText(epubRef.current, href);
+      // Fallback: live rendered document text
+      if (plain.length < 120) {
+        try {
+          const contents = renditionRef.current?.getContents?.() as
+            | Array<{ document?: Document }>
+            | { document?: Document }
+            | undefined;
+          const list = Array.isArray(contents)
+            ? contents
+            : contents
+              ? [contents]
+              : [];
+          const chunks = list
+            .map((c) => c.document?.body?.innerText || "")
+            .filter(Boolean);
+          if (chunks.length) plain = chunks.join("\n\n");
+        } catch {
+          /* ignore */
+        }
+      }
+      if (plain.length < 80) {
+        plain = htmlToPlainText(plain);
+      }
+      if (plain.trim().length < 80) {
+        setImprintError(
+          "Not enough chapter text to imprint. Try a content chapter, not the cover or TOC."
+        );
+        return;
+      }
+      const built = buildChapterImprint({
+        bookId: book.id,
+        chapterHref: href,
+        chapterLabel: label,
+        plainText: plain,
+      });
+      if (!built.cards.length || built.cards.length < 2) {
+        setImprintError("Could not distill enough ideas from this chapter.");
+        return;
+      }
+      saveImprint(built);
+      setImprint(built);
+    } catch {
+      setImprintError("Imprint failed on this chapter. Try another section.");
+    } finally {
+      setImprintBusy(false);
+    }
   }
 
   useEffect(() => {
@@ -470,10 +977,24 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
           >
             <Plus size={16} aria-hidden />
           </button>
+          <button
+            type="button"
+            className="bl-imprint-btn"
+            disabled={imprintBusy || showContents}
+            onClick={() => void openChapterImprint(false)}
+            title="Animated chapter summary + quiz"
+          >
+            {imprintBusy ? "…" : "Imprint"}
+          </button>
         </div>
       </div>
+      {imprintError ? <p className="bl-imprint-error">{imprintError}</p> : null}
 
-      <div className="bl-reader-stage-wrap">
+      <div
+        className={`bl-reader-stage-wrap${leaf.active ? " is-free-leaf" : ""}${
+          !isNarrow ? " is-3d-pages" : ""
+        }`}
+      >
         {showContents ? (
           <section className="bl-reader-toc" aria-label="Table of Contents">
             <header>
@@ -513,7 +1034,72 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
           </section>
         ) : null}
         {message ? <p className="bl-reader-message">{message}</p> : null}
-        <div ref={stageRef} className="bl-reader-stage" />
+
+        <div className="bl-flip-scene">
+          <div ref={stageRef} className="bl-reader-stage" />
+
+          {/* Free page leaf — follows finger any direction (x/y/spin/tilt) */}
+          <div
+            className={`bl-page-leaf${leaf.active ? " is-on" : ""}`}
+            style={
+              {
+                ["--lx" as string]: `${leaf.x}px`,
+                ["--ly" as string]: `${leaf.y}px`,
+                ["--rz" as string]: `${leaf.rotZ}deg`,
+                ["--ry" as string]: `${leaf.rotY}deg`,
+                ["--rx" as string]: `${leaf.rotX}deg`,
+                ["--sc" as string]: String(leaf.scale),
+                ["--op" as string]: String(leaf.opacity),
+              } as CSSProperties
+            }
+            aria-hidden
+          >
+            <div className="bl-page-leaf-front" />
+            <div className="bl-page-leaf-back" />
+            <div className="bl-page-leaf-glow" />
+          </div>
+
+          {/*
+            Grab from ANY edge (top/right/bottom/left), then drag anywhere —
+            up, down, diagonal, full circles. Middle stays free for text select.
+          */}
+          {!isNarrow && !showContents ? (
+            <div className="bl-free-hit-frame" aria-hidden>
+              {(["top", "right", "bottom", "left"] as const).map((edge) => (
+                <div
+                  key={edge}
+                  className={`bl-free-hit bl-free-hit-${edge}`}
+                  title="Grab any edge — drag anywhere (even in circles) to turn"
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) return;
+                    if (!beginFreeDrag(event.clientX, event.clientY)) return;
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={(event) => {
+                    if (!freeDrag.current?.active) return;
+                    moveFreeDrag(event.clientX, event.clientY);
+                  }}
+                  onPointerUp={(event) => {
+                    if (!freeDrag.current?.active && !leafRef.current.active) return;
+                    try {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    } catch {
+                      /* ignore */
+                    }
+                    endFreeDrag(event.clientX, event.clientY);
+                  }}
+                  onPointerCancel={() => {
+                    const drag = freeDrag.current;
+                    freeDrag.current = null;
+                    if (drag?.active || leafRef.current.active) {
+                      void snapLeafBack(leafRef.current);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {selection ? (
@@ -567,6 +1153,13 @@ export function BookReader({ book, startCfi, onClose, onProgress, onBookmark, on
 
       {closePrompt && <div className="bl-bookmark-prompt" role="dialog" aria-modal="true" aria-label="Save reading position"><div><p>Where did you leave off?</p><h2>{selection ? "Use the sentence you highlighted?" : "Highlight a sentence, or save this page."}</h2><div>{selection && <button type="button" className="is-primary" onClick={() => savePlace(selection)}>Save highlighted point</button>}<button type="button" onClick={() => savePlace(null)}>Save current page</button><button type="button" onClick={onClose}>Close without changing bookmark</button><button type="button" className="bl-prompt-cancel" onClick={() => setClosePrompt(false)}>Keep reading</button></div></div></div>}
 
+      {imprint ? (
+        <ChapterImprintView
+          imprint={imprint}
+          onClose={() => setImprint(null)}
+          onRebuild={() => void openChapterImprint(true)}
+        />
+      ) : null}
     </div>
   );
 }

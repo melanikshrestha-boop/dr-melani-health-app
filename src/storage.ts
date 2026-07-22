@@ -51,13 +51,7 @@ const SIDEBAR_EXTRA_PAGES: {
     id: "pg-library",
     title: "Bookshelf",
     icon: "📚",
-    parentId: null,
-  },
-  {
-    id: "pg-my-tasks",
-    title: "My Tasks",
-    icon: "✅",
-    parentId: null,
+    parentId: null, // Learn section
   },
   {
     id: "pg-help",
@@ -71,12 +65,7 @@ const SIDEBAR_EXTRA_PAGES: {
     icon: "fashion",
     parentId: "pg-agents",
   },
-  {
-    id: "pg-agent-weather",
-    title: "Weather",
-    icon: "weather",
-    parentId: "pg-agents",
-  },
+  // Weather is Mel-only (default NYC) — not a sidebar page
   {
     id: "pg-agent-gmail",
     title: "Gmail",
@@ -120,6 +109,10 @@ const PURGE_PAGE_IDS = new Set([
   "pg-period-tracker",
   "pg-labs",
   "pg-analytics", // Health Analytics dump page
+  "pg-agent-weather", // Weather lives in Mel only (NYC default)
+  "pg-life", // removed — Bookshelf lives under Learn
+  "pg-my-tasks", // removed for now
+  "pg-books", // use pg-library Bookshelf
 ]);
 
 /** Exact titles to kill (user-made dupes under Data, etc.) */
@@ -131,6 +124,9 @@ const PURGE_PAGE_TITLES = new Set([
   "wearables",
   "health analytics",
   "new database",
+  "weather",
+  "life",
+  "my tasks",
 ]);
 
 function shouldPurgePage(p: {
@@ -225,81 +221,122 @@ function cleanWorkPageBlocks(blocks: Block[]): Block[] {
   }));
 }
 
-/** Ensure Life hub exists and Books nests under it (leisure writing docs) */
+/**
+ * Sidebar layout (enforced so it can’t get stuck broken):
+ * Health → Fitness, Hygiene, My Data
+ * Learn → Bookshelf + World Monitor (stocks / tech — NO Work section)
+ *
+ * Work hub is hidden. Bookshelf is ALWAYS top-level under Learn.
+ * World Monitor (stock/trade desk) is ALWAYS kept and top-level under Learn.
+ */
 function ensureLifePages(ws: Workspace): Workspace {
   const now = Date.now();
   let pages = [...ws.pages];
-  const byId = new Map(pages.map((p) => [p.id, p]));
 
-  // Top-level Life (sidebar toggle)
-  if (!byId.has("pg-life")) {
-    pages.push({
-      id: "pg-life",
-      title: "Life",
-      icon: "life",
-      parentId: null,
-      createdAt: now,
-      updatedAt: now,
-      blocks: [newBlock("paragraph", "")],
-      kind: "page",
-      favorite: false,
-      trashedAt: null,
-      cover: null,
-    });
-  }
-
-  // Books under Life — free Notion/Google-Docs style page
-  const books = pages.find((p) => p.id === "pg-books");
-  if (!books) {
-    pages.push({
-      id: "pg-books",
-      title: "Books",
-      icon: "📚",
-      parentId: "pg-life",
-      createdAt: now,
-      updatedAt: now,
-      blocks: [newBlock("paragraph", "")],
-      kind: "page",
-      favorite: false,
-      trashedAt: null,
-      cover: null,
-    });
-  } else {
-    // Re-parent under Life if it was a top-level page
+  function ensurePage(
+    id: string,
+    title: string,
+    icon: string,
+    parentId: string | null,
+    blocks?: ReturnType<typeof newBlock>[]
+  ) {
+    const existing = pages.find((p) => p.id === id);
+    if (!existing) {
+      pages.push({
+        id,
+        title,
+        icon,
+        parentId,
+        createdAt: now,
+        updatedAt: now,
+        blocks: blocks || [newBlock("paragraph", "")],
+        kind: "page",
+        favorite: false,
+        trashedAt: null,
+        cover: null,
+      });
+      return;
+    }
     pages = pages.map((p) =>
-      p.id === "pg-books" && p.parentId !== "pg-life"
-        ? { ...p, parentId: "pg-life", title: p.title || "Books", updatedAt: now }
+      p.id === id
+        ? {
+            ...p,
+            parentId, // pin known homes so Learn never goes empty
+            title: p.title || title,
+            // Force line icons for system pages (emoji “🌍” was showing as empty page)
+            icon:
+              id === "pg-world-monitor" || id === "pg-library"
+                ? icon
+                : p.icon || icon,
+            trashedAt: null, // never leave Bookshelf / stocks in trash by accident
+            updatedAt: p.updatedAt || now,
+          }
         : p
     );
   }
 
-  // Life stays top-level
-  pages = pages.map((p) =>
-    p.id === "pg-life" ? { ...p, parentId: null, title: "Life" } : p
+  // Health
+  ensurePage("pg-fitness", "Fitness", "fitness", null);
+  ensurePage("pg-hygiene", "Hygiene", "hygiene", null);
+  ensurePage("pg-data", "My Data", "data", null);
+
+  // Learn — Bookshelf ALWAYS sits here (top-level), never buried under Work
+  ensurePage("pg-library", "Bookshelf", "books", null, [
+    newBlock("paragraph", "Books, notes, and saved references."),
+  ]);
+
+  // Learn — World Monitor = stocks / markets / tech (NOT under Work)
+  ensurePage(
+    "pg-world-monitor",
+    "World Monitor",
+    "monitor", // line icon (not empty emoji page)
+    null,
+    [
+      newBlock(
+        "paragraph",
+        "Tech + markets intelligence. Live stocks, news, charts, and crypto — free sources, no API keys."
+      ),
+    ]
   );
 
-  const wardrobe = pages.find((p) => p.id === "pg-fashion-os");
-  if (!wardrobe) {
-    pages.push({
-      id: "pg-fashion-os",
-      title: "Wardrobe",
-      icon: "fashion",
-      parentId: "pg-agents",
-      createdAt: now,
-      updatedAt: now,
-      blocks: [newBlock("paragraph", "Your clothes, extracted and organized.")],
-      kind: "page",
-      favorite: false,
-      trashedAt: null,
-      cover: null,
-    });
-  } else {
-    pages = pages.map((p) => p.id === "pg-fashion-os"
-      ? { ...p, title: "Wardrobe", icon: "fashion", parentId: "pg-agents", trashedAt: null }
-      : p);
-  }
+  // Wardrobe stays under Agents
+  ensurePage("pg-fashion-os", "Wardrobe", "fashion", "pg-agents", [
+    newBlock("paragraph", "Your clothes, extracted and organized."),
+  ]);
 
-  return { ...ws, pages };
+  // Lift anything that was nested under the old Work hub (so stocks kids aren’t lost)
+  pages = pages.map((p) =>
+    p.parentId === "pg-work" ? { ...p, parentId: null, updatedAt: now } : p
+  );
+
+  // Soft-delete the old Work hub — section is gone; stocks live on World Monitor
+  pages = pages.map((p) =>
+    p.id === "pg-work"
+      ? { ...p, trashedAt: p.trashedAt || now, parentId: null, updatedAt: now }
+      : p
+  );
+
+  // Fitness / Hygiene children only when still orphaned
+  pages = pages.map((p) => {
+    if (p.parentId != null) return p;
+    if (["pg-sleep", "pg-meals", "pg-gym"].includes(p.id)) {
+      return { ...p, parentId: "pg-fitness" };
+    }
+    if (
+      ["pg-shower-daily", "pg-shower-everything", "pg-hair", "pg-am-skin", "pg-pm-skin"].includes(
+        p.id
+      )
+    ) {
+      return { ...p, parentId: "pg-hygiene" };
+    }
+    return p;
+  });
+
+  // If you were sitting on the deleted Work page, open Bookshelf
+  let activePageId = ws.activePageId;
+  if (activePageId === "pg-work") activePageId = "pg-library";
+
+  return { ...ws, pages, activePageId };
 }
 
 function migrateWorkspace(ws: Workspace): Workspace {

@@ -54,11 +54,10 @@ export function buildDrMelaniWorkspace(): Workspace {
   const PM_SKIN = "pg-pm-skin";
   const DATA = "pg-data";
   const GROCERY = "pg-grocery";
-  // Life hub + leisure writing
-  const LIFE = "pg-life";
-  // Personal pages (migrated from your old Notion — Live Longer workspace)
+  // Personal pages
   const WARDROBE = "pg-fashion-os";
   const AGENTS = "pg-agents";
+  const LIBRARY = "pg-library";
 
   const pages: Page[] = [
     // ── Fitness hub ──
@@ -161,8 +160,8 @@ export function buildDrMelaniWorkspace(): Workspace {
     // ── Work ──
     page(WORK, "Work", "💼", null, [
       b("heading2", "Focus"),
-      b("todo", "Clinic plan: SF · NY · LA"),
-      b("todo", "Neurotech device: early disease catch"),
+      b("todo", "Ship product"),
+      b("todo", "Neurotech / deep tech learning"),
       b("todo", "Silicon Valley / biotech updates"),
       b("heading2", "Learning"),
       b("bullet", "Electrical engineering"),
@@ -171,6 +170,13 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("heading2", "Content"),
       b("todo", "Post ideas / LinkedIn"),
       b("todo", "Video / photography project"),
+    ]),
+    // World Monitor under Work — tech + markets intel
+    page("pg-world-monitor", "World Monitor", "🌍", WORK, [
+      b(
+        "paragraph",
+        "Live tech news + markets (World Monitor). Tech, Finance, full globe, local HN pulse."
+      ),
     ]),
 
     // ── Hygiene hub ──
@@ -250,15 +256,7 @@ export function buildDrMelaniWorkspace(): Workspace {
       b("todo", "Fage 0% yogurt + kefir"),
     ]),
 
-    // ══════════════════════════════════════════
-    // Life — leisure hub (Books lives under here)
-    // ══════════════════════════════════════════
-
-    page(LIFE, "Life", "life", null, [
-      b("paragraph", "Life hub — open Books for the real library."),
-    ]),
-
-    // Real library app (rich page) — shelves, quotes, notes database
+    // Wardrobe under Agents
     page(WARDROBE, "Wardrobe", "fashion", AGENTS, [
       b("paragraph", "Your clothes, extracted and organized."),
     ]),
@@ -272,14 +270,10 @@ export function buildDrMelaniWorkspace(): Workspace {
       ),
     ]),
 
-    page("pg-library", "Bookshelf", "books", null, [
+    // Learn → Bookshelf
+    page(LIBRARY, "Bookshelf", "books", null, [
       b("heading1", "Bookshelf"),
       b("paragraph", "Books, notes, and saved references."),
-    ]),
-
-    page("pg-my-tasks", "My Tasks", "✅", null, [
-      b("heading1", "My Tasks"),
-      b("todo", ""),
     ]),
 
     page("pg-help", "Help", "❓", null, [

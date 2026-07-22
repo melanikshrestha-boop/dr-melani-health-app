@@ -90,6 +90,19 @@ export function MinimalIcon({ name, size = 16, className = "" }: Props) {
           <path {...stroke} d="M3 12h18" />
         </svg>
       );
+    case "monitor":
+    case "markets":
+    case "world-monitor":
+      // globe + chart — World Monitor / markets desk
+      return (
+        <svg {...common}>
+          <circle {...stroke} cx="12" cy="12" r="8.5" />
+          <path {...stroke} d="M3.5 12h17" />
+          <path {...stroke} d="M12 3.5c2.5 2.8 2.5 14.2 0 17" />
+          <path {...stroke} d="M12 3.5c-2.5 2.8-2.5 14.2 0 17" />
+          <path {...stroke} d="M7 16.5 10 13l2.5 2.5L17 9.5" />
+        </svg>
+      );
     case "hygiene":
       // sparkle + drop — clean / self-care hub
       return (
@@ -333,6 +346,15 @@ export function iconForPage(page: Pick<Page, "id" | "title" | "kind" | "icon">):
   if (id.includes("gym") || t.includes("gym")) return "gym";
   if (id.includes("body") || t === "body") return "body";
   if (id.includes("work") || t === "work") return "work";
+  if (
+    id === "pg-world-monitor" ||
+    id.includes("world-monitor") ||
+    t.includes("world monitor") ||
+    t.includes("markets desk") ||
+    (t.includes("monitor") && t.includes("world"))
+  ) {
+    return "monitor";
+  }
   // Hygiene family — each page gets its own creative icon (not one shared glass)
   if (id === "pg-shower-daily" || (t.includes("daily") && t.includes("shower")))
     return "shower-daily";

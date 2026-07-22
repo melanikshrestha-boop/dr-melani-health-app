@@ -8,6 +8,7 @@ import { wardrobeIntelligenceApi } from "./scripts/wardrobe/wardrobe-intelligenc
 import { localTasksApi } from "./scripts/local-tasks-api.mjs";
 import { bookDiscoveryApi } from "./scripts/book-discovery-api.mjs";
 import { instacartShoppingApi } from "./scripts/instacart-shopping-api.mjs";
+import { intelFeedsApi } from "./scripts/intel-feeds-api.mjs";
 
 // Workspace runs on its own. Gym is native React (no Melani iframe / no PIN).
 // Optional: proxy only /melani/* if you open live Melani in a new tab later.
@@ -29,6 +30,7 @@ export default defineConfig(({ mode }) => {
       appleBooksApi(),
       bookDiscoveryApi(),
       instacartShoppingApi({ env }),
+      intelFeedsApi(),
     ],
     build: {
       rollupOptions: {

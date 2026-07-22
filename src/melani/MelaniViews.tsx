@@ -26,8 +26,7 @@ import { CycleTracker } from "./CycleTracker";
 import { ExpandableText } from "./ExpandableText";
 import { isWardrobePage } from "./wardrobe/route";
 import { isShoppingAgentPage, ShoppingAgent } from "./ShoppingAgent";
-import { isMyTasksPage, MyTasks } from "./MyTasks";
-import { isWeatherAgentPage, WeatherAgent } from "./weather/WeatherAgent";
+import { isWorldMonitorPage, WorldMonitor } from "./WorldMonitor";
 import "./melani.css";
 
 const WardrobeFrame = lazy(async () => {
@@ -343,10 +342,8 @@ export function isMelaniRichPage(pageId: string): boolean {
     isGmailAgentPage(pageId) ||
     isBooksPage(pageId) ||
     isWardrobePage(pageId) ||
-    isWeatherAgentPage(pageId) ||
     isShoppingAgentPage(pageId) ||
-    isMyTasksPage(pageId) ||
-    pageId === "pg-life" ||
+    isWorldMonitorPage(pageId) ||
     pageId === "pg-data" ||
     pageId === "pg-my-data"
   );
@@ -385,20 +382,16 @@ export function MelaniRichPage({
     );
   }
 
-  if (isWeatherAgentPage(pageId)) {
-    return <WeatherAgent onGo={onGo} />;
-  }
-
   if (isShoppingAgentPage(pageId)) {
     return <ShoppingAgent />;
   }
 
-  if (isMyTasksPage(pageId)) {
-    return <MyTasks />;
+  if (isWorldMonitorPage(pageId)) {
+    return <WorldMonitor />;
   }
 
-  // Life + Books both open the real library (not a blank Notion page)
-  if (pageId === "pg-life" || isBooksPage(pageId)) {
+  // Learn → Bookshelf
+  if (isBooksPage(pageId)) {
     return <BooksLibrary onGo={onGo} workspacePages={pages} />;
   }
 

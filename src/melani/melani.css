@@ -5,7 +5,7 @@
   padding: 48px;
   color: #6d6861;
   background: #f4f0e8;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
   font-size: 12px;
 }
 
@@ -26,7 +26,7 @@
   --m-orange: #ff8a3d;
   --m-blue: #4da3ff;
   --m-pink: #fb7185;
-  --m-font: "Times New Roman", Times, ui-serif, Georgia, serif;
+  --m-font: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
 
   background: var(--m-bg);
   color: var(--m-text);

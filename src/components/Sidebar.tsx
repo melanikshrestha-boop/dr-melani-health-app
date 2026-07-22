@@ -36,25 +36,56 @@ type Props = {
 const COLLAPSE_KEY = "dr-melani-sidebar-collapsed";
 const COLLAPSE_VERSION_KEY = "dr-melani-sidebar-collapse-version";
 const TRASH_KEY = "dr-melani-show-trash";
+/** How long (ms) between two taps counts as a double-tap to open/close a toggle */
+const DOUBLE_TAP_MS = 420;
 
-// Pages that live in other sidebar sections (not under Private tree)
+// Pages that live in other sidebar sections (not in Health / Learn / Work trees)
 const SIDEBAR_UTILITY_IDS = new Set([
   "pg-agents",
   "pg-help",
 ]);
 
+/** Health section roots */
+const HEALTH_ROOT_IDS = ["pg-fitness", "pg-hygiene", "pg-data"] as const;
+/** Learn section roots — Bookshelf + World Monitor (stocks). No Work section. */
+const LEARN_ROOT_IDS = ["pg-library", "pg-world-monitor"] as const;
+/** Hidden from sidebar for good */
+const SIDEBAR_HIDDEN_IDS = new Set([
+  "pg-life",
+  "pg-my-tasks",
+  "pg-books", // Bookshelf is pg-library
+  "pg-my-data", // use pg-data
+  "pg-agents", // hub is hidden; children show under Agents
+  "pg-work", // Work section removed — stocks live on World Monitor under Learn
+]);
+
+/** Section collapse keys (double-tap Health / Learn labels) */
+const SECTION_KEYS = {
+  health: "section:health",
+  learn: "section:learn",
+} as const;
+
 function loadCollapsed(): Record<string, boolean> {
-  const defaults = {
-    "pg-fitness": true,
-    "pg-hygiene": true,
-    "pg-life": true,
-    "pg-books": true,
+  // false / missing = open (you see kids). true = closed. Double-tap toggles.
+  const defaults: Record<string, boolean> = {
+    "pg-fitness": false,
+    "pg-hygiene": false,
+    "pg-data": false,
+    "pg-library": false,
+    "pg-world-monitor": false,
+    // Sections start open
+    [SECTION_KEYS.health]: false,
+    [SECTION_KEYS.learn]: false,
   };
   try {
-    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "2") {
-      localStorage.setItem(COLLAPSE_VERSION_KEY, "2");
-      localStorage.setItem(COLLAPSE_KEY, JSON.stringify(defaults));
-      return defaults;
+    // v5 = Learn has Bookshelf + World Monitor; Work section gone
+    if (localStorage.getItem(COLLAPSE_VERSION_KEY) !== "5") {
+      localStorage.setItem(COLLAPSE_VERSION_KEY, "5");
+      const raw = localStorage.getItem(COLLAPSE_KEY);
+      const prev = raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+      const merged = { ...defaults, ...prev, [SECTION_KEYS.learn]: false, "pg-library": false };
+      localStorage.setItem(COLLAPSE_KEY, JSON.stringify(merged));
+      return merged;
     }
     const raw = localStorage.getItem(COLLAPSE_KEY);
     if (raw) return { ...defaults, ...JSON.parse(raw) as Record<string, boolean> };
@@ -100,6 +131,71 @@ function PageIcon({ page }: { page: Page }) {
   );
 }
 
+/**
+ * Health / Learn / Work label.
+ * Double-tap closes or opens the whole section.
+ * Drop a page on it to nest under that section’s main page.
+ */
+function SectionLabel({
+  label,
+  sectionKey,
+  closed,
+  nestTargetId,
+  onToggle,
+  onNestInside,
+}: {
+  label: string;
+  sectionKey: string;
+  closed: boolean;
+  nestTargetId?: string;
+  onToggle: (sectionKey: string) => void;
+  onNestInside: (movingId: string, nestTargetId: string, sectionKey: string) => void;
+}) {
+  const lastTap = useRef(0);
+  return (
+    <div
+      className={`sidebar-section-label is-tappable${closed ? " is-closed" : ""}${
+        nestTargetId ? " is-drop-target" : ""
+      }`}
+      role="button"
+      tabIndex={0}
+      title="Double-tap to close or open. Drop a page here to put it inside this section."
+      aria-expanded={!closed}
+      onClick={() => {
+        const now = Date.now();
+        const doubleTap = now - lastTap.current <= DOUBLE_TAP_MS;
+        lastTap.current = doubleTap ? 0 : now;
+        if (doubleTap) onToggle(sectionKey);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onToggle(sectionKey);
+        }
+      }}
+      onDragOver={(event) => {
+        if (!nestTargetId) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(event) => {
+        if (!nestTargetId) return;
+        event.preventDefault();
+        const movingId = event.dataTransfer.getData("text/wonder-page");
+        if (movingId && movingId !== nestTargetId) {
+          onNestInside(movingId, nestTargetId, sectionKey);
+        }
+      }}
+    >
+      <span className={`sidebar-section-chev${closed ? "" : " is-open"}`} aria-hidden>
+        ▸
+      </span>
+      <span>{label}</span>
+      <span className="sidebar-section-hint">double-tap</span>
+    </div>
+  );
+}
+
 function PageTreeItem({
   page,
   pages,
@@ -129,8 +225,10 @@ function PageTreeItem({
 }) {
   const kids = pages.filter((p) => p.parentId === page.id);
   const hasKids = kids.length > 0;
-  const isCollapsed = hasKids && collapsed[page.id] !== false;
+  // Default open when you have kids so nesting Work under Learn is visible right away
+  const isCollapsed = hasKids && collapsed[page.id] === true;
   const lastTapAt = useRef(0);
+  const singleTapTimer = useRef<number | null>(null);
   const nestTimer = useRef<number | null>(null);
   const dropIntent = useRef<"before" | "inside">("before");
   const [dropState, setDropState] = useState<"before" | "inside" | null>(null);
@@ -146,11 +244,12 @@ function PageTreeItem({
     if (nestTimer.current !== null || dropState) return;
     dropIntent.current = "before";
     setDropState("before");
+    // Hold a bit → nest inside (so you can put Work inside Learn / Bookshelf)
     nestTimer.current = window.setTimeout(() => {
       dropIntent.current = "inside";
       setDropState("inside");
       nestTimer.current = null;
-    }, 650);
+    }, 420);
   }
 
   return (
@@ -190,7 +289,7 @@ function PageTreeItem({
         }}
         onDragEnd={clearDropState}
       >
-        {/* No visible toggle. Single tap opens; double tap expands/collapses. */}
+        {/* No chevron. Single tap opens page; double-tap closes/opens sub-pages. */}
         <span className="page-collapse-spacer" aria-hidden />
         <button
           type="button"
@@ -198,15 +297,34 @@ function PageTreeItem({
           aria-expanded={hasKids ? !isCollapsed : undefined}
           title={
             hasKids
-              ? "Open page. Double-tap to show or hide sub-pages."
-              : undefined
+              ? "Tap to open. Double-tap to show or hide what’s inside."
+              : "Drag onto another page and hold to nest inside it"
           }
           onClick={() => {
             const now = Date.now();
-            const doubleTap = now - lastTapAt.current <= 360;
+            const doubleTap = now - lastTapAt.current <= DOUBLE_TAP_MS;
             lastTapAt.current = doubleTap ? 0 : now;
-            onSelect(page.id);
-            if (hasKids && doubleTap) onToggleCollapse(page.id);
+
+            // Double-tap: only toggle open/closed — don’t fight you with navigation
+            if (doubleTap && hasKids) {
+              if (singleTapTimer.current !== null) {
+                window.clearTimeout(singleTapTimer.current);
+                singleTapTimer.current = null;
+              }
+              onToggleCollapse(page.id);
+              return;
+            }
+
+            // Single tap: open the page (tiny delay so double-tap can cancel it)
+            if (hasKids) {
+              if (singleTapTimer.current !== null) window.clearTimeout(singleTapTimer.current);
+              singleTapTimer.current = window.setTimeout(() => {
+                singleTapTimer.current = null;
+                onSelect(page.id);
+              }, DOUBLE_TAP_MS);
+            } else {
+              onSelect(page.id);
+            }
           }}
         >
           <PageIcon page={page} />
@@ -291,9 +409,19 @@ export function Sidebar({
   );
   const [showTrash, setShowTrash] = useState(() => loadFlag(TRASH_KEY, false));
 
+  /** Flip open ↔ closed. true = closed (hidden kids / section body). */
   function toggleCollapse(id: string) {
     setCollapsed((prev) => {
-      const next = { ...prev, [id]: prev[id] === false };
+      const currentlyClosed = prev[id] === true;
+      const next = { ...prev, [id]: !currentlyClosed };
+      saveCollapsed(next);
+      return next;
+    });
+  }
+
+  function openSectionAndParent(sectionKey: string, nestTargetId: string) {
+    setCollapsed((prev) => {
+      const next = { ...prev, [sectionKey]: false, [nestTargetId]: false };
       saveCollapsed(next);
       return next;
     });
@@ -309,20 +437,54 @@ export function Sidebar({
       );
 
       if (request.action.kind === "collapse-all") {
-        const next = Object.fromEntries(parentPages.map((page) => [page.id, true]));
+        // Close page trees AND Health / Learn / Work labels
+        const next: Record<string, boolean> = Object.fromEntries(
+          parentPages.map((page) => [page.id, true])
+        );
+        next[SECTION_KEYS.health] = true;
+        next[SECTION_KEYS.learn] = true;
         setCollapsed(next);
         saveCollapsed(next);
         setShowTrash(false);
         saveFlag(TRASH_KEY, false);
         request.result = {
           ok: true,
-          summary: `Closed all ${parentPages.length} sidebar sections. They will stay closed until you double-tap one.`,
-          data: { count: parentPages.length },
+          summary: `Closed all sidebar sections. Double-tap Health or Learn to open one again.`,
+          data: { count: parentPages.length + 2 },
         };
         return;
       }
 
       const query = request.action.target.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const shouldCollapse = request.action.collapsed;
+
+      // Mel can say "open Learn" / "close Health" — section labels, not pages
+      const sectionMatch =
+        /^(health)$/.test(query)
+          ? { key: SECTION_KEYS.health, label: "Health" }
+          : /^(learn|learning|bookshelf|library|stocks?|markets?|world monitor)$/.test(query)
+            ? { key: SECTION_KEYS.learn, label: "Learn" }
+            : null;
+
+      if (sectionMatch) {
+        setCollapsed((previous) => {
+          const next = { ...previous, [sectionMatch.key]: shouldCollapse };
+          // Opening Learn also shows Bookshelf + World Monitor kids
+          if (!shouldCollapse && sectionMatch.key === SECTION_KEYS.learn) {
+            next["pg-library"] = false;
+            next["pg-world-monitor"] = false;
+          }
+          saveCollapsed(next);
+          return next;
+        });
+        request.result = {
+          ok: true,
+          summary: `${shouldCollapse ? "Closed" : "Opened"} the ${sectionMatch.label} section.`,
+          pageTitle: sectionMatch.label,
+        };
+        return;
+      }
+
       const target = parentPages
         .map((page) => {
           const title = page.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -338,7 +500,6 @@ export function Sidebar({
         return;
       }
 
-      const shouldCollapse = request.action.collapsed;
       setCollapsed((previous) => {
         const next = { ...previous, [target.page.id]: shouldCollapse };
         saveCollapsed(next);
@@ -368,10 +529,26 @@ export function Sidebar({
   // Only child agents under the hidden hub (pg-agents itself is never listed)
   const agentPages = pages.filter((p) => p.parentId === "pg-agents");
 
-  // Private tree = top-level pages you already have (minus home / agents / bottom utils)
-  const privateTop = pages.filter(
-    (p) => p.parentId === null && !SIDEBAR_UTILITY_IDS.has(p.id)
+  function pageById(id: string): Page | undefined {
+    return pages.find((p) => p.id === id);
+  }
+
+  // Section roots (always shown when present — storage pins them top-level)
+  const healthTop = HEALTH_ROOT_IDS.map((id) => pageById(id)).filter(
+    (p): p is Page => Boolean(p) && !SIDEBAR_HIDDEN_IDS.has(p!.id) && !p!.trashedAt
   );
+
+  // Learn ALWAYS prefers Bookshelf + World Monitor (stocks), even if parent got weird
+  const learnTop = LEARN_ROOT_IDS.map((id) => pageById(id)).filter(
+    (p): p is Page => Boolean(p) && !SIDEBAR_HIDDEN_IDS.has(p!.id) && !p!.trashedAt
+  );
+
+  // Preferred drop targets
+  const learnNestId = pageById("pg-library")?.id || learnTop[0]?.id;
+  const healthNestId = pageById("pg-fitness")?.id || healthTop[0]?.id;
+
+  const sectionHealthClosed = collapsed[SECTION_KEYS.health] === true;
+  const sectionLearnClosed = collapsed[SECTION_KEYS.learn] === true;
 
   const help = pages.find((p) => p.id === "pg-help");
   const trash = allPages.filter((p) => !!p.trashedAt);
@@ -421,7 +598,7 @@ export function Sidebar({
               if (movingId) onMovePage(movingId, p.id);
             }}
           >
-            {/* spacer so icon lines up with Private pages (chevron column) */}
+            {/* spacer so icon lines up with Health pages (chevron column) */}
             <span className="page-collapse-spacer" aria-hidden />
             <button
               type="button"
@@ -453,29 +630,83 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* ── Private — all your existing pages stay here ── */}
-      <div className="sidebar-section-label">Private</div>
-      <div className="sidebar-scroll">
-        {privateTop.map((page) => (
-          <PageTreeItem
-            key={page.id}
-            page={page}
-            pages={pages}
-            activePageId={activePageId}
-            depth={0}
-            collapsed={collapsed}
-            onToggleCollapse={toggleCollapse}
-            onSelect={onSelect}
-            onDeletePage={onDeletePage}
-            onToggleFavorite={onToggleFavorite}
-            onMovePage={onMovePage}
-          />
-        ))}
-        <button type="button" className="sidebar-new" onClick={onNewPage}>
-          <span>+</span>
-          <span>New page</span>
-        </button>
-      </div>
+      {/* ── Health — double-tap label to close; drag pages anywhere ── */}
+      <SectionLabel
+        label="Health"
+        sectionKey={SECTION_KEYS.health}
+        closed={sectionHealthClosed}
+        nestTargetId={healthNestId}
+        onToggle={toggleCollapse}
+        onNestInside={(movingId, nestId, sectionKey) => {
+          onMovePage(movingId, nestId, "inside");
+          openSectionAndParent(sectionKey, nestId);
+        }}
+      />
+      {!sectionHealthClosed ? (
+        <div className="sidebar-block">
+          {healthTop.map((page) => (
+            <PageTreeItem
+              key={page.id}
+              page={page}
+              pages={pages}
+              activePageId={activePageId}
+              depth={0}
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapse}
+              onSelect={onSelect}
+              onDeletePage={onDeletePage}
+              onToggleFavorite={onToggleFavorite}
+              onMovePage={onMovePage}
+            />
+          ))}
+          {healthTop.length === 0 ? (
+            <p className="sidebar-empty-hint">
+              Drop a page on “Health” or nest pages under Fitness / Hygiene.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* ── Learn — Bookshelf + World Monitor (stocks). No Work section. ── */}
+      <SectionLabel
+        label="Learn"
+        sectionKey={SECTION_KEYS.learn}
+        closed={sectionLearnClosed}
+        nestTargetId={learnNestId}
+        onToggle={toggleCollapse}
+        onNestInside={(movingId, nestId, sectionKey) => {
+          onMovePage(movingId, nestId, "inside");
+          openSectionAndParent(sectionKey, nestId);
+        }}
+      />
+      {!sectionLearnClosed ? (
+        <div className="sidebar-scroll">
+          {learnTop.map((page) => (
+            <PageTreeItem
+              key={page.id}
+              page={page}
+              pages={pages}
+              activePageId={activePageId}
+              depth={0}
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapse}
+              onSelect={onSelect}
+              onDeletePage={onDeletePage}
+              onToggleFavorite={onToggleFavorite}
+              onMovePage={onMovePage}
+            />
+          ))}
+          {learnTop.length === 0 ? (
+            <p className="sidebar-empty-hint">
+              Bookshelf and World Monitor will show here after a refresh.
+            </p>
+          ) : null}
+          <button type="button" className="sidebar-new" onClick={onNewPage}>
+            <span>+</span>
+            <span>New page</span>
+          </button>
+        </div>
+      ) : null}
 
       {/* Bottom utility links — like Notion */}
       <div className="sidebar-bottom">

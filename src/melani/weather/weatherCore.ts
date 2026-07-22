@@ -98,6 +98,16 @@ const SNAPSHOT_KEY = "wonder-weather-snapshot-v1";
 export const WEATHER_UPDATED_EVENT = "wonder-weather-updated";
 export const WEATHER_CACHE_MS = 20 * 60 * 1000;
 
+/** Default city for Mel — no Weather page required */
+export const NYC_WEATHER_LOCATION: WeatherLocation = {
+  latitude: 40.7128,
+  longitude: -74.006,
+  label: "New York City, NY",
+  source: "search",
+  timezone: "America/New_York",
+  savedAt: 0,
+};
+
 function readStorage<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
   try {
@@ -143,6 +153,20 @@ function validLocation(value: WeatherLocation | null): value is WeatherLocation 
 export function loadWeatherLocation(): WeatherLocation | null {
   const value = readStorage<WeatherLocation>(LOCATION_KEY);
   return validLocation(value) ? value : null;
+}
+
+/** Always returns a location — NYC if nothing saved yet */
+export function resolveWeatherLocation(): WeatherLocation {
+  return loadWeatherLocation() || NYC_WEATHER_LOCATION;
+}
+
+/** Seed NYC as saved default once so Mel and wardrobe share it */
+export function ensureDefaultWeatherLocation(): WeatherLocation {
+  const existing = loadWeatherLocation();
+  if (existing) return existing;
+  const nyc = { ...NYC_WEATHER_LOCATION, savedAt: Date.now() };
+  saveWeatherLocation(nyc);
+  return nyc;
 }
 
 export function saveWeatherLocation(location: WeatherLocation): void {
@@ -334,23 +358,36 @@ export async function fetchWeatherSnapshot(location: WeatherLocation, signal?: A
   return snapshot;
 }
 
+/**
+ * Live weather for Mel (and wardrobe). Defaults to New York City.
+ * No Weather page required — Mel retrieves this on demand.
+ */
 export async function getFreshSavedWeather(maxAge = WEATHER_CACHE_MS): Promise<WeatherSnapshot | null> {
   const cached = loadWeatherSnapshot();
   if (isFreshWeather(cached, maxAge)) return cached;
-  let location = loadWeatherLocation() || cached?.location;
-  if (!location) return cached;
+  let location =
+    loadWeatherLocation()
+    || cached?.location
+    || ensureDefaultWeatherLocation();
   if (location.source === "device") {
     try {
       location = await requestDeviceLocation();
       saveWeatherLocation(location);
     } catch {
-      /* Keep the last precise coordinate when permission is temporarily unavailable. */
+      /* Keep last coords; fall back to NYC if unusable */
+      if (!validLocation(location)) location = ensureDefaultWeatherLocation();
     }
   }
   try {
     return await fetchWeatherSnapshot(location);
   } catch {
-    return cached;
+    // Last cache is fine; if empty, still try NYC once
+    if (cached) return cached;
+    try {
+      return await fetchWeatherSnapshot(ensureDefaultWeatherLocation());
+    } catch {
+      return null;
+    }
   }
 }
 

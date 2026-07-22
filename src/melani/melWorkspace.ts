@@ -211,12 +211,61 @@ export function applyMelWorkspaceAction(
     return success(next, `Duplicated ${pageLabel(target)} as ${pageLabel(copy)} and opened it.`, copy);
   }
 
+  if (action.kind === "make-section-root") {
+    // Section roots sit at parentId null so they show under Health / Learn / Work labels
+    const sectionLabel =
+      action.section === "learn" ? "Learn" : action.section === "health" ? "Health" : "Work";
+    if (target.parentId == null) {
+      return success(
+        workspace,
+        `${pageLabel(target)} is already at the top of ${sectionLabel}.`,
+        target,
+        { section: action.section },
+        false
+      );
+    }
+    const now = Date.now();
+    const next: Workspace = {
+      ...workspace,
+      pages: workspace.pages.map((page) =>
+        page.id === target.id ? { ...page, parentId: null, updatedAt: now } : page
+      ),
+    };
+    const moved = next.pages.find((page) => page.id === target.id) || target;
+    return success(
+      setActivePage(next, target.id),
+      `Moved ${pageLabel(target)} under ${sectionLabel} (top of that section).`,
+      moved,
+      { section: action.section, parentId: null }
+    );
+  }
+
   if (action.kind === "move-page") {
     const destination = resolvePage(workspace, action.destination);
-    if (!destination) return fail(workspace, `I could not find ${action.destination.title || "the destination page"}.`);
-    if (target.id === destination.id) return fail(workspace, "A page cannot be moved relative to itself.");
+    if (!destination) {
+      return fail(
+        workspace,
+        `I could not find ${action.destination.title || action.destination.id || "the destination page"}. Try a page name like Work, Bookshelf, or Fitness.`
+      );
+    }
+    if (target.id === destination.id) {
+      return fail(
+        workspace,
+        `Can't nest ${pageLabel(target)} inside itself. Say “move Bookshelf under Learn” to put it back at the top of Learn, or “move Work under Learn” to nest Work inside Bookshelf.`
+      );
+    }
     if (isDescendant(workspace, destination.id, target.id)) {
       return fail(workspace, `${pageLabel(target)} cannot be moved inside one of its own sub-pages.`);
+    }
+    // Already nested under that parent — still ok, tell Melani clearly
+    if (action.position === "inside" && target.parentId === destination.id) {
+      return success(
+        workspace,
+        `${pageLabel(target)} is already under ${pageLabel(destination)}.`,
+        target,
+        undefined,
+        false
+      );
     }
     let next: Workspace;
     if (action.position === "inside") {
@@ -233,7 +282,7 @@ export function applyMelWorkspaceAction(
     } else {
       next = moveAfter(workspace, target.id, destination.id);
     }
-    const relation = action.position === "inside" ? "inside" : action.position;
+    const relation = action.position === "inside" ? "under" : action.position;
     return success(next, `Moved ${pageLabel(target)} ${relation} ${pageLabel(destination)}.`, target);
   }
 

@@ -280,8 +280,9 @@
 .hx-nav-label {
   flex: 1;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400; /* plain writing — color lives on icons only */
   line-height: 1.2;
+  color: #fff;
 }
 
 .hx-nav-text-stack {
@@ -301,46 +302,48 @@
 
 .hx-nav-chev {
   font-size: 13px;
-  opacity: 0.75;
+  opacity: 0.45;
   flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.55); /* chevron stays quiet white */
+  font-weight: 400;
 }
 
-/* Colored labels + matching line icons */
-.hx-nav-row.is-daily .hx-nav-label,
-.hx-nav-row.is-daily .hx-nav-chev,
+/* Icons keep their color; labels stay white / unbolded */
 .hx-nav-row.is-daily .hx-nav-ic {
   color: #6eb4ff;
 }
-.hx-nav-row.is-everything .hx-nav-label,
-.hx-nav-row.is-everything .hx-nav-chev,
 .hx-nav-row.is-everything .hx-nav-ic {
   color: #f9a8d4;
 }
-.hx-nav-row.is-hair .hx-nav-label,
-.hx-nav-row.is-hair .hx-nav-chev,
 .hx-nav-row.is-hair .hx-nav-ic {
   color: #c4b5fd;
 }
-.hx-nav-row.is-am .hx-nav-label,
-.hx-nav-row.is-am .hx-nav-chev,
 .hx-nav-row.is-am .hx-nav-ic {
   color: #fbbf24;
 }
-.hx-nav-row.is-pm .hx-nav-label,
-.hx-nav-row.is-pm .hx-nav-chev,
 .hx-nav-row.is-pm .hx-nav-ic {
   color: #f9a8d4;
 }
 
-/* PM hub nav */
+.hx-nav-row .hx-nav-label {
+  color: #fff !important;
+  font-weight: 400 !important;
+}
+
+/* PM hub nav — white text, colored icons only */
 .hx-nav-pm .hx-nav-label {
   color: #fff !important;
+  font-weight: 400 !important;
 }
 .hx-nav-pm .hx-nav-chev {
-  color: #f9a8d4 !important;
+  color: rgba(255, 255, 255, 0.45) !important;
 }
 .hx-nav-pm .hx-nav-sub {
   color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+.hx-nav-pm .hx-nav-ic {
+  color: #f9a8d4;
 }
 
 /* Products & restock — empty until user adds via + */

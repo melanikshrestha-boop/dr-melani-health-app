@@ -1,12 +1,11 @@
-@import "@fontsource-variable/instrument-sans";
-
 :root {
   --paper: #f4f0e8;
   --ink: #191919;
   --muted: #66625d;
   --line: #cfc8bc;
   --accent: #6e302e;
-  font-family: "Instrument Sans Variable", "Helvetica Neue", Arial, sans-serif;
+  /* Serif everywhere (Wonder house rule) */
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
   color: var(--ink);
   background: var(--paper);
   font-synthesis: none;

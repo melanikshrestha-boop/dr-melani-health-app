@@ -2,6 +2,10 @@ import { applyLearnCommand, polishReply } from "./melLearn";
 import { pushSessionMemory } from "./melContext";
 import { runWardrobeCommand } from "./wardrobe/wardrobeAgent";
 import { runWeatherCommand } from "./weather/weatherAgentTool";
+import { makePlan, withBudget, runtimeStamp } from "./core/agentRuntime";
+import { wonderEmit } from "./core/eventBus";
+import { preferOfflinePath } from "./core/offlineStore";
+import { ensureDefaultWeatherLocation } from "./weather/weatherCore";
 import {
   clear_workspace_page,
   collapse_sidebar_sections,
@@ -31,6 +35,7 @@ import {
   search_logs,
   set_goal,
   set_sidebar_section,
+  make_section_root,
   move_workspace_page,
   run_shopping_command,
   run_task_command,
@@ -43,7 +48,10 @@ import {
   unpin_fact,
   write_workspace_page,
   write_body_brief,
+  fetch_stock_quarterly,
+  trading_knowledge_brief,
 } from "./melTools";
+import { MEL_TRADING_KNOWLEDGE } from "./melTrading";
 
 export type MelAgentMode = "offline-local" | "local-model" | "action" | "grok-connected" | "research";
 
@@ -142,6 +150,21 @@ function cleanCommandValue(value: string | undefined): string | undefined {
   return clean || undefined;
 }
 
+/**
+ * Strip chat fluff so "hey move the bookshelf under learn" still hits the move tool.
+ * (Without this, Mel falls through to a slow model call and sits on "…".)
+ */
+function stripCommandFiller(text: string): string {
+  let q = text.trim().replace(/[.!?]+$/g, "").trim();
+  // Leading greetings / names
+  q = q.replace(/^(?:hey|hi|hello|yo|sup|ok|okay|alright|please|pls|mel|wonder)\b[\s,!.:-]*/i, "");
+  // "can you / could you / would you please …"
+  q = q.replace(/^(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i, "");
+  // "i want you to / just / go ahead and"
+  q = q.replace(/^(?:i\s+(?:want|need|need\s+you\s+to|want\s+you\s+to)\s+|go\s+ahead\s+and\s+|just\s+)/i, "");
+  return q.trim();
+}
+
 type CreatePageCommand = {
   title?: string;
   parent?: string;
@@ -204,7 +227,14 @@ function parseRenamePageCommand(text: string): { target?: string; title: string 
 }
 
 function currentOrNamedPage(value: string | undefined): string | undefined {
-  const clean = cleanCommandValue(value?.replace(/^(?:the\s+)?page\s+/i, ""));
+  // "the bookshelf page" → "bookshelf" (drop leading the/page and trailing "page")
+  const clean = cleanCommandValue(
+    value
+      ?.replace(/^(?:the\s+)?page\s+/i, "")
+      .replace(/^(?:the\s+)/i, "")
+      .replace(/\s+page$/i, "")
+      .replace(/\s+(?:section|folder|toggle)$/i, "")
+  );
   return clean && !/^(?:(?:this|that|current|last|new)(?:\s+page)?|it)$/i.test(clean)
     ? clean
     : undefined;
@@ -252,7 +282,8 @@ function parseWritePageCommand(text: string): {
 }
 
 function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelToolResult[] {
-  const q = text.trim();
+  // Strip "hey / can you / please" first so action lines still match
+  const q = stripCommandFiller(text);
   const low = q.toLowerCase();
   const results: MelToolResult[] = [];
 
@@ -330,23 +361,103 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
     return results;
   }
 
-  const movePage = q.match(/^(?:move|put|place)\s+(.+?)\s+(under|inside|into|above|before|below|after)\s+(?:the\s+)?(?:page\s+)?(.+)$/i);
+  /**
+   * Move / nest / un-nest pages from chat. Smart about sections:
+   * - "move Bookshelf under Learn" → put Bookshelf at TOP of Learn (parent cleared)
+   * - "move Work under Learn" → nest Work inside Bookshelf (and open Learn)
+   * - "put World Monitor under Work" → nest under Work page
+   */
+  const movePage =
+    q.match(
+      /^(?:move|put|place|nest|shuffle)\s+(?:the\s+)?(.+?)\s+(under|inside|into|above|before|below|after|to|into)\s+(?:the\s+)?(?:page\s+|section\s+|folder\s+)?(.+)$/i
+    ) ||
+    text.match(
+      /(?:move|put|place|nest|shuffle)\s+(?:the\s+)?(.+?)\s+(under|inside|into|above|before|below|after)\s+(?:the\s+)?(?:page\s+|section\s+|folder\s+)?(.+?)(?:[.!?]|$)/i
+    );
   if (movePage?.[1] && movePage[2] && movePage[3]) {
     const relation = movePage[2].toLowerCase();
-    const position = /under|inside|into/.test(relation)
+    const position = /under|inside|into|to/.test(relation)
       ? "inside"
       : /above|before/.test(relation)
         ? "before"
         : "after";
+    const targetName = currentOrNamedPage(movePage[1]);
+    const destRaw = cleanCommandValue(
+      movePage[3]
+        .replace(/^(?:the\s+)?(?:page\s+|section\s+|folder\s+)?/i, "")
+        .replace(/\s+(?:section|folder|toggle|page)$/i, "")
+    ) || "";
+
+    // Section labels: Health / Learn only (Work section is gone)
+    const destSection: "health" | "learn" | null = /^(learn|learning)$/i.test(destRaw)
+      ? "learn"
+      : /^(health)$/i.test(destRaw)
+        ? "health"
+        : null;
+
+    const isLearnRoot =
+      !!targetName &&
+      /^(bookshelf|library|books|learn|learning|world monitor|stocks?|markets?)$/i.test(targetName);
+    const isHealthRoot =
+      !!targetName && /^(fitness|hygiene|my data|data|health)$/i.test(targetName);
+
+    if (destSection === "learn") {
+      addTool(results, set_sidebar_section("learn", true));
+      if (isLearnRoot) {
+        // Put Bookshelf / World Monitor at the TOP of Learn
+        const rootName = /world monitor|stocks?|markets?/i.test(targetName || "")
+          ? "world monitor"
+          : "bookshelf";
+        addTool(results, make_section_root(rootName, "learn", pageId));
+        return results;
+      }
+      // Nest other pages under Bookshelf inside Learn
+      addTool(results, make_section_root("bookshelf", "learn", pageId));
+      addTool(results, move_workspace_page(targetName, "bookshelf", "inside", pageId));
+      return results;
+    }
+
+    if (destSection === "health") {
+      addTool(results, set_sidebar_section("health", true));
+      if (isHealthRoot) {
+        addTool(results, make_section_root(targetName || "fitness", "health", pageId));
+        return results;
+      }
+      addTool(results, make_section_root("fitness", "health", pageId));
+      addTool(results, move_workspace_page(targetName, "fitness", "inside", pageId));
+      return results;
+    }
+
+    // "under work" → World Monitor under Learn (Work section deleted)
+    if (/^(work)$/i.test(destRaw)) {
+      addTool(results, set_sidebar_section("learn", true));
+      addTool(results, make_section_root("world monitor", "learn", pageId));
+      if (targetName && !/^(work|world monitor)$/i.test(targetName)) {
+        addTool(results, move_workspace_page(targetName, "world monitor", "inside", pageId));
+      } else {
+        addTool(results, navigate_page("world monitor"));
+      }
+      return results;
+    }
+
+    // Plain page-to-page move
     addTool(
       results,
-      move_workspace_page(
-        currentOrNamedPage(movePage[1]),
-        cleanCommandValue(movePage[3]) || "",
-        position,
-        pageId
-      )
+      move_workspace_page(targetName, destRaw, position, pageId)
     );
+    return results;
+  }
+
+  // One-shot fix: put Bookshelf + stocks back under Learn
+  if (
+    /^(?:fix|repair|reset)\s+(?:the\s+)?(?:sidebar|learn|bookshelf|layout)(?:\s+please)?$/i.test(q) ||
+    /^(?:put|move)\s+(?:the\s+)?bookshelf\s+back(?:\s+(?:under|to)\s+learn)?$/i.test(q) ||
+    /^fix learn$/i.test(q)
+  ) {
+    addTool(results, make_section_root("bookshelf", "learn", pageId));
+    addTool(results, make_section_root("world monitor", "learn", pageId));
+    addTool(results, set_sidebar_section("learn", true));
+    addTool(results, navigate_page("bookshelf"));
     return results;
   }
 
@@ -389,6 +500,37 @@ function planAndExecute(text: string, pageId?: string, pageTitle?: string): MelT
 
   if (/^(?:status|today|snapshot|check in|check-in)$/i.test(q) || /\b(?:what(?:'s| is) left|how am i doing|show (?:me )?(?:my )?(?:status|numbers)|today'?s status)\b/i.test(low)) {
     addTool(results, get_live_snapshot(pageId, pageTitle));
+  }
+
+  // Markets / options education offline (always available)
+  if (
+    /^(?:trading|markets?|options?)\s*(?:101|basics|desk|help)?$/i.test(q) ||
+    /\b(?:teach me|explain)\b.*\b(?:options?|trading|iv crush|greeks|position siz)/i.test(low)
+  ) {
+    addTool(results, trading_knowledge_brief(q));
+  }
+
+  // "NVDA quarterly" / "quarterly reports" / "earnings for AAPL"
+  const quarterlyAsk =
+    q.match(
+      /^(?:quarterly|earnings|fundamentals?)\s+(?:for\s+|on\s+|of\s+)?([A-Za-z.]{1,6}(?:\s*,\s*[A-Za-z.]{1,6})*)$/i
+    ) ||
+    q.match(
+      /^([A-Za-z]{1,5})\s+(?:quarterly|earnings|fundamentals?|report|reports)$/i
+    ) ||
+    (/\b(quarterly reports?|earnings packs?|show (?:me )?quarters)\b/i.test(low)
+      ? (["", "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD"] as RegExpMatchArray)
+      : null);
+  if (quarterlyAsk) {
+    // Async tool is resolved in runMelAgent (see stock path below)
+    results.push(
+      envelope(
+        "stock_quarterly_pending",
+        String(quarterlyAsk[1] || "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD")
+          .replace(/\s+/g, "")
+          .toUpperCase()
+      )
+    );
   }
 
   if (/^pins$/i.test(q)) addTool(results, list_pins());
@@ -508,26 +650,46 @@ function nextAction(snapshot: Snapshot): string {
 function statusReply(snapshot: Snapshot): string {
   const sleep = snapshot.sleep.hours == null ? "not logged" : `${snapshot.sleep.hours}h`;
   const fog = snapshot.brainFog == null ? "not logged" : snapshot.brainFog ? "yes" : "no";
+  // Blank lines = separate chunks in Mel UI (easier to scan)
   return [
-    `Today, ${snapshot.day}`,
-    `Protein: ${snapshot.meals.totals.protein_g}/${snapshot.goals.protein_g}g`,
-    `Calories: ${snapshot.meals.totals.calories}/${snapshot.goals.calories}`,
-    `Water: ${snapshot.water.ml}/${snapshot.water.goalMl} ml`,
-    `Sleep: ${sleep}`,
-    `Brain fog: ${fog}`,
-    `Cycle: ${snapshot.cycle.phase}${snapshot.cycle.day ? `, day ${snapshot.cycle.day}` : ""}`,
-    `Food: ${snapshot.food.meat}${snapshot.food.locked ? " locked" : " rotation"}${snapshot.food.eaten ? ", eaten" : ""}`,
-    nextAction(snapshot),
+    `Today`,
+    snapshot.day,
+    ``,
+    `— Fuel —`,
+    `Protein ${snapshot.meals.totals.protein_g} / ${snapshot.goals.protein_g}g`,
+    `Calories ${snapshot.meals.totals.calories} / ${snapshot.goals.calories}`,
+    `Water ${snapshot.water.ml} / ${snapshot.water.goalMl} ml`,
+    ``,
+    `— Rest —`,
+    `Sleep ${sleep}`,
+    `Brain fog ${fog}`,
+    ``,
+    `— Body —`,
+    `Cycle ${snapshot.cycle.phase}${snapshot.cycle.day ? `, day ${snapshot.cycle.day}` : ""}`,
+    `Dinner meat ${snapshot.food.meat}${snapshot.food.locked ? " (locked)" : ""}${snapshot.food.eaten ? " · eaten" : ""}`,
+    ``,
+    `— Next —`,
+    nextAction(snapshot).replace(/^Next:\s*/i, ""),
   ].join("\n");
 }
 
 function foodReply(data: Snapshot["food"]): string {
   return [
-    `Today: ${data.meat}.`,
+    `Dinner protein`,
+    ``,
+    `— Today —`,
+    data.meat === "beef" ? "Beef" : "Salmon",
     data.plate,
-    `Remaining from logged food: ${data.proteinRemaining_g}g protein and ${data.caloriesRemaining} calories.`,
+    ``,
+    `— Left after logs —`,
+    `${data.proteinRemaining_g}g protein`,
+    `${data.caloriesRemaining} calories`,
+    ``,
     data.note,
-    data.eaten ? "It is already marked eaten." : `Next: say "ate ${data.meat}" when you finish.`,
+    ``,
+    data.eaten
+      ? "Already marked eaten."
+      : `When done: say "ate ${data.meat}"`,
   ].join("\n");
 }
 
@@ -574,37 +736,119 @@ function composeFromTools(toolResults: MelToolResult[], pageId?: string, pageTit
       '"goal protein 130"',
       '"pin I stream Tuesday nights"',
       '"open wardrobe"',
-      '"what should I wear for streaming"',
-      '"I wore the olive dress"',
-      '"put the olive dress in laundry"',
-      '"pack me for 3 days"',
-      '"create a page called Neurotech Ideas under Work"',
-      '"rename this page to Research"',
-      '"add prototype notes to this page"',
-      '"move Research under Work"',
+      '"NVDA quarterly" or "quarterly reports"',
+      '"options 101" or "trading desk"',
+      '"create a page called Neurotech Ideas under Learn"',
+      '"move Bookshelf under Learn"',
       '"undo that"',
     ].join("\n");
   }
+
+  // Prefer full quarterly / trading text first
+  const stockQ = toolResults.find((item) => item.tool === "stock_quarterly");
+  if (stockQ?.summary) {
+    return [
+      stockQ.summary,
+      "",
+      "Framework: thesis, catalyst, invalidation, size. Not advice.",
+    ].join("\n");
+  }
+  const trading = toolResults.find((item) => item.tool === "trading_knowledge");
+  if (trading?.summary) return trading.summary;
 
   if (toolResults.length) return toolResults.map((item) => item.summary).join("\n");
   return statusReply(asSnapshot(toolResults, pageId, pageTitle));
 }
 
+/** True when Mel should answer in one tick with no network (chat, mood, vibes). */
+function isInstantChat(text: string): boolean {
+  const t = text.trim();
+  if (!t || t.length > 160) return false;
+  // Real app work should never take the fast path
+  if (
+    /\b(log|logged|drink|drank|water|breakfast|brief|protein|gym|sleep|beef|salmon|meat|goal|pin|unpin|create|rename|delete|trash|move|open|wear|outfit|wardrobe|weather|research|look up|find out|status|macros?)\b/i.test(
+      t
+    )
+  ) {
+    return false;
+  }
+  if (
+    /^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup|howdy)([.!?,\s].*)?$/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice|lol|lmao|haha+)[.!]*$/i.test(t)) {
+    return true;
+  }
+  // Feelings / goofy days / vibes — human reply, zero tools
+  if (
+    /\b(feel|feeling|felt|mood|goofy|goffy|silly|tired|exhausted|happy|sad|anxious|stressed|bored|good|bad|meh|weird|off)\b/i.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  // Short pure chat with no imperative
+  if (t.split(/\s+/).length <= 8 && !/\b(can you|could you|please|make|add|set|show|give|tell me what)\b/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
+function instantChatReply(text: string): string {
+  const low = text.trim().toLowerCase();
+  if (/^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup)([.!?,\s].*)?$/i.test(low)) {
+    if (/\b(feel|feeling|goofy|goffy|silly|tired|weird|off|good|bad)\b/i.test(low)) {
+      // "whatsup i feel goffy today"
+      return "Goofy day accepted. Lean into it. Want food, outfit, or one tiny task so the day still moves?";
+    }
+    return "Hey. What do you need done?";
+  }
+  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice)[.!]*$/i.test(low)) {
+    return "Got you.";
+  }
+  if (/\b(goofy|goffy|silly)\b/i.test(low)) {
+    return "Goofy mode on. Keep it light. I can still lock dinner meat, log breakfast, or pick a stream outfit when you want.";
+  }
+  if (/\b(tired|exhausted|drained|sleepy)\b/i.test(low)) {
+    return "Noted. Protect sleep tonight. One easy win only if you want it: water, breakfast usual, or early bed.";
+  }
+  if (/\b(anxious|stressed|overwhelmed|panic)\b/i.test(low)) {
+    return "Okay. Slow breath. We do one small thing, not the whole list. Say water, food, or a 10-minute task.";
+  }
+  if (/\b(happy|good|great|amazing|pumped)\b/i.test(low)) {
+    return "Love that. Channel it into one ship or one stream moment. What are we locking in?";
+  }
+  if (/\b(sad|down|meh|bad|off|weird)\b/i.test(low)) {
+    return "I'm here. No command dump. Want company chatter, food, or one tiny reset?";
+  }
+  if (/\b(feel|feeling|mood)\b/i.test(low)) {
+    return "Got the vibe. I'm with you. Ask for food, outfit, brief, or just keep talking.";
+  }
+  if (/^(lol|lmao|haha+)/i.test(low)) return "Haha. What's next?";
+  return "I'm here. Tell me what you need, or just keep talking.";
+}
+
 function localChat(text: string, pageId?: string, pageTitle?: string): string {
   const low = text.trim().toLowerCase();
-  if (/^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup)[.!?]*$/i.test(low)) return "Hey. What do you need done?";
-  if (/^(thanks|thank you|ty|perfect|cool|okay|ok)[.!]*$/i.test(low)) return "Got you.";
-  if (/\b(protein|water|macros?|phase|cycle|sleep|today|logged)\b/i.test(low)) {
+  if (isInstantChat(text)) return instantChatReply(text);
+  // Explicit status asks only (not the word "today" in casual chat)
+  if (
+    /^(status|how am i doing|macros?|protein|water|sleep|phase|cycle)\b/i.test(low)
+    || /\b(show|give me|what(?:'s| is) my)\s+(status|macros?|protein|water|sleep)\b/i.test(low)
+  ) {
     return statusReply(asSnapshot([], pageId, pageTitle));
   }
-  return "I did not recognize a safe app action in that request yet. Tell me the exact outcome, for example: create a page called Research, move Research under Work, or log 1L of water.";
+  return "Tell me the outcome in one line, like: log breakfast, what meat, brief, or create a page called Research.";
 }
 
 function localComposer(text: string, toolResults: MelToolResult[], pageId?: string, pageTitle?: string): string {
   return toolResults.length ? composeFromTools(toolResults, pageId, pageTitle) : localChat(text, pageId, pageTitle);
 }
 
-async function fetchJson(url: string, init: RequestInit, timeoutMs = 12_000): Promise<Response> {
+async function fetchJson(url: string, init: RequestInit, timeoutMs = 4_000): Promise<Response> {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -649,7 +893,37 @@ async function callLocalModel(
         options: { temperature: jsonOnly ? 0 : 0.35 },
       }),
     },
-    75_000
+    // Chat must stay snappy. Workspace planner uses a separate longer call below.
+    8_000
+  );
+  const payload = await response.json() as {
+    message?: { content?: string };
+    error?: string;
+  };
+  const content = payload.message?.content?.trim();
+  if (!response.ok || !content) throw new Error(payload.error || "Local model unavailable");
+  return content;
+}
+
+async function callLocalModelSlow(
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  jsonOnly = false
+): Promise<string> {
+  const response = await fetchJson(
+    "/api/ollama/api/chat",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: LOCAL_MODEL,
+        messages,
+        stream: false,
+        keep_alive: "20m",
+        ...(jsonOnly ? { format: "json" } : {}),
+        options: { temperature: jsonOnly ? 0 : 0.35 },
+      }),
+    },
+    20_000
   );
   const payload = await response.json() as {
     message?: { content?: string };
@@ -685,7 +959,7 @@ async function planWorkspaceWithLocalModel(request: MelAgentRequest): Promise<Lo
   const pages = Array.isArray(pagesResult.data)
     ? (pagesResult.data as Array<{ title: string; parent: string | null }>).slice(0, 80)
     : [];
-  const content = await callLocalModel([
+  const content = await callLocalModelSlow([
     {
       role: "system",
       content: [
@@ -808,7 +1082,8 @@ async function cloudReply(request: MelAgentRequest, toolResults: MelToolResult[]
     return { reply: payload.answer, research: true };
   }
 
-  const history = [...(request.history || []), { role: "user" as const, content: request.text }].slice(-20);
+  const history = [...(request.history || []), { role: "user" as const, content: request.text }].slice(-12);
+  // Hard cap: never make casual chat wait on a hung bridge
   const response = await fetchJson("/api/melani-ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -816,12 +1091,13 @@ async function cloudReply(request: MelAgentRequest, toolResults: MelToolResult[]
       messages: history,
       page_id: request.pageId,
       page_title: request.pageTitle,
-      live_context: snapshot.liveContext,
+      // Smaller context = faster round trip
+      live_context: snapshot.liveContext.slice(0, 4500),
       system_context: toolResults.length
-        ? `These tools already ran. Treat them as final facts and do not claim any other action:\n${JSON.stringify(toolResults).slice(0, 7000)}`
-        : "No app tool ran. Answer only from the live snapshot and conversation.",
+        ? `These tools already ran. Treat them as final facts and do not claim any other action:\n${JSON.stringify(toolResults).slice(0, 3500)}`
+        : "No app tool ran. Answer only from the live snapshot and conversation. Be short. No command menus.",
     }),
-  });
+  }, 3_500);
   const payload = await response.json() as { reply?: string; detail?: string };
   if (!response.ok || !payload.reply) throw new Error(payload.detail || "Grok unavailable");
   return { reply: payload.reply, research: false };
@@ -835,14 +1111,47 @@ export function runLocalMelAgent(text: string, pageId?: string, pageTitle?: stri
 }
 
 export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentResponse> {
+  const started = Date.now();
+  const trimmed = request.text.trim();
+  // Mel owns weather — seed NYC once so retrieval never needs a page
+  try {
+    ensureDefaultWeatherLocation();
+  } catch {
+    /* ignore */
+  }
+
+  // 1) Instant path: greetings / mood / vibes — never wait on Grok or Ollama
+  if (isInstantChat(trimmed)) {
+    const reply = cleanReply(instantChatReply(trimmed));
+    pushSessionMemory(trimmed, reply);
+    wonderEmit("mel.plan", "melAgent", {
+      intent: "instant-chat",
+      ...runtimeStamp(started),
+    });
+    return { reply, mode: "offline-local", toolResults: [] };
+  }
+
   let toolResults: MelToolResult[] = [];
-  const wardrobeUndoFirst = /^(?:undo|undo that)[.!]?$/i.test(request.text.trim())
+  const plan = makePlan("mel-turn", [], preferOfflinePath() ? 0 : 3500);
+
+  const wardrobeUndoFirst = /^(?:undo|undo that)[.!]?$/i.test(trimmed)
     && (request.pageId === "pg-fashion-os" || lastActionDomain() === "wardrobe");
-  if (wardrobeUndoFirst || /^undo (?:the last )?wardrobe(?: action)?[.!]?$/i.test(request.text.trim())) {
+  if (wardrobeUndoFirst || /^undo (?:the last )?wardrobe(?: action)?[.!]?$/i.test(trimmed)) {
     const wardrobeResult = await runWardrobeCommand(request.text, wardrobeUndoFirst ? "pg-fashion-os" : request.pageId);
     if (wardrobeResult) toolResults = [wardrobeResult];
   }
   if (toolResults.length === 0) toolResults = planAndExecute(request.text, request.pageId, request.pageTitle);
+
+  // Resolve pending quarterly stock packs (async free Yahoo data)
+  const pendingQ = toolResults.find((item) => item.tool === "stock_quarterly_pending");
+  if (pendingQ) {
+    const symbols = pendingQ.summary || "AAPL,MSFT,NVDA,GOOGL,META,AMZN,TSLA,AMD";
+    const packed = parseToolResult(await fetch_stock_quarterly(symbols));
+    toolResults = toolResults
+      .filter((item) => item.tool !== "stock_quarterly_pending")
+      .concat(packed);
+  }
+
   if (toolResults.length === 0) {
     const weatherResult = await runWeatherCommand(request.text, request.pageId);
     if (weatherResult) toolResults = [weatherResult];
@@ -851,47 +1160,108 @@ export async function runMelAgent(request: MelAgentRequest): Promise<MelAgentRes
     const wardrobeResult = await runWardrobeCommand(request.text, request.pageId);
     if (wardrobeResult) toolResults = [wardrobeResult];
   }
-  const deterministicAction = toolResults.some((item) => item.tool.startsWith("wardrobe_") || item.tool.startsWith("weather_"));
+  const deterministicAction = toolResults.some(
+    (item) =>
+      item.tool.startsWith("wardrobe_") ||
+      item.tool.startsWith("weather_") ||
+      item.tool === "stock_quarterly" ||
+      item.tool === "trading_knowledge"
+  );
+  // Tools already answered (log water, meat, brief, weather, stocks, etc.) — return now
+  if (toolResults.length > 0) {
+    const reply = cleanReply(localComposer(request.text, toolResults, request.pageId, request.pageTitle));
+    rememberActionDomain(toolResults);
+    pushSessionMemory(request.text, reply);
+    wonderEmit("mel.plan", "melAgent", {
+      intent: deterministicAction ? "async-tool" : "sync-tool",
+      planId: plan.id,
+      ...runtimeStamp(started),
+    });
+    return { reply, mode: "action", toolResults };
+  }
+
+  // Only ask Ollama when the line is clearly a workspace action we didn't parse.
+  // Keep the budget short so Mel never sits on "…" for 12s.
   if (
     toolResults.length === 0
     && request.localModelAvailable
     && mayNeedWorkspacePlanner(request.text)
   ) {
     try {
-      toolResults = executeLocalWorkspacePlan(
-        await planWorkspaceWithLocalModel(request),
-        request.pageId
-      );
+      const budgeted = await withBudget(4_500, () => planWorkspaceWithLocalModel(request));
+      if (budgeted.ok) {
+        toolResults = executeLocalWorkspacePlan(budgeted.value, request.pageId);
+        if (toolResults.length) {
+          const reply = cleanReply(localComposer(request.text, toolResults, request.pageId, request.pageTitle));
+          rememberActionDomain(toolResults);
+          pushSessionMemory(request.text, reply);
+          return { reply, mode: "action", toolResults };
+        }
+      }
     } catch {
-      /* deterministic tools and the normal local reply remain available */
+      /* fall through */
+    }
+    // Deterministic fallback so move/create-style asks never hang forever
+    if (/\b(move|put|place|nest)\b/i.test(request.text)) {
+      const reply = cleanReply(
+        "I couldn't run that move. Try: move Work under Learn — or: put World Monitor under Work."
+      );
+      pushSessionMemory(request.text, reply);
+      return { reply, mode: "offline-local", toolResults: [] };
     }
   }
+
   let reply = localComposer(request.text, toolResults, request.pageId, request.pageTitle);
   let mode: MelAgentMode = toolResults.length ? "action" : "offline-local";
 
-  const researchRequested = /^(research|look up|find out|compare|investigate)\b/i.test(request.text.trim());
+  const researchRequested = /^(research|look up|find out|compare|investigate)\b/i.test(trimmed);
   if (researchRequested && !request.cloudAvailable) {
     reply = "Live research needs the optional Grok bridge. App actions and your saved data still work locally.";
-  } else if (request.cloudAvailable && !request.forceLocal && !deterministicAction) {
-    try {
-      const cloud = await cloudReply(request, toolResults);
-      reply = cloud.reply;
-      mode = cloud.research ? "research" : "grok-connected";
-    } catch {
-      mode = toolResults.length ? "action" : "offline-local";
-    }
-  } else if (toolResults.length === 0 && request.localModelAvailable && !deterministicAction) {
-    try {
-      reply = await localModelReply(request);
-      mode = "local-model";
-    } catch {
+  } else if (researchRequested && request.cloudAvailable && !request.forceLocal) {
+    const budgeted = await withBudget(45_000, () => cloudReply(request, toolResults));
+    if (budgeted.ok) {
+      reply = budgeted.value.reply;
+      mode = "research";
+    } else {
+      reply = "Research timed out. Try again, or ask an app action instead.";
       mode = "offline-local";
+    }
+  } else if (
+    request.cloudAvailable
+    && !request.forceLocal
+    && !preferOfflinePath()
+    && trimmed.length >= 12
+    && !isInstantChat(trimmed)
+  ) {
+    // Hard latency budget for optional Grok polish
+    const budgeted = await withBudget(plan.cloudBudgetMs, () => cloudReply(request, toolResults));
+    if (budgeted.ok) {
+      reply = budgeted.value.reply;
+      mode = "grok-connected";
+    } else {
+      mode = "offline-local";
+    }
+  } else if (
+    toolResults.length === 0
+    && request.localModelAvailable
+    && !request.forceLocal
+    && /\b(think hard|go deep|detailed|explain fully)\b/i.test(trimmed)
+  ) {
+    const budgeted = await withBudget(8_000, () => localModelReply(request));
+    if (budgeted.ok) {
+      reply = budgeted.value;
+      mode = "local-model";
     }
   }
 
   reply = cleanReply(reply);
   rememberActionDomain(toolResults);
   pushSessionMemory(request.text, reply);
+  wonderEmit("mel.plan", "melAgent", {
+    intent: mode,
+    planId: plan.id,
+    ...runtimeStamp(started),
+  });
   return { reply, mode, toolResults };
 }
 

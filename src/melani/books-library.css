@@ -9,7 +9,7 @@
   --bl-panel: rgba(255, 255, 255, 0.035);
   --bl-accent: #a78bd4;
   color: var(--bl-ink);
-  font-family: "Times New Roman", Times, Georgia, serif;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
   letter-spacing: 0;
   box-sizing: border-box;
 }
@@ -19,7 +19,7 @@
   min-height: 420px;
   place-items: center;
   color: rgba(255, 255, 255, 0.38);
-  font-family: "Times New Roman", Times, Georgia, serif;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
   font-size: 12px;
 }
 
@@ -239,15 +239,97 @@
   margin-bottom: 2px;
 }
 
+/* Want auto-file toast */
+.bl-toast {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(12, 12, 12, 0.96);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  animation: bl-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+@keyframes bl-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.bl-want-hint {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(184, 154, 220, 0.22);
+  background: rgba(184, 154, 220, 0.07);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: "Source Serif 4", Georgia, "Times New Roman", ui-serif, serif;
+}
+
+.bl-want-hint strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.bl-want-hint em {
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.bl-want-go {
+  flex-shrink: 0;
+  margin-right: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(184, 154, 220, 0.22);
+  color: #efe6ff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, opacity 0.18s ease;
+}
+
+.bl-want-go:hover:not(:disabled) {
+  background: rgba(184, 154, 220, 0.35);
+}
+
+.bl-want-go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .bl-search-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
+  margin: 0;
   height: 38px;
-  padding: 0 11px;
+  padding: 0 6px 0 11px;
   border: 1px solid var(--bl-line);
-  border-radius: 6px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.025);
   color: var(--bl-faint);
 }
@@ -1306,15 +1388,73 @@
   font-size: 10px;
 }
 
+.bl-imprint-btn {
+  margin-left: 8px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(249, 168, 212, 0.45);
+  background: rgba(249, 168, 212, 0.1);
+  color: #f9a8d4;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.bl-imprint-btn:hover:not(:disabled) {
+  background: rgba(249, 168, 212, 0.18);
+  color: #fbcfe8;
+}
+
+.bl-imprint-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.bl-imprint-error {
+  margin: 0;
+  padding: 6px 12px 0;
+  font-size: 11px;
+  color: #f9a8d4;
+}
+
 .bl-reader-stage-wrap {
   position: relative;
   height: auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: hidden; /* normal reading stays tidy */
   background: #080808;
 }
 
+/*
+ * Full 3D space for free page motion (any direction + spin).
+ * Perspective sits in the center so up/down/left/right all look correct.
+ */
+.bl-reader-stage-wrap.is-3d-pages {
+  perspective: 1600px;
+  perspective-origin: 50% 50%;
+}
+
+/* While free-dragging: fly past the frame + grabbing cursor */
+.bl-reader-stage-wrap.is-free-leaf {
+  overflow: visible;
+  cursor: grabbing;
+}
+
+.bl-flip-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  transform-style: preserve-3d;
+  overflow: visible; /* let the page fly past the frame */
+}
+
 .bl-reader-stage {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
 }
@@ -1325,6 +1465,164 @@
 
 .bl-reader.is-page-reader .bl-reader-stage {
   touch-action: pan-y pinch-zoom;
+}
+
+/*
+ * Free page leaf — not hinged to one side.
+ * You control: translate (x/y), rotateZ (circles), rotateY/X (tilt), scale, opacity.
+ * CSS variables are set live from JS while you drag.
+ */
+.bl-page-leaf {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none; /* never blocks reading / selecting text */
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%; /* free center pivot so circles feel natural */
+  will-change: transform, opacity;
+  /* Full free transform — goes anywhere you drag */
+  transform:
+    translate3d(var(--lx, 0px), var(--ly, 0px), 0)
+    rotateZ(var(--rz, 0deg))
+    rotateY(var(--ry, 0deg))
+    rotateX(var(--rx, 0deg))
+    scale(var(--sc, 1));
+  /* opacity driven by --op so fade-out on fly-away still works */
+  opacity: var(--op, 0);
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.55));
+}
+
+.bl-page-leaf.is-on {
+  visibility: visible;
+}
+
+.bl-page-leaf-front,
+.bl-page-leaf-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 2px;
+}
+
+/* Front of the free leaf — soft paper look that works at any angle */
+.bl-page-leaf-front {
+  background:
+    linear-gradient(
+      125deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 38%,
+      transparent 62%,
+      rgba(0, 0, 0, 0.18) 100%
+    ),
+    linear-gradient(
+      180deg,
+      #161616 0%,
+      #121212 45%,
+      #0e0e0e 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 0 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Back of the leaf (the other side of the paper) */
+.bl-page-leaf-back {
+  transform: rotateY(180deg);
+  background:
+    linear-gradient(
+      200deg,
+      #0a0a0a 0%,
+      #101010 50%,
+      #141414 100%
+    );
+  box-shadow: inset 0 0 48px rgba(0, 0, 0, 0.7);
+}
+
+/* Soft glow edge so the free sheet reads in dark UI from any direction */
+.bl-page-leaf-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.35);
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 62%
+  );
+}
+
+/*
+ * Free grab frame: all 4 edges.
+ * Grab any side, then drag anywhere (up/down/circles).
+ * Center has no hit layer so text selection still works.
+ */
+.bl-free-hit-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none; /* only the edge strips receive events */
+}
+
+.bl-free-hit {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  background: transparent;
+}
+
+.bl-free-hit:active {
+  cursor: grabbing;
+}
+
+/* Faint edge cues — soft so they don’t fight the page, clear enough to discover */
+.bl-free-hit-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: min(12%, 64px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 85%);
+}
+
+.bl-free-hit-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: min(12%, 64px);
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0%, transparent 85%);
+}
+
+.bl-free-hit-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(14%, 88px);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, transparent 80%);
+}
+
+.bl-free-hit-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(14%, 88px);
+  background: linear-gradient(270deg, rgba(255, 255, 255, 0.035) 0%, transparent 80%);
+}
+
+/* Hide soft cues while actively free-dragging so nothing distracts */
+.bl-reader-stage-wrap.is-free-leaf .bl-free-hit {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-page-leaf {
+    display: none !important;
+  }
+  .bl-free-hit-frame {
+    display: none;
+  }
 }
 
 .bl-reader .bl-smart-selection {

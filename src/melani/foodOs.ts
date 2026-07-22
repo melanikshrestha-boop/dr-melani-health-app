@@ -1,5 +1,10 @@
 import { loadGoals } from "./melContext";
 import { MEAL_PRESETS, todayKey } from "./data";
+import { deriveCycle, loadCycle } from "./cycleEngine";
+import { loadLabs } from "./labEngine";
+import { decideMeat } from "./core/policyEngine";
+import { wonderEmit } from "./core/eventBus";
+import type { MeatId, PolicyContext } from "./core/types";
 
 export type FoodOsMeat = "beef" | "salmon";
 
@@ -51,12 +56,61 @@ function loadStore(): FoodOsStore {
 function saveStore(store: FoodOsStore): void {
   localStorage.setItem(FOOD_OS_KEY, JSON.stringify(store));
   window.dispatchEvent(new CustomEvent(FOOD_OS_EVENT));
+  wonderEmit("data.changed", "foodOs", { key: FOOD_OS_KEY });
 }
 
+function lipidPressure(): boolean {
+  try {
+    return loadLabs().some((l) => {
+      const name = `${l.displayName || ""} ${l.id || ""} ${l.short || ""}`.toLowerCase();
+      return /ldl|non-hdl|triglyceride|total cholesterol/.test(name) && l.status === "high";
+    });
+  } catch {
+    return false;
+  }
+}
+
+function yesterdayIso(day: string): string {
+  const d = new Date(`${day}T12:00:00`);
+  d.setDate(d.getDate() - 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
+function gymTodayLabel(day: string): string {
+  try {
+    const week = JSON.parse(localStorage.getItem("dr-melani-gym-week-plan") || "{}") as Record<string, string>;
+    const key = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+      new Date(`${day}T12:00:00`).getDay()
+    ];
+    return week[key] || "-";
+  } catch {
+    return "-";
+  }
+}
+
+/** Policy-driven meat pick (rules as data) */
 function rotationFor(day: string): FoodOsMeat {
-  const stamp = new Date(`${day}T12:00:00`).getTime();
-  const dayNumber = Math.floor(stamp / 86_400_000);
-  return dayNumber % 2 === 0 ? "beef" : "salmon";
+  const store = loadStore();
+  const y = yesterdayIso(day);
+  const yesterdayMeat = (store.days[y]?.meat as MeatId | undefined) || null;
+  const cycle = loadCycle();
+  const derived = deriveCycle(cycle, new Date(`${day}T12:00:00`));
+  const ctx: PolicyContext = {
+    day,
+    phaseId: (derived.phase as PolicyContext["phaseId"]) || "unknown",
+    lipidPressure: lipidPressure(),
+    yesterdayMeat,
+    beefStreak: yesterdayMeat === "beef" ? 1 : 0,
+    salmonStreak: yesterdayMeat === "salmon" ? 1 : 0,
+    rain: false,
+    temperatureF: null,
+    gymToday: gymTodayLabel(day),
+  };
+  const decision = decideMeat(ctx);
+  return decision.value;
 }
 
 function loadMealDay(day: string): MealDay {
@@ -78,6 +132,7 @@ export function ensureTodayMeat(day: string = todayKey()): FoodOsDay {
   if (current) return current;
   const next: FoodOsDay = { meat: rotationFor(day), locked: false };
   saveStore({ ...store, days: { ...store.days, [day]: next } });
+  wonderEmit("meat.locked", "foodOs", { day, meat: next.meat, auto: true });
   return next;
 }
 
@@ -89,6 +144,7 @@ export function lockTodayMeat(meat: FoodOsMeat, day: string = todayKey()): FoodO
     locked: true,
   };
   saveStore({ ...store, days: { ...store.days, [day]: next } });
+  wonderEmit("meat.locked", "foodOs", { day, meat });
   return next;
 }
 
@@ -97,6 +153,7 @@ export function markTodayMeatEaten(meat?: FoodOsMeat, day: string = todayKey()):
   const store = loadStore();
   const next: FoodOsDay = { ...current, eatenAt: new Date().toISOString() };
   saveStore({ ...store, days: { ...store.days, [day]: next } });
+  wonderEmit("meat.eaten", "foodOs", { day, meat: next.meat });
   return next;
 }
 
@@ -119,6 +176,27 @@ export function buildFoodOsPlan(day: string = todayKey()): FoodOsPlan {
     ? "Lean beef with rice or potatoes and a full serving of vegetables"
     : "Salmon with rice or potatoes and a full serving of vegetables";
   const breakfast = MEAL_PRESETS.find((meal) => meal.id === "breakfast_usual");
+  // Policy reasons for Mel (why this meat)
+  const policyNote = (() => {
+    try {
+      const store = loadStore();
+      const y = yesterdayIso(day);
+      const ctx: PolicyContext = {
+        day,
+        phaseId: (deriveCycle(loadCycle(), new Date(`${day}T12:00:00`)).phase as PolicyContext["phaseId"]) || "unknown",
+        lipidPressure: lipidPressure(),
+        yesterdayMeat: (store.days[y]?.meat as MeatId | undefined) || null,
+        beefStreak: 0,
+        salmonStreak: 0,
+        rain: false,
+        temperatureF: null,
+        gymToday: gymTodayLabel(day),
+      };
+      return decideMeat(ctx).reasons.slice(0, 2).join(" ");
+    } catch {
+      return "";
+    }
+  })();
 
   return {
     day,
@@ -128,8 +206,13 @@ export function buildFoodOsPlan(day: string = todayKey()): FoodOsPlan {
     plate,
     proteinRemaining_g: proteinRemaining,
     caloriesRemaining,
-    note: meals.loggedIds.includes("breakfast_usual")
-      ? "Breakfast is logged. Build the next plate around the remaining protein."
-      : `Breakfast is not logged${breakfast ? ` (${breakfast.protein_g}g protein preset)` : ""}.`,
+    note: [
+      meals.loggedIds.includes("breakfast_usual")
+        ? "Breakfast is logged. Build the next plate around the remaining protein."
+        : `Breakfast is not logged${breakfast ? ` (${breakfast.protein_g}g protein preset)` : ""}.`,
+      policyNote,
+    ]
+      .filter(Boolean)
+      .join(" "),
   };
 }
