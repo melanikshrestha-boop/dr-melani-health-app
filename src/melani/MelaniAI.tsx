@@ -21,6 +21,30 @@ type Props = {
 
 const CHAT_KEY = "dr-melani-ai-chat-v1";
 const OPEN_KEY = "dr-melani-ai-open";
+// How big Mel's chat text is (you pick; we remember it)
+const TEXT_SIZE_KEY = "dr-melani-ai-text-size-v1";
+// S = a bit bigger than old default · M/L/XL step up for easy reading
+type TextSize = "s" | "m" | "l" | "xl";
+const TEXT_SIZES: TextSize[] = ["s", "m", "l", "xl"];
+
+function loadTextSize(): TextSize {
+  try {
+    const v = localStorage.getItem(TEXT_SIZE_KEY) as TextSize | null;
+    if (v && TEXT_SIZES.includes(v)) return v;
+  } catch {
+    /* ignore */
+  }
+  // Default larger so chat is easy to read without a click
+  return "l";
+}
+
+function saveTextSize(size: TextSize) {
+  try {
+    localStorage.setItem(TEXT_SIZE_KEY, size);
+  } catch {
+    /* ignore */
+  }
+}
 
 function loadMsgs(): Msg[] {
   try {
@@ -112,11 +136,22 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   const [msgs, setMsgs] = useState<Msg[]>(() => loadMsgs());
   const [input, setInput] = useState("");
   const [view, setView] = useState<"chat" | "overview">("chat");
+  // Chat text size: S M L XL — saved so it stays “to your liking”
+  const [textSize, setTextSize] = useState<TextSize>(() => loadTextSize());
   const [busy, setBusy] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
   const [localModelConnected, setLocalModelConnected] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Shrink / grow Mel text one step; remember choice
+  function changeTextSize(dir: -1 | 1) {
+    const i = TEXT_SIZES.indexOf(textSize);
+    const next = TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, Math.max(0, i + dir))];
+    if (!next || next === textSize) return;
+    setTextSize(next);
+    saveTextSize(next);
+  }
 
   useEffect(() => {
     try {
@@ -230,11 +265,36 @@ export function MelaniAI({ pageId, pageTitle }: Props) {
   return (
     <div className="mai-root">
       {open && (
-        <div className={`mai-panel${view === "overview" ? " is-overview" : ""}`} role="dialog" aria-label="Mel">
+        <div
+          className={`mai-panel${view === "overview" ? " is-overview" : ""} mai-size-${textSize}`}
+          role="dialog"
+          aria-label="Mel"
+        >
           <header className="mai-head">
             <p className="mai-title">
               Mel
             </p>
+            {/* Text size: A− smaller · A+ bigger (saved for next time) */}
+            <button
+              type="button"
+              className="mai-head-btn mai-size-btn"
+              onClick={() => changeTextSize(-1)}
+              disabled={textSize === "s"}
+              aria-label="Make Mel text smaller"
+              title="Smaller text"
+            >
+              A−
+            </button>
+            <button
+              type="button"
+              className="mai-head-btn mai-size-btn"
+              onClick={() => changeTextSize(1)}
+              disabled={textSize === "xl"}
+              aria-label="Make Mel text bigger"
+              title="Bigger text"
+            >
+              A+
+            </button>
             <button type="button" className={`mai-head-btn${view === "overview" ? " is-active" : ""}`} onClick={() => setView((current) => current === "overview" ? "chat" : "overview")}>
               Overview
             </button>
