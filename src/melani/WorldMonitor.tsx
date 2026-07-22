@@ -236,130 +236,442 @@ function rebuildChartClient(symbol: string, q: QuoteRow): PriceChart {
   };
 }
 
-/** SVG line chart for price history */
+/** Short date for axis ticks: "Jul 21" or "2025-03" */
+function fmtAxisDate(iso: string): string {
+  const d = Date.parse(iso);
+  if (!Number.isFinite(d)) return iso.slice(0, 7);
+  return new Date(d).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "2-digit",
+  });
+}
+
+/** Money for Y-axis: $248, $1.2B, etc. */
+function fmtAxisPrice(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  if (Math.abs(n) >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+  if (Math.abs(n) >= 1000) return `$${n.toFixed(0)}`;
+  return `$${n.toFixed(2)}`;
+}
+
+/**
+ * Price line chart with real axes (elementary stats: labeled X = date, Y = price USD).
+ * mode "spark" = tiny sparkline without full axes (table cells only).
+ */
 function PriceLineChart({
   points,
-  height = 120,
+  height = 160,
   upColor = "#5ecf9a",
   downColor = "#e8838a",
+  mode = "full",
+  yLabel = "Price (USD)",
+  xLabel = "Date",
 }: {
   points: ChartPoint[];
   height?: number;
   upColor?: string;
   downColor?: string;
+  mode?: "full" | "spark";
+  yLabel?: string;
+  xLabel?: string;
 }) {
   if (!points?.length || points.length < 2) {
     return <div className="wm-chart-empty">No price history yet</div>;
   }
-  const w = 320;
-  const h = height;
-  const pad = 8;
+
   const closes = points.map((p) => p.close);
   const min = Math.min(...closes);
   const max = Math.max(...closes);
   const span = max - min || 1;
-  const coords = points.map((p, i) => {
-    const x = pad + (i / (points.length - 1)) * (w - pad * 2);
-    const y = pad + (1 - (p.close - min) / span) * (h - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
   const up = points[points.length - 1].close >= points[0].close;
   const color = up ? upColor : downColor;
-  const area = `${coords.join(" ")} ${w - pad},${h - pad} ${pad},${h - pad}`;
+  const gradId = `g-${up ? "up" : "dn"}-${points[0].t}`;
+
+  // Sparkline: no axes (only used in dense tables)
+  if (mode === "spark") {
+    const w = 320;
+    const h = height;
+    const pad = 4;
+    const coords = points.map((p, i) => {
+      const x = pad + (i / (points.length - 1)) * (w - pad * 2);
+      const y = pad + (1 - (p.close - min) / span) * (h - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    return (
+      <svg
+        className="wm-svg-chart wm-svg-spark"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Price sparkline"
+      >
+        <polyline
+          points={coords.join(" ")}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  // Full chart with labeled axes
+  const w = 560;
+  const h = Math.max(height, 180);
+  const padL = 58; // room for Y price ticks + axis title
+  const padR = 16;
+  const padT = 16;
+  const padB = 42; // room for X date ticks + axis title
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const xAt = (i: number) => padL + (i / (points.length - 1)) * plotW;
+  const yAt = (price: number) => padT + (1 - (price - min) / span) * plotH;
+
+  const coords = points.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.close).toFixed(1)}`);
+  const area = `${coords.join(" ")} ${xAt(points.length - 1).toFixed(1)},${(
+    padT + plotH
+  ).toFixed(1)} ${padL.toFixed(1)},${(padT + plotH).toFixed(1)}`;
+
+  // 5 horizontal gridlines + Y ticks (min, 25%, 50%, 75%, max)
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+    const price = min + span * (1 - t); // t=0 at top = max
+    // Actually: t=0 → max price at top; t=1 → min at bottom
+    const priceVal = max - span * t;
+    return { t, price: priceVal, y: padT + t * plotH };
+  });
+
+  // X ticks: start, ~1/3, ~2/3, end
+  const xIdx = [
+    0,
+    Math.floor((points.length - 1) / 3),
+    Math.floor((2 * (points.length - 1)) / 3),
+    points.length - 1,
+  ];
+  const xTicks = [...new Set(xIdx)].map((i) => ({
+    i,
+    x: xAt(i),
+    label: fmtAxisDate(points[i].date),
+  }));
+
   return (
-    <svg
-      className="wm-svg-chart"
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      role="img"
-      aria-label="Price chart"
-    >
-      <defs>
-        <linearGradient id={`g-${up ? "up" : "dn"}-${points[0].t}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon
-        points={area}
-        fill={`url(#g-${up ? "up" : "dn"}-${points[0].t})`}
-      />
-      <polyline
-        points={coords.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className="wm-chart-frame">
+      <svg
+        className="wm-svg-chart wm-svg-axes"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`${yLabel} versus ${xLabel}`}
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Plot background */}
+        <rect
+          x={padL}
+          y={padT}
+          width={plotW}
+          height={plotH}
+          fill="rgba(255,255,255,0.02)"
+          rx="4"
+        />
+
+        {/* Horizontal grid + Y-axis price labels */}
+        {yTicks.map((tick) => (
+          <g key={`y-${tick.t}`}>
+            <line
+              x1={padL}
+              y1={tick.y}
+              x2={padL + plotW}
+              y2={tick.y}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1"
+            />
+            <line
+              x1={padL - 4}
+              y1={tick.y}
+              x2={padL}
+              y2={tick.y}
+              stroke="rgba(255,255,255,0.28)"
+              strokeWidth="1"
+            />
+            <text
+              x={padL - 8}
+              y={tick.y + 3.5}
+              textAnchor="end"
+              className="wm-axis-tick"
+              fill="rgba(255,255,255,0.55)"
+              fontSize="10"
+              fontFamily="Source Serif 4, Georgia, serif"
+            >
+              {fmtAxisPrice(tick.price)}
+            </text>
+          </g>
+        ))}
+
+        {/* Vertical grid at X ticks + date labels */}
+        {xTicks.map((tick) => (
+          <g key={`x-${tick.i}`}>
+            <line
+              x1={tick.x}
+              y1={padT}
+              x2={tick.x}
+              y2={padT + plotH}
+              stroke="rgba(255,255,255,0.05)"
+              strokeWidth="1"
+            />
+            <line
+              x1={tick.x}
+              y1={padT + plotH}
+              x2={tick.x}
+              y2={padT + plotH + 4}
+              stroke="rgba(255,255,255,0.28)"
+              strokeWidth="1"
+            />
+            <text
+              x={tick.x}
+              y={padT + plotH + 16}
+              textAnchor="middle"
+              className="wm-axis-tick"
+              fill="rgba(255,255,255,0.55)"
+              fontSize="10"
+              fontFamily="Source Serif 4, Georgia, serif"
+            >
+              {tick.label}
+            </text>
+          </g>
+        ))}
+
+        {/* Axes lines */}
+        <line
+          x1={padL}
+          y1={padT}
+          x2={padL}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="1.25"
+        />
+        <line
+          x1={padL}
+          y1={padT + plotH}
+          x2={padL + plotW}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="1.25"
+        />
+
+        {/* Series */}
+        <polygon points={area} fill={`url(#${gradId})`} />
+        <polyline
+          points={coords.join(" ")}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.25"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Y-axis title (rotated) */}
+        <text
+          x={14}
+          y={padT + plotH / 2}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="11"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+          transform={`rotate(-90 14 ${padT + plotH / 2})`}
+        >
+          {yLabel}
+        </text>
+
+        {/* X-axis title */}
+        <text
+          x={padL + plotW / 2}
+          y={h - 6}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="11"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+        >
+          {xLabel}
+        </text>
+      </svg>
+    </div>
   );
 }
 
-/** Vertical bar chart for quarterly revenue / earnings */
+/**
+ * Bar chart with labeled axes: Y = value ($), X = period (quarter end).
+ */
 function BarSeriesChart({
   series,
-  height = 100,
+  height = 160,
   color = "#a8c4f0",
   labelKey = "date",
   valueKey = "revenue",
+  yLabel = "Revenue (USD)",
+  xLabel = "Quarter end",
 }: {
   series: Array<Record<string, unknown>>;
   height?: number;
   color?: string;
   labelKey?: string;
   valueKey?: string;
+  yLabel?: string;
+  xLabel?: string;
 }) {
-  const vals = series
-    .map((s) => Number(s[valueKey]))
-    .filter((n) => Number.isFinite(n));
-  if (!vals.length) {
+  const rows = series
+    .map((s) => ({
+      label: String(s[labelKey] ?? "—"),
+      value: Number(s[valueKey]),
+    }))
+    .filter((r) => Number.isFinite(r.value));
+  if (!rows.length) {
     return <div className="wm-chart-empty">No quarterly bars yet</div>;
   }
-  const max = Math.max(...vals.map(Math.abs), 1);
-  const w = 320;
-  const h = height;
-  const pad = 10;
-  const barW = (w - pad * 2) / series.length - 4;
+
+  const max = Math.max(...rows.map((r) => Math.abs(r.value)), 1);
+  const w = 560;
+  const h = Math.max(height, 180);
+  const padL = 58;
+  const padR = 16;
+  const padT = 16;
+  const padB = 48;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+  const gap = 6;
+  const barW = Math.max(8, plotW / rows.length - gap);
+
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
+    const value = max * (1 - t);
+    return { t, value, y: padT + t * plotH };
+  });
+
   return (
-    <svg
-      className="wm-svg-chart"
-      viewBox={`0 0 ${w} ${h + 18}`}
-      preserveAspectRatio="none"
-      role="img"
-      aria-label="Quarterly bars"
-    >
-      {series.map((s, i) => {
-        const v = Number(s[valueKey]);
-        if (!Number.isFinite(v)) return null;
-        const bh = (Math.abs(v) / max) * (h - pad * 2);
-        const x = pad + i * ((w - pad * 2) / series.length) + 2;
-        const y = v >= 0 ? h - pad - bh : h / 2;
-        const label = String(s[labelKey] || "").slice(0, 7);
-        return (
-          <g key={`${label}-${i}`}>
-            <rect
-              x={x}
-              y={y}
-              width={Math.max(barW, 4)}
-              height={Math.max(bh, 1)}
-              rx="2"
-              fill={color}
-              opacity={0.85}
+    <div className="wm-chart-frame">
+      <svg
+        className="wm-svg-chart wm-svg-axes"
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`${yLabel} versus ${xLabel}`}
+      >
+        <rect
+          x={padL}
+          y={padT}
+          width={plotW}
+          height={plotH}
+          fill="rgba(255,255,255,0.02)"
+          rx="4"
+        />
+
+        {yTicks.map((tick) => (
+          <g key={`by-${tick.t}`}>
+            <line
+              x1={padL}
+              y1={tick.y}
+              x2={padL + plotW}
+              y2={tick.y}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1"
             />
             <text
-              x={x + barW / 2}
-              y={h + 12}
-              textAnchor="middle"
-              fontSize="8"
-              fill="rgba(255,255,255,0.35)"
+              x={padL - 8}
+              y={tick.y + 3.5}
+              textAnchor="end"
+              fill="rgba(255,255,255,0.55)"
+              fontSize="10"
+              fontFamily="Source Serif 4, Georgia, serif"
             >
-              {label}
+              {fmtAxisPrice(tick.value)}
             </text>
           </g>
-        );
-      })}
-    </svg>
+        ))}
+
+        {/* Axes */}
+        <line
+          x1={padL}
+          y1={padT}
+          x2={padL}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="1.25"
+        />
+        <line
+          x1={padL}
+          y1={padT + plotH}
+          x2={padL + plotW}
+          y2={padT + plotH}
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="1.25"
+        />
+
+        {rows.map((r, i) => {
+          const bh = (Math.abs(r.value) / max) * (plotH - 4);
+          const x = padL + i * (plotW / rows.length) + gap / 2;
+          const y = padT + plotH - bh;
+          const short =
+            r.label.length > 10 ? r.label.slice(0, 7) : fmtAxisDate(r.label);
+          return (
+            <g key={`${r.label}-${i}`}>
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={Math.max(bh, 1)}
+                rx="3"
+                fill={color}
+                opacity={0.88}
+              />
+              <text
+                x={x + barW / 2}
+                y={padT + plotH + 14}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.55)"
+                fontSize="9"
+                fontFamily="Source Serif 4, Georgia, serif"
+              >
+                {short}
+              </text>
+            </g>
+          );
+        })}
+
+        <text
+          x={14}
+          y={padT + plotH / 2}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="11"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+          transform={`rotate(-90 14 ${padT + plotH / 2})`}
+        >
+          {yLabel}
+        </text>
+        <text
+          x={padL + plotW / 2}
+          y={h - 6}
+          textAnchor="middle"
+          fill="rgba(255,255,255,0.7)"
+          fontSize="11"
+          fontFamily="Source Serif 4, Georgia, serif"
+          fontWeight="600"
+        >
+          {xLabel}
+        </text>
+      </svg>
+    </div>
   );
 }
 
@@ -698,7 +1010,12 @@ export function WorldMonitor() {
                       {fmtPct(focusChart?.changePct ?? null)} on chart window
                     </span>
                   </div>
-                  <PriceLineChart points={focusChart?.points || []} height={140} />
+                  <PriceLineChart
+                    points={focusChart?.points || []}
+                    height={180}
+                    yLabel="Price (USD)"
+                    xLabel="Date"
+                  />
                   <div className="wm-focus-meta">
                     <span>
                       High <b>{fmtNum(focusChart?.high, 2)}</b>
@@ -736,6 +1053,8 @@ export function WorldMonitor() {
                         }))}
                         color="#a8c4f0"
                         valueKey="revenue"
+                        yLabel="Revenue (USD)"
+                        xLabel="Quarter end"
                       />
                       <div className="wm-focus-meta">
                         <span>
@@ -807,7 +1126,11 @@ export function WorldMonitor() {
                               {fmtPct(q.regularMarketChangePercent)}
                             </td>
                             <td className="hide-sm wm-spark-cell">
-                              <PriceLineChart points={ch?.points || []} height={36} />
+                              <PriceLineChart
+                                points={ch?.points || []}
+                                height={36}
+                                mode="spark"
+                              />
                             </td>
                             <td className="num hide-sm">{fmtVol(q.volume)}</td>
                           </tr>
@@ -900,10 +1223,26 @@ export function WorldMonitor() {
                   </span>
                 </div>
               </div>
-              <PriceLineChart points={focusChart?.points || []} height={200} />
+              <PriceLineChart
+                points={focusChart?.points || []}
+                height={220}
+                yLabel="Price (USD)"
+                xLabel="Date"
+              />
               {focusChart?.error ? (
                 <p className="wm-empty-hint">{focusChart.error}</p>
               ) : null}
+              {focusChart?.source?.includes("rebuilt") ? (
+                <p className="wm-chart-note">
+                  Axes: Y = price in USD, X = date. Path rebuilt from live quote band
+                  while Yahoo history is rate-limited.
+                </p>
+              ) : (
+                <p className="wm-chart-note">
+                  Axes: <strong>Y = Price (USD)</strong>, <strong>X = Date</strong>. Grid
+                  lines mark equal price steps.
+                </p>
+              )}
             </div>
             <div className="wm-chart-grid">
               {WATCHLIST.map((sym) => {
@@ -922,7 +1261,12 @@ export function WorldMonitor() {
                         {fmtPct(ch?.changePct ?? q?.regularMarketChangePercent)}
                       </span>
                     </header>
-                    <PriceLineChart points={ch?.points || []} height={72} />
+                    <PriceLineChart
+                      points={ch?.points || []}
+                      height={160}
+                      yLabel="Price (USD)"
+                      xLabel="Date"
+                    />
                     <footer>
                       <span>{fmtMoney(ch?.last ?? q?.regularMarketPrice)}</span>
                       <span>
@@ -985,7 +1329,13 @@ export function WorldMonitor() {
                     ) : (
                       <>
                         <div className="wm-report-chart-wrap">
-                          <BarSeriesChart series={chartSeries} valueKey="revenue" color="#a8c4f0" />
+                          <BarSeriesChart
+                            series={chartSeries}
+                            valueKey="revenue"
+                            color="#a8c4f0"
+                            yLabel="Revenue (USD)"
+                            xLabel="Quarter end"
+                          />
                         </div>
                         <div className="wm-report-snap">
                           <div>
@@ -1037,6 +1387,8 @@ export function WorldMonitor() {
                               series={chartSeries}
                               valueKey="earnings"
                               color="#5ecf9a"
+                              yLabel="Net income (USD)"
+                              xLabel="Quarter end"
                             />
                           </div>
                         ) : null}

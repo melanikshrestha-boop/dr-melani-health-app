@@ -520,6 +520,41 @@
   display: block;
 }
 
+/* Full charts need room for axis labels (don't squash with preserveAspectRatio none) */
+.wm-chart-frame {
+  width: 100%;
+  min-height: 180px;
+}
+
+.wm-svg-axes {
+  width: 100%;
+  height: auto;
+  min-height: 180px;
+  display: block;
+  overflow: visible;
+}
+
+.wm-svg-spark {
+  min-height: 0;
+}
+
+.wm-chart-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.42);
+  font-family: var(--wm-font);
+}
+
+.wm-chart-note strong {
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 600;
+}
+
+.wm-axis-tick {
+  font-variant-numeric: tabular-nums;
+}
+
 .wm-sym-picker {
   display: flex;
   flex-wrap: wrap;

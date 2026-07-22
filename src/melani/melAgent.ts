@@ -51,7 +51,7 @@ import {
   fetch_stock_quarterly,
   trading_knowledge_brief,
 } from "./melTools";
-import { MEL_TRADING_KNOWLEDGE } from "./melTrading";
+import { MEL_TRADING_KNOWLEDGE, offlineTradingBrief } from "./melTrading";
 
 export type MelAgentMode = "offline-local" | "local-model" | "action" | "grok-connected" | "research";
 
@@ -760,88 +760,224 @@ function composeFromTools(toolResults: MelToolResult[], pageId?: string, pageTit
   return statusReply(asSnapshot(toolResults, pageId, pageTitle));
 }
 
-/** True when Mel should answer in one tick with no network (chat, mood, vibes). */
+/**
+ * Instant path = tiny social lines only (hi / thanks / mood).
+ * Never trap real questions, brainstorms, or "what's your name" in the dumb default.
+ */
 function isInstantChat(text: string): boolean {
   const t = text.trim();
-  if (!t || t.length > 160) return false;
-  // Real app work should never take the fast path
+  if (!t || t.length > 120) return false;
+
+  // Anything that needs a real brain stays off this path
   if (
-    /\b(log|logged|drink|drank|water|breakfast|brief|protein|gym|sleep|beef|salmon|meat|goal|pin|unpin|create|rename|delete|trash|move|open|wear|outfit|wardrobe|weather|research|look up|find out|status|macros?)\b/i.test(
+    /\b(idea|ideas|brainstorm|think of|help me|how (do|can|should)|why |what should|who are|what(?:'s| is|s) (?:your|ur) name|your name|who r u|who are you|explain|plan|build|startup|neuro|clinic|content|stream|invest|stock|trade|quarterly|options?|code|debug|fix|write|draft)\b/i.test(
       t
     )
   ) {
     return false;
   }
   if (
-    /^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup|howdy)([.!?,\s].*)?$/i.test(
+    /\b(log|logged|drink|drank|water|breakfast|brief|protein|gym|sleep|beef|salmon|meat|goal|pin|unpin|create|rename|delete|trash|move|open|wear|outfit|wardrobe|weather|research|look up|find out|status|macros?|quarterly)\b/i.test(
       t
     )
   ) {
+    return false;
+  }
+
+  // Pure greetings
+  if (/^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup|howdy)([.!?\s].*)?$/i.test(t)) {
     return true;
   }
-  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice|lol|lmao|haha+)[.!]*$/i.test(t)) {
+  // Pure ack
+  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice|lol|lmao|haha+|bet|facts|true)[.!]*$/i.test(t)) {
     return true;
   }
-  // Feelings / goofy days / vibes — human reply, zero tools
+  // Short mood lines only
   if (
-    /\b(feel|feeling|felt|mood|goofy|goffy|silly|tired|exhausted|happy|sad|anxious|stressed|bored|good|bad|meh|weird|off)\b/i.test(
-      t
-    )
+    t.split(/\s+/).length <= 10 &&
+    /\b(feel|feeling|felt|mood|goofy|goffy|silly|tired|exhausted|happy|sad|anxious|stressed|bored|meh|weird|off)\b/i.test(t) &&
+    !/\?$/.test(t)
   ) {
-    return true;
-  }
-  // Short pure chat with no imperative
-  if (t.split(/\s+/).length <= 8 && !/\b(can you|could you|please|make|add|set|show|give|tell me what)\b/i.test(t)) {
     return true;
   }
   return false;
 }
 
 function instantChatReply(text: string): string {
-  const low = text.trim().toLowerCase();
-  if (/^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup)([.!?,\s].*)?$/i.test(low)) {
+  const low = text.trim().toLowerCase().replace(/[’']/g, "'");
+
+  if (/^(hi|hey|yo+|hello|sup|what'?s up|whatsup|wassup|howdy)([.!?\s].*)?$/i.test(low)) {
     if (/\b(feel|feeling|goofy|goffy|silly|tired|weird|off|good|bad)\b/i.test(low)) {
-      // "whatsup i feel goffy today"
-      return "Goofy day accepted. Lean into it. Want food, outfit, or one tiny task so the day still moves?";
+      return "Goofy day accepted. Lean into it. Food, outfit, markets desk, or one tiny task?";
     }
-    return "Hey. What do you need done?";
+    return "Hey. Mel here. Food, markets, books, pages, or ideas, say it plain.";
   }
-  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice)[.!]*$/i.test(low)) {
+  if (/^(thanks|thank you|ty|thx|perfect|cool|okay|ok|k|nice|bet|facts)[.!]*$/i.test(low)) {
     return "Got you.";
   }
   if (/\b(goofy|goffy|silly)\b/i.test(low)) {
-    return "Goofy mode on. Keep it light. I can still lock dinner meat, log breakfast, or pick a stream outfit when you want.";
+    return "Goofy mode on. Still sharp if you need dinner, a page move, or a stock read.";
   }
   if (/\b(tired|exhausted|drained|sleepy)\b/i.test(low)) {
-    return "Noted. Protect sleep tonight. One easy win only if you want it: water, breakfast usual, or early bed.";
+    return "Protect sleep. One easy win if you want: water, breakfast usual, or early bed.";
   }
   if (/\b(anxious|stressed|overwhelmed|panic)\b/i.test(low)) {
-    return "Okay. Slow breath. We do one small thing, not the whole list. Say water, food, or a 10-minute task.";
+    return "Slow breath. One small thing only. Water, food, or a 10-minute task.";
   }
   if (/\b(happy|good|great|amazing|pumped)\b/i.test(low)) {
-    return "Love that. Channel it into one ship or one stream moment. What are we locking in?";
+    return "Good. Point that energy at one ship, one stream moment, or one clinic/neurotech move.";
   }
   if (/\b(sad|down|meh|bad|off|weird)\b/i.test(low)) {
-    return "I'm here. No command dump. Want company chatter, food, or one tiny reset?";
+    return "With you. Want chatter, food, or one tiny reset?";
   }
   if (/\b(feel|feeling|mood)\b/i.test(low)) {
-    return "Got the vibe. I'm with you. Ask for food, outfit, brief, or just keep talking.";
+    return "Got it. I'm Mel. Food, outfit, brief, markets, or keep talking.";
   }
   if (/^(lol|lmao|haha+)/i.test(low)) return "Haha. What's next?";
-  return "I'm here. Tell me what you need, or just keep talking.";
+  return "Mel here. What are we doing?";
+}
+
+/** Offline brainstorm packs for Melani's actual lanes */
+function brainstormIdeas(text: string): string {
+  const low = text.toLowerCase();
+  if (/\b(neuro|brain|eeg|device|wearable)\b/i.test(low)) {
+    return [
+      "Neurotech angles (pick one to pressure-test this week):",
+      "1. Early fatigue signal from HRV + sleep + simple cognitive tap test, doctor-readable weekly score.",
+      "2. Clinic intake that maps symptoms to a 1-page twin brief before the visit (you already have Twin bones).",
+      "3. Stream-safe demo: 60s live chart of a wearable proxy + plain-English explanation, no medical claims.",
+      "4. Patent-style wedge: continuous peripheral signal for early neuropathy screening (research path, not diagnosis).",
+      "5. Content loop: one case pattern → one protocol card → one Imprint quiz for med students.",
+      "",
+      "Next: say which number, or \"draft page Neurotech Ideas under Learn\".",
+    ].join("\n");
+  }
+  if (/\b(clinic|doctor|sf|nyc|la|practice)\b/i.test(low)) {
+    return [
+      "Clinic build ideas:",
+      "1. Concierge neuro-adjacent intake: 15 min async twin pack before every new patient.",
+      "2. SF flagship = R&D + content studio; NYC = high-volume second opinion; LA = performance/sports nervous system.",
+      "3. Productized follow-up: nightly body brief style check-ins patients actually open.",
+      "4. Referral moat: one killer PDF doctors forward (early-warning dashboard sample).",
+      "",
+      "Next: pick a city or say create a page called Clinic OS under Learn.",
+    ].join("\n");
+  }
+  if (/\b(content|stream|youtube|tiktok|post|influencer)\b/i.test(low)) {
+    return [
+      "Content / stream ideas:",
+      "1. Build-in-public: 10 min Melani ships one Wonder feature live (World Monitor, Imprint, Mel).",
+      "2. \"Doctor who codes\" series: one neuro paper → one product rule → one patient-safe takeaway.",
+      "3. Markets desk stream: walk AAPL quarterly bars + how-to playbook, no fake tips.",
+      "4. Bookshelf haul: Want tab legal finds + Imprint quiz on camera.",
+      "5. Day-in-the-life OS: food OS beef/salmon + gym + brief, all inside Wonder.",
+      "",
+      "Next: pick a format and I'll outline the first episode.",
+    ].join("\n");
+  }
+  if (/\b(stock|market|trade|option|invest)\b/i.test(low)) {
+    return [
+      "Markets desk ideas (process, not advice):",
+      "1. One-ticker deep dive: thesis, catalyst, invalidation, size, using World Monitor charts + SEC quarters.",
+      "2. Earnings checklist card Mel can spit on demand (rev YoY, margins, guide, multiple).",
+      "3. Options sandbox: defined-risk structures only, IV crush note after prints.",
+      "4. Watchlist ritual: 8 names, 5 minutes, log one observation to a page.",
+      "",
+      "Open World Monitor or say \"NVDA quarterly\".",
+    ].join("\n");
+  }
+  if (/\b(app|product|feature|wonder|startup|saas)\b/i.test(low)) {
+    return [
+      "Wonder product ideas:",
+      "1. Mel \"morning stack\": water + meat + top 3 tasks + one market flag in one message.",
+      "2. Imprint → Mel quiz loop after every finished chapter.",
+      "3. Digital twin doctor pack export as one PDF button.",
+      "4. Fashion OS + weather: stream outfit locked from wardrobe + NYC default weather.",
+      "5. Decision-fatigue kill: tonight's food + tomorrow's gym pre-chosen at 8pm.",
+      "",
+      "Next: pick a number and I'll spec the UI in plain English.",
+    ].join("\n");
+  }
+  // Default: Melani-shaped idea spray
+  return [
+    "Ideas for you right now (Melani lanes):",
+    "1. Neurotech: early-warning score from sleep + HRV + simple reaction test, doctor-readable.",
+    "2. Clinics: SF/NYC/LA playbook page with intake twin pack as the product wedge.",
+    "3. Wonder: Mel morning stack (food + tasks + one market note) in one tap.",
+    "4. Content: build-in-public World Monitor earnings read, 8 minutes, serif UI on camera.",
+    "5. Books: Want → legal find → Imprint quiz pipeline as a weekly series.",
+    "6. Markets: one-name process card (thesis / catalyst / kill switch) stored under Learn.",
+    "",
+    "Say a number for a deeper plan, or name a domain: neuro, clinic, content, markets, product.",
+  ].join("\n");
 }
 
 function localChat(text: string, pageId?: string, pageTitle?: string): string {
-  const low = text.trim().toLowerCase();
-  if (isInstantChat(text)) return instantChatReply(text);
-  // Explicit status asks only (not the word "today" in casual chat)
+  const raw = text.trim();
+  const low = raw.toLowerCase().replace(/[’']/g, "'");
+
+  if (isInstantChat(raw)) return instantChatReply(raw);
+
+  // Identity
+  if (
+    /\b(what(?:'s| is|s) (?:your|ur) name|who are you|who r u|your name|ur name|what are you)\b/i.test(low)
+  ) {
+    return "I'm Mel, your operator inside Wonder. Not a chatbot menu. I run food, markets, books, pages, and ideas with you. What do you want done?";
+  }
+  if (/\b(who am i|what(?:'s| is) my name)\b/i.test(low)) {
+    return "You're Melani: doctor-in-training, inventor, builder. Clinics in your sights, neurotech as the long game, Wonder as the OS. What are we shipping?";
+  }
+
+  // Brainstorm / ideas
+  if (
+    /\b(idea|ideas|brainstorm|think of|help me think|inspire|what should i (build|make|do|post|ship))\b/i.test(low)
+  ) {
+    return brainstormIdeas(raw);
+  }
+
+  // Markets education offline
+  if (/\b(options? 101|trading desk|how (do|to) (trade|read) (charts?|earnings|quarterly))\b/i.test(low)) {
+    return offlineTradingBrief(raw);
+  }
+
+  // Status
   if (
     /^(status|how am i doing|macros?|protein|water|sleep|phase|cycle)\b/i.test(low)
     || /\b(show|give me|what(?:'s| is) my)\s+(status|macros?|protein|water|sleep)\b/i.test(low)
   ) {
     return statusReply(asSnapshot([], pageId, pageTitle));
   }
-  return "Tell me the outcome in one line, like: log breakfast, what meat, brief, or create a page called Research.";
+
+  // Page-aware nudge
+  if (pageTitle) {
+    if (/world monitor|market/i.test(pageTitle)) {
+      return `You're on ${pageTitle}. I can pull quarterly packs (\"NVDA quarterly\"), explain a chart, or brainstorm a trade process. What do you want?`;
+    }
+    if (/bookshelf|library|book/i.test(pageTitle)) {
+      return `You're on ${pageTitle}. Want list find, open a book, or Imprint a chapter. What title or task?`;
+    }
+  }
+
+  // Questions get a real answer, not the command dump
+  if (/\?$/.test(raw) || /^(what|why|how|when|where|who|which|can|could|should|do you|are you)\b/i.test(low)) {
+    return [
+      "Straight answer: I'm Mel, online inside Wonder, built to run your life OS not recite menus.",
+      "I can: log food/water/sleep, write your body brief, move pages, pull stock quarterlies, file books you Want, brainstorm neurotech/clinic/content, undo workspace moves.",
+      "",
+      "Ask me like a human. Examples: \"ideas for neurotech\", \"NVDA quarterly\", \"brief\", \"move Bookshelf under Learn\".",
+    ].join("\n");
+  }
+
+  // Last resort: still useful, not lobotomized
+  return [
+    "I'm Mel. I didn't map that to a tool yet, so here's how to drive me:",
+    "• Life: brief, status, drank 1L, what meat, ate beef",
+    "• Build: create a page called X under Learn, move Y under Bookshelf",
+    "• Markets: NVDA quarterly, options 101, trading desk",
+    "• Ideas: help me think of ideas (or neuro / clinic / content / product)",
+    "",
+    "Or rephrase in one clear line and I'll execute.",
+  ].join("\n");
 }
 
 function localComposer(text: string, toolResults: MelToolResult[], pageId?: string, pageTitle?: string): string {
